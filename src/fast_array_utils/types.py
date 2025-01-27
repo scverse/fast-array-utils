@@ -15,4 +15,5 @@ if TYPE_CHECKING:
     _SCT_co = TypeVar("_SCT_co", covariant=True, bound=np.generic)
 
     CSMatrix: TypeAlias = csr_matrix[Any, np.dtype[_SCT_co]] | csc_matrix[Any, np.dtype[_SCT_co]]
-    CSBase: TypeAlias = csr_array[Any, np.dtype[_SCT_co]] | csc_array[Any, np.dtype[_SCT_co]]
+    CSArray: TypeAlias = csr_array[Any, np.dtype[_SCT_co]] | csc_array[Any, np.dtype[_SCT_co]]
+    CSBase: TypeAlias = CSMatrix[_SCT_co] | CSArray[_SCT_co]
