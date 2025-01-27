@@ -48,6 +48,10 @@ scripts.clean = "git clean -fdX docs"
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
 extra-dependencies = [ "ipykernel" ]
+overrides.matrix.extras.dependencies = [
+  { if = [ "full" ], value = "dask" },
+  { if = [ "full" ], value = "h5py" },
+]
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "sparse" },
 ]
@@ -66,6 +70,7 @@ lint.ignore = [
   "D203",    # prefer 0 to 1 blank line before class members
   "D213",    # prefer docstring summary on first line
   "FIX002",  # “TODO” comments
+  "N812",    # lowercase imports are fine
   "PLR0913", # having many (kw)args is fine
   "Q",       # handled by formatter
   "S101",    # asserts are fine
