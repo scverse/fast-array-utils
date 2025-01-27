@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 from collections.abc import Callable, Iterable
 from typing import Literal, SupportsIndex, TypeAlias, TypeVar, overload
 

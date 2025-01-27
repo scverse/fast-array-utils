@@ -1,4 +1,5 @@
-# https://numba.readthedocs.io/en/stable/reference/types.html#numba-types
+# SPDX-License-Identifier: MPL-2.0
+# See <https://numba.readthedocs.io/en/stable/reference/types.html#numba-types>
 
 class Type: ...
 class boolean(Type): ...

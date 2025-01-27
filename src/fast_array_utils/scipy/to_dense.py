@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
+"""Convert sparse matrices/arrays to dense."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

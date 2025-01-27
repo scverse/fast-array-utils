@@ -1,6 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from collections.abc import Callable
 from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
@@ -12,9 +12,10 @@ from fast_array_utils.scipy.to_dense import to_dense
 
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from collections.abc import Callable
+    from typing import Any, Literal
 
-    from numpy.typing import ArrayLike
+    from numpy.typing import NDArray
 
     from fast_array_utils.types import CSBase
 
@@ -26,7 +27,7 @@ pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not insta
 @pytest.mark.parametrize("format_", [sp.csr_array, sp.csc_array, sp.csr_matrix, sp.csc_matrix])
 def test_to_dense(
     order: Literal["C", "F"],
-    format_: Callable[[ArrayLike], CSBase],
+    format_: Callable[[NDArray[Any]], CSBase[Any]],
 ) -> None:
     rng = np.random.default_rng()
     mat = format_(rng.random((10, 10)))
