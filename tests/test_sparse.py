@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
-from scipy import sparse as sp
 
 from fast_array_utils.scipy.to_dense import to_dense
 
@@ -20,17 +19,28 @@ if TYPE_CHECKING:
     from fast_array_utils.types import CSBase
 
 
-pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")]
+skip_if_no_scipy = pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        pytest.param("csr_array", marks=skip_if_no_scipy),
+        pytest.param("csc_array", marks=skip_if_no_scipy),
+        pytest.param("csr_matrix", marks=skip_if_no_scipy),
+        pytest.param("csc_matrix", marks=skip_if_no_scipy),
+    ],
+)
+def sp_cls(request: pytest.FixtureRequest) -> Callable[[NDArray[Any]], CSBase[Any]]:
+    from scipy import sparse
+
+    return getattr(sparse, request.param)
 
 
 @pytest.mark.parametrize("order", ["C", "F"])
-@pytest.mark.parametrize("format_", [sp.csr_array, sp.csc_array, sp.csr_matrix, sp.csc_matrix])
-def test_to_dense(
-    order: Literal["C", "F"],
-    format_: Callable[[NDArray[Any]], CSBase[Any]],
-) -> None:
+def test_to_dense(order: Literal["C", "F"], sp_cls: Callable[[NDArray[Any]], CSBase[Any]]) -> None:
     rng = np.random.default_rng()
-    mat = format_(rng.random((10, 10)))
+    mat = sp_cls(rng.random((10, 10)))
     arr = to_dense(mat, order=order)
     assert arr.flags[order]
     np.testing.assert_equal(arr, mat.toarray(order=order))
