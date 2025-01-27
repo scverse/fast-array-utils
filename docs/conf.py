@@ -49,10 +49,7 @@ intersphinx_mapping = dict(
     python=("https://docs.python.org/3", None),
     scipy=("https://docs.scipy.org/doc/scipy/", None),
 )
-nitpick_ignore = {
-    ("py:class", "DT_co"),
-    ("py:class", "fast_array_utils.types.T_co"),
-}
+# Try overriding type paths
 qualname_overrides = autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
     "CSBase": "scipy.sparse.spmatrix",
@@ -61,6 +58,14 @@ qualname_overrides = autodoc_type_aliases = {
     "DaskArray": "dask.array.Array",
     "H5Dataset": "h5py.Dataset",
     "NDArray": "numpy.typing.NDArray",
+}
+# If that doesn’t work, ignore them
+nitpick_ignore = {
+    ("py:class", "DT_co"),
+    ("py:class", "fast_array_utils.types.T_co"),
+    # sphinx bugs, should be covered by `autodoc_type_aliases` below
+    ("py:class", "ArrayLike"),
+    ("py:class", "NDArray"),
 }
 
 # Options for HTML output
