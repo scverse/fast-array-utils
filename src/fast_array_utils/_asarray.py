@@ -14,33 +14,44 @@ if TYPE_CHECKING:
 
     from numpy.typing import ArrayLike, NDArray
 
-    _DType_co = TypeVar("_DType_co", covariant=True, bound=np.generic)
+    DT_co = TypeVar("DT_co", covariant=True, bound=np.generic)
 
 
-__all__ = ["asarray"]
+__all__ = ["OutOfCoreDataset", "asarray"]
 
 
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
-def asarray(x: ArrayLike | CSBase[_DType_co] | OutOfCoreDataset[_DType_co]) -> NDArray[_DType_co]:
-    """Convert x to a numpy array."""
+def asarray(x: ArrayLike | CSBase[DT_co] | OutOfCoreDataset[DT_co]) -> NDArray[DT_co]:
+    """Convert x to a numpy array.
+
+    Parameters
+    ----------
+    x
+        Input object to be converted.
+
+    Returns
+    -------
+    Numpy array form of ``x``
+
+    """
     return np.asarray(x)
 
 
 @asarray.register(CSBase)  # type: ignore[call-overload,misc]
-def _(x: CSBase[_DType_co]) -> NDArray[_DType_co]:
+def _(x: CSBase[DT_co]) -> NDArray[DT_co]:
     from .scipy import to_dense
 
     return to_dense(x)
 
 
 @asarray.register(DaskArray)
-def _(x: DaskArray[_DType_co]) -> NDArray[_DType_co]:
+def _(x: DaskArray[DT_co]) -> NDArray[DT_co]:
     return asarray(x.compute())
 
 
 @asarray.register(OutOfCoreDataset)
-def _(x: OutOfCoreDataset[CSBase[_DType_co] | NDArray[_DType_co]]) -> NDArray[_DType_co]:
+def _(x: OutOfCoreDataset[CSBase[DT_co] | NDArray[DT_co]]) -> NDArray[DT_co]:
     return asarray(x.to_memory())
 
 

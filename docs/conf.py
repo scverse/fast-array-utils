@@ -28,36 +28,45 @@ master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 extensions = [
-    "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx_autodoc_typehints",
-    "scanpydoc",
+    "scanpydoc.elegant_typehints",
 ]
 
 #  API documentation when building
+nitpicky = True
 autosummary_generate = True
 autodoc_member_order = "bysource"
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_rtype = True  # having a separate entry generally helps readability
-napoleon_use_param = True
 todo_include_todos = False
-
 intersphinx_mapping = dict(
-    numpy=("https://docs.scipy.org/doc/numpy/", None),
+    cupy=("https://docs.cupy.dev/en/stable/", None),
+    dask=("https://docs.dask.org/en/stable/", None),
+    h5py=("https://docs.h5py.org/en/stable/", None),
+    numpy=("https://numpy.org/doc/stable/", None),
     python=("https://docs.python.org/3", None),
-    scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
+    scipy=("https://docs.scipy.org/doc/scipy/", None),
 )
+nitpick_ignore = {
+    ("py:class", "DT_co"),
+    ("py:class", "fast_array_utils.types.T_co"),
+}
+qualname_overrides = autodoc_type_aliases = {
+    "ArrayLike": "numpy.typing.ArrayLike",
+    "CSBase": "scipy.sparse.spmatrix",
+    "CupyArray": "cupy.ndarray",
+    "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+    "DaskArray": "dask.array.Array",
+    "H5Dataset": "h5py.Dataset",
+    "NDArray": "numpy.typing.NDArray",
+}
 
 # Options for HTML output
 html_theme = "furo"
-html_theme_options = dict(collapse_navigation=True)
-html_context = dict(
-    display_github=True,
-    github_user="theislab",
-    github_repo="anndata2ri",
-    github_version="main",
-    conf_py_path="/docs/",
+html_theme_options = dict(
+    source_repository="https://github.com/scverse/fast-array-utils/",
+    source_branch="main",
+    source_directory="docs/",
 )
