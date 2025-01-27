@@ -24,7 +24,7 @@ classifiers = [
 ]
 dynamic = [ "description", "version" ]
 dependencies = [ "numba", "numpy" ]
-optional-dependencies.doc = [ "scanpydoc", "sphinx>=8" ]
+optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
 optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
 optional-dependencies.test = [ "pytest" ]
 urls.'Documentation' = "https://icb-anndata2ri.readthedocs-hosted.com/"

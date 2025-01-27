@@ -13,7 +13,10 @@ if TYPE_CHECKING:
     import numpy as np
 
 
+__all__ = ["CSBase", "CupyArray", "CupySparseMatrix", "DaskArray", "H5Dataset", "OutOfCoreDataset"]
+
 T_co = TypeVar("T_co", covariant=True)
+
 
 # scipy sparse
 if TYPE_CHECKING:

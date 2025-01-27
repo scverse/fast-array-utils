@@ -14,15 +14,28 @@ if TYPE_CHECKING:
 
     from ..types import CSBase
 
-    DType = TypeVar("DType", bound=np.generic)
-    DType_I = TypeVar("DType_I", bound=np.generic)
+    DT_co = TypeVar("DT_co", bound=np.generic, covariant=True)
+    DT = TypeVar("DT", bound=np.generic)
 
 
 __all__ = ["to_dense"]
 
 
-def to_dense(x: CSBase[DType], order: Literal["C", "F"] = "C") -> NDArray[DType]:
-    """Numba kernel for np.toarray() function."""
+def to_dense(x: CSBase[DT_co], order: Literal["C", "F"] = "C") -> NDArray[DT_co]:
+    """Convert a compressed sparse matrix to a dense matrix.
+
+    Parameters
+    ----------
+    x
+        Input matrix.
+    order
+        The order of the output matrix.
+
+    Returns
+    -------
+    Dense matrix form of ``x``
+
+    """
     out = np.zeros(x.shape, dtype=x.dtype, order=order)
     if x.format == "csr":
         _to_dense_csr_numba(x.indptr, x.indices, x.data, out)
@@ -35,10 +48,10 @@ def to_dense(x: CSBase[DType], order: Literal["C", "F"] = "C") -> NDArray[DType]
 
 @numba.njit(cache=True)
 def _to_dense_csc_numba(
-    indptr: NDArray[DType_I],
-    indices: NDArray[DType_I],
-    data: NDArray[DType],
-    x: NDArray[DType],
+    indptr: NDArray[DT],
+    indices: NDArray[DT],
+    data: NDArray[DT_co],
+    x: NDArray[DT_co],
 ) -> None:
     for c in numba.prange(x.shape[1]):
         for i in range(indptr[c], indptr[c + 1]):
@@ -47,10 +60,10 @@ def _to_dense_csc_numba(
 
 @numba.njit(cache=True)
 def _to_dense_csr_numba(
-    indptr: NDArray[DType_I],
-    indices: NDArray[DType_I],
-    data: NDArray[DType],
-    x: NDArray[DType],
+    indptr: NDArray[DT],
+    indices: NDArray[DT],
+    data: NDArray[DT_co],
+    x: NDArray[DT_co],
 ) -> None:
     for r in numba.prange(x.shape[0]):
         for i in range(indptr[r], indptr[r + 1]):
