@@ -28,3 +28,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - pytest
+          - numba
+          - numpy
+          - scipy
+          - types-scipy-sparse

@@ -23,23 +23,15 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dynamic = [ "description", "version" ]
-dependencies = ["numba", "numpy"]
-
-optional-dependencies.dev = [ "pre-commit", "setuptools-scm" ]
-optional-dependencies.doc = [
-  "lxml",                       # For scraping the R link info
-  "scanpydoc[theme,typehints]",
-  "sphinx>=3",
-]
-optional-dependencies.test = [
-  "pygments",
-  "pytest",
-  "pytest-faulthandler",
-  "scanpy",
-]
+dependencies = [ "numba", "numpy" ]
+optional-dependencies.doc = [ "scanpydoc", "sphinx>=8" ]
+optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
+optional-dependencies.test = [ "pytest" ]
 urls.'Documentation' = "https://icb-anndata2ri.readthedocs-hosted.com/"
 urls.'Issue Tracker' = "https://github.com/theislab/anndata2ri/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"
 urls.'Source Code' = "https://github.com/theislab/anndata2ri"
+
+[tool.hatch.metadata.hooks.docstring-description]
 
 [tool.hatch.version]
 source = "vcs"
@@ -50,12 +42,19 @@ installer = "uv"
 
 [tool.hatch.envs.docs]
 features = [ "doc" ]
-[tool.hatch.envs.docs.scripts]
-build = "sphinx-build -M html docs docs/_build"
+scripts.build = "sphinx-build -M html docs docs/_build"
+scripts.clean = "git clean -fdX docs"
 
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
 extra-dependencies = [ "ipykernel" ]
+overrides.matrix.extras.features = [
+  { if = [ "full" ], value = "sparse" },
+]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = [ "3.10", "3.11", "3.12", "3.13" ]
+extras = [ "min", "full" ]
 
 [tool.ruff]
 line-length = 100
@@ -69,8 +68,10 @@ lint.ignore = [
   "PLR0913", # having many (kw)args is fine
   "Q",       # handled by formatter
   "S101",    # asserts are fine
+  "TID252",  # relative imports are fine
 ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ] # No __init__.py in docs
+lint.per-file-ignores."stubs/**/*.pyi" = [ "F403", "F405", "N801" ] # Stubs don’t follow name conventions
 lint.per-file-ignores."tests/**/test_*.py" = [
   "D100",    # tests need no module docstrings
   "D103",    # tests need no function docstrings
@@ -80,6 +81,8 @@ lint.per-file-ignores."tests/**/test_*.py" = [
 ]
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
+lint.flake8-type-checking.exempt-modules = [  ]
+lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
 lint.isort.required-imports = [ "from __future__ import annotations" ]
@@ -89,9 +92,15 @@ addopts = [
   "--import-mode=importlib",
   "-Werror",
   "--strict-markers",
+  "--pyargs",
 ]
+xfail_strict = true
 
 [tool.mypy]
 strict = true
 explicit_package_bases = true
-mypy_path = "src"
+mypy_path = [ "$MYPY_CONFIG_FILE_DIR/stubs", "$MYPY_CONFIG_FILE_DIR/src" ]
+
+[tool.pyright]
+stubPath = "./stubs"
+reportPrivateUsage = false
