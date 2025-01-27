@@ -52,7 +52,7 @@ intersphinx_mapping = dict(
 )
 
 # Options for HTML output
-html_theme = "scanpydoc"
+html_theme = "furo"
 html_theme_options = dict(collapse_navigation=True)
 html_context = dict(
     display_github=True,

@@ -42,24 +42,24 @@ def array_cls(request: pytest.FixtureRequest) -> Callable[[ArrayLike], NDArray[A
         case "numpy", "ndarray":
             return np.asarray
         case "scipy", "sparse", ("csr_array" | "csc_array" | "csr_matrix" | "csc_matrix") as n:
-            from scipy import sparse
+            import scipy.sparse
 
-            return getattr(sparse, n)  # type: ignore[no-any-return]
+            return getattr(scipy.sparse, n)  # type: ignore[no-any-return]
         case "dask", "array", "Array":
             import dask.array as da
 
-            return da.asarray
+            return da.asarray  # type: ignore[no-any-return]
         case "h5py", "Dataset":
             msg = "TODO: test h5py.Dataset"
             raise NotImplementedError(msg)
         case "cupy", "ndarray":
             import cupy
 
-            return cupy.asarray
+            return cupy.asarray  # type: ignore[no-any-return]
         case "cupyx", "scipy", "sparse", ("csr_matrix" | "csc_matrix") as n:
-            from cupyx.scipy import sparse
+            import cupyx.scipy.sparse
 
-            return getattr(sparse, n)  # type: ignore[no-any-return]
+            return getattr(cupyx.scipy.sparse, n)  # type: ignore[no-any-return]
         case _:
             msg = f"Unknown array type: {qualname}"
             raise AssertionError(msg)
@@ -67,6 +67,6 @@ def array_cls(request: pytest.FixtureRequest) -> Callable[[ArrayLike], NDArray[A
 
 def test_asarray(array_cls: Callable[[ArrayLike], Any]) -> None:
     x = array_cls([[1, 2, 3], [4, 5, 6]])
-    arr = asarray(x)
+    arr: NDArray[Any] = asarray(x)
     assert isinstance(arr, np.ndarray)
     assert arr.shape == (2, 3)
