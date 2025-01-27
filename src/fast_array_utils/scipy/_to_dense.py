@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     DType_I = TypeVar("DType_I", bound=np.generic)
 
 
+__all__ = ["to_dense"]
+
+
 def to_dense(x: CSBase[DType], order: Literal["C", "F"] = "C") -> NDArray[DType]:
     """Numba kernel for np.toarray() function."""
     out = np.zeros(x.shape, dtype=x.dtype, order=order)
