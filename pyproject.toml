@@ -92,9 +92,13 @@ lint.isort.required-imports = [ "from __future__ import annotations" ]
 [tool.pytest.ini_options]
 addopts = [
   "--import-mode=importlib",
-  "-Werror",
   "--strict-markers",
   "--pyargs",
+]
+filterwarnings = [
+  "error",
+  # codspeed seems to break this dtype added by h5py
+  "ignore:numpy.longdouble:UserWarning",
 ]
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
