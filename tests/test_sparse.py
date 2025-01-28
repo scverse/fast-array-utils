@@ -55,3 +55,8 @@ def test_to_dense(order: Literal["C", "F"], sp_mat: CSBase[np.float64]) -> None:
     assert arr.flags[order]
     assert arr.dtype == sp_mat.dtype
     np.testing.assert_equal(arr, sp_mat.toarray(order=order))
+
+
+@pytest.mark.benchmark
+def test_to_dense_benchmark(order: Literal["C", "F"], sp_mat: CSBase[np.float64]) -> None:
+    to_dense(sp_mat, order=order)

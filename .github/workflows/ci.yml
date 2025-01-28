@@ -29,7 +29,7 @@ jobs:
           cache-dependency-glob: pyproject.toml
       - run: uv pip install --system -e .[test${{ matrix.extras == 'full' && ',full' || '' }}]
       - run: |
-          coverage run -m pytest
+          coverage run -m pytest -m "not benchmark"
           coverage xml
           coverage report
       - uses: codecov/codecov-action@v5
@@ -37,6 +37,10 @@ jobs:
           fail_ci_if_error: true
           files: test-data/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: CodSpeedHQ/action@v3
+        with:
+          run: pytest -m benchmark --codspeed
+          token: ${{ secrets.CODSPEED_TOKEN }}
   check:
     runs-on: ubuntu-latest
     strategy:
