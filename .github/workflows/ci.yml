@@ -47,5 +47,4 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: uv pip install --system -e .[test,full]
-      - run: uvx pre-commit run --all-files mypy
+      - uses: pre-commit/action@v3.0.1
