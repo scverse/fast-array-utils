@@ -58,5 +58,6 @@ def test_to_dense(order: Literal["C", "F"], sp_mat: CSBase[np.float64]) -> None:
 
 
 @pytest.mark.benchmark
+@pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense_benchmark(order: Literal["C", "F"], sp_mat: CSBase[np.float64]) -> None:
     to_dense(sp_mat, order=order)
