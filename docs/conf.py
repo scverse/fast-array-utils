@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -18,7 +18,7 @@ HERE = Path(__file__).parent
 project = "fast-array-utils"
 meta = metadata(project)
 author = meta["author-email"].split('"')[1]
-copyright = f"{datetime.now(tz=timezone.utc):%Y}, {author}."  # noqa: A001
+copyright = f"{datetime.now(tz=UTC):%Y}, {author}."  # noqa: A001
 version = meta["version"]
 release = version
 
