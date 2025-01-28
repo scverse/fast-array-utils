@@ -1,6 +1,6 @@
 # https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python tests & checks
+name: Python
 
 on:
   push:
@@ -12,11 +12,11 @@ env:
   FORCE_COLOR: "1"
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.11", "3.13"]
         extras: [min, full]
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
