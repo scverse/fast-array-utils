@@ -27,7 +27,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
-      - run: uv pip install --system -e .[test]
+      - run: uv pip install --system -e .[test${{ matrix.extras == 'full' && ',full' || '' }}]
       - run: |
           coverage run -m pytest
           coverage xml

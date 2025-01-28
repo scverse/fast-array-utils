@@ -25,6 +25,7 @@ classifiers = [
 dynamic = [ "description", "version" ]
 dependencies = [ "numba", "numpy" ]
 optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
+optional-dependencies.full = [ "hatch-docstring-description[sparse]", "dask", "h5py" ]
 optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
 optional-dependencies.test = [ "pytest" ]
 urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
@@ -48,12 +49,8 @@ scripts.clean = "git clean -fdX docs"
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
 extra-dependencies = [ "ipykernel" ]
-overrides.matrix.extras.dependencies = [
-  { if = [ "full" ], value = "dask" },
-  { if = [ "full" ], value = "h5py" },
-]
 overrides.matrix.extras.features = [
-  { if = [ "full" ], value = "sparse" },
+  { if = [ "full" ], value = "full" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
