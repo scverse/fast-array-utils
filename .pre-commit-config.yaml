@@ -32,3 +32,5 @@ repos:
           - numpy
           - scipy
           - types-scipy-sparse
+ci:
+  skip: [mypy]  # too big

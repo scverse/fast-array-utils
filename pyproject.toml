@@ -9,13 +9,12 @@ license = "MPL-2.0"
 authors = [
   { name = "Philipp A.", email = "flying-sheep@web.de" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -25,11 +24,12 @@ classifiers = [
 dynamic = [ "description", "version" ]
 dependencies = [ "numba", "numpy" ]
 optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
+optional-dependencies.full = [ "dask", "h5py", "hatch-docstring-description[sparse]" ]
 optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
-optional-dependencies.test = [ "pytest" ]
-urls.'Documentation' = "https://icb-anndata2ri.readthedocs-hosted.com/"
-urls.'Issue Tracker' = "https://github.com/theislab/anndata2ri/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"
-urls.'Source Code' = "https://github.com/theislab/anndata2ri"
+optional-dependencies.test = [ "coverage[toml]", "pytest" ]
+urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
+urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
+urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
 
 [tool.hatch.metadata.hooks.docstring-description]
 
@@ -48,16 +48,12 @@ scripts.clean = "git clean -fdX docs"
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
 extra-dependencies = [ "ipykernel" ]
-overrides.matrix.extras.dependencies = [
-  { if = [ "full" ], value = "dask" },
-  { if = [ "full" ], value = "h5py" },
-]
 overrides.matrix.extras.features = [
-  { if = [ "full" ], value = "sparse" },
+  { if = [ "full" ], value = "full" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.10", "3.11", "3.12", "3.13" ]
+python = [ "3.11", "3.12", "3.13" ]
 extras = [ "min", "full" ]
 
 [tool.ruff]
@@ -101,6 +97,13 @@ addopts = [
   "--pyargs",
 ]
 xfail_strict = true
+
+[tool.coverage]
+run.data_file = "test-data/coverage"
+xml.output = "test-data/coverage.xml"
+html.directory = "test-data/htmlcov"
+run.omit = [ "src/testing/*", "tests/*" ]
+report.exclude_also = [ "if TYPE_CHECKING:" ]
 
 [tool.mypy]
 strict = true

@@ -11,14 +11,35 @@ from fast_array_utils._asarray import asarray
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator
     from typing import Any
 
     from numpy.typing import ArrayLike, NDArray
 
+    from fast_array_utils import types
+
 
 def skip_if_no(dist: str) -> pytest.MarkDecorator:
     return pytest.mark.skipif(not find_spec(dist), reason=f"{dist} not installed")
+
+
+@pytest.fixture(scope="session")
+# worker_id for xdist since we don't want to override open files
+def to_h5py_dataset(
+    tmp_path_factory: pytest.TempPathFactory, worker_id: str = "serial"
+) -> Generator[Callable[[ArrayLike], types.H5Dataset], None, None]:
+    import h5py
+
+    tmp_path = tmp_path_factory.mktemp("backed_adata")
+    tmp_path = tmp_path / f"test_{worker_id}.h5ad"
+
+    with h5py.File(tmp_path, "x") as f:
+
+        def to_h5py_dataset(x: ArrayLike) -> types.H5Dataset:
+            arr = np.asarray(x)
+            return f.create_dataset("data", arr.shape, arr.dtype)
+
+        yield to_h5py_dataset
 
 
 @pytest.fixture(
@@ -36,7 +57,12 @@ def skip_if_no(dist: str) -> pytest.MarkDecorator:
         pytest.param("cupyx.scipy.sparse.csc_matrix", marks=skip_if_no("cupy")),
     ],
 )
-def array_cls(request: pytest.FixtureRequest) -> Callable[[ArrayLike], NDArray[Any]]:
+def array_cls(
+    request: pytest.FixtureRequest,
+) -> Callable[
+    [ArrayLike],
+    NDArray[Any] | types.DaskArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix,
+]:
     qualname = cast(str, request.param)
     match qualname.split("."):
         case "numpy", "ndarray":
@@ -50,8 +76,7 @@ def array_cls(request: pytest.FixtureRequest) -> Callable[[ArrayLike], NDArray[A
 
             return da.asarray  # type: ignore[no-any-return]
         case "h5py", "Dataset":
-            msg = "TODO: test h5py.Dataset"
-            raise NotImplementedError(msg)
+            return request.getfixturevalue("to_h5py_dataset")  # type: ignore[no-any-return]
         case "cupy", "ndarray":
             import cupy
 

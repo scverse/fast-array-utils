@@ -6,8 +6,7 @@ _version.py
 /.python-version
 
 # Testing
-/.coverage*
-/coverage.*
+/test-data/
 /.*cache/
 
 # Docs
