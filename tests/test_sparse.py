@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from fast_array_utils.scipy import to_dense
+from fast_array_utils.conv.scipy import to_dense
 
 
 if TYPE_CHECKING:

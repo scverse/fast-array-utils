@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    from ..types import CSBase
+    from ...types import CSBase
 
     DT_co = TypeVar("DT_co", bound=np.generic, covariant=True)
     DT = TypeVar("DT", bound=np.generic)
@@ -41,7 +41,7 @@ def to_dense(x: CSBase[DT_co], order: Literal["C", "F"] = "C") -> NDArray[DT_co]
         _to_dense_csr_numba(x.indptr, x.indices, x.data, out)
     elif x.format == "csc":
         _to_dense_csc_numba(x.indptr, x.indices, x.data, out)
-    else:
+    else:  # pragma: no cover
         out = x.toarray(order=order)
     return out
 
