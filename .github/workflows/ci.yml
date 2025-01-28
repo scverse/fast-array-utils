@@ -36,7 +36,7 @@ jobs:
         with:
           fail_ci_if_error: true
           files: test-data/coverage.xml
-          token: 872498ea-6ef6-4f1d-8006-bc6e557580f6
+          token: ${{ secrets.CODECOV_TOKEN }}
   check:
     runs-on: ubuntu-latest
     strategy:
