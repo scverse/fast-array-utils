@@ -13,7 +13,15 @@ if TYPE_CHECKING:
     import numpy as np
 
 
-__all__ = ["CSBase", "CupyArray", "CupySparseMatrix", "DaskArray", "H5Dataset", "OutOfCoreDataset"]
+__all__ = [
+    "CSBase",
+    "CupyArray",
+    "CupySparseMatrix",
+    "DaskArray",
+    "H5Dataset",
+    "OutOfCoreDataset",
+    "ZarrArray",
+]
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -67,6 +75,12 @@ if find_spec("h5py") or TYPE_CHECKING:
     from h5py import Dataset as H5Dataset
 else:
     H5Dataset = type("Dataset", (), {})
+
+
+if find_spec("zarr") or TYPE_CHECKING:
+    from zarr import Array as ZarrArray
+else:
+    ZarrArray = type("Array", (), {})
 
 
 @runtime_checkable
