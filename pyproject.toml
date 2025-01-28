@@ -48,6 +48,7 @@ scripts.clean = "git clean -fdX docs"
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
 extra-dependencies = [ "ipykernel" ]
+env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
 ]
