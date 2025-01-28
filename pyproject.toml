@@ -27,7 +27,7 @@ dependencies = [ "numba", "numpy" ]
 optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
 optional-dependencies.full = [ "dask", "h5py", "hatch-docstring-description[sparse]" ]
 optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
-optional-dependencies.test = [ "pytest" ]
+optional-dependencies.test = [ "coverage[toml]", "pytest" ]
 urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
 urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
