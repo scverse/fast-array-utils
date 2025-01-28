@@ -39,6 +39,7 @@ def sp_mat(
     sp_container: Literal["matrix", "array"],
     dtype: np.dtype[DType_float],
 ) -> CSBase[DType_float]:
+    pytest.importorskip("scipy")
     from scipy.sparse import random, random_array
 
     return (
