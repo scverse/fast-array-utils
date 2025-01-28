@@ -12,11 +12,20 @@ from fast_array_utils._asarray import asarray
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
-    from typing import Any
+    from typing import Any, TypeAlias
 
     from numpy.typing import ArrayLike, NDArray
 
     from fast_array_utils import types
+
+    SupportedArray: TypeAlias = (
+        NDArray[Any]
+        | types.DaskArray
+        | types.H5Dataset
+        | types.ZarrArray
+        | types.CupyArray
+        | types.CupySparseMatrix
+    )
 
 
 def skip_if_no(dist: str) -> pytest.MarkDecorator:
@@ -42,6 +51,15 @@ def to_h5py_dataset(
         yield to_h5py_dataset
 
 
+def to_zarr_array(x: ArrayLike) -> types.ZarrArray:
+    import zarr
+
+    arr = np.asarray(x)
+    za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
+    za[...] = arr
+    return za
+
+
 @pytest.fixture(
     scope="session",
     params=[
@@ -52,17 +70,15 @@ def to_h5py_dataset(
         pytest.param("scipy.sparse.csc_matrix", marks=skip_if_no("scipy")),
         pytest.param("dask.array.Array", marks=skip_if_no("dask")),
         pytest.param("h5py.Dataset", marks=skip_if_no("h5py")),
+        pytest.param("zarr.Array", marks=skip_if_no("zarr")),
         pytest.param("cupy.ndarray", marks=skip_if_no("cupy")),
         pytest.param("cupyx.scipy.sparse.csr_matrix", marks=skip_if_no("cupy")),
         pytest.param("cupyx.scipy.sparse.csc_matrix", marks=skip_if_no("cupy")),
     ],
 )
-def array_cls(
+def array_cls(  # noqa: PLR0911
     request: pytest.FixtureRequest,
-) -> Callable[
-    [ArrayLike],
-    NDArray[Any] | types.DaskArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix,
-]:
+) -> Callable[[ArrayLike], SupportedArray]:
     qualname = cast(str, request.param)
     match qualname.split("."):
         case "numpy", "ndarray":
@@ -77,6 +93,8 @@ def array_cls(
             return da.asarray  # type: ignore[no-any-return]
         case "h5py", "Dataset":
             return request.getfixturevalue("to_h5py_dataset")  # type: ignore[no-any-return]
+        case "zarr", "Array":
+            return to_zarr_array
         case "cupy", "ndarray":
             import cupy
 
@@ -90,7 +108,7 @@ def array_cls(
             raise AssertionError(msg)
 
 
-def test_asarray(array_cls: Callable[[ArrayLike], Any]) -> None:
+def test_asarray(array_cls: Callable[[ArrayLike], SupportedArray]) -> None:
     x = array_cls([[1, 2, 3], [4, 5, 6]])
     arr: NDArray[Any] = asarray(x)
     assert isinstance(arr, np.ndarray)
