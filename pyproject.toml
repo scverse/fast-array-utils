@@ -107,11 +107,11 @@ markers = [
 xfail_strict = true
 
 [tool.coverage]
-run.data_file = "test-data/coverage"
+run.data_file = "test-data/.coverage"
 xml.output = "test-data/coverage.xml"
 html.directory = "test-data/htmlcov"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "if TYPE_CHECKING:" ]
+report.exclude_also = [ "if TYPE_CHECKING:", "@numba.njit" ]
 
 [tool.mypy]
 strict = true
