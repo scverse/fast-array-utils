@@ -1,0 +1,39 @@
+# https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  PYTEST_ADDOPTS: "-v --color=yes"
+  FORCE_COLOR: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.13"]
+        extras: [min, full]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+      - run: uv pip install --system -e .[test]
+      - run: |
+          coverage run -m pytest
+          coverage xml
+          coverage report
+      - uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: test-data/coverage.xml
+          token: 872498ea-6ef6-4f1d-8006-bc6e557580f6

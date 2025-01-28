@@ -27,9 +27,9 @@ dependencies = [ "numba", "numpy" ]
 optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
 optional-dependencies.sparse = [ "scipy>=1.8", "types-scipy-sparse" ]
 optional-dependencies.test = [ "pytest" ]
-urls.'Documentation' = "https://icb-anndata2ri.readthedocs-hosted.com/"
-urls.'Issue Tracker' = "https://github.com/theislab/anndata2ri/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"
-urls.'Source Code' = "https://github.com/theislab/anndata2ri"
+urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
+urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
+urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
 
 [tool.hatch.metadata.hooks.docstring-description]
 
@@ -101,6 +101,13 @@ addopts = [
   "--pyargs",
 ]
 xfail_strict = true
+
+[tool.coverage]
+run.data_file = "test-data/coverage"
+xml.output = "test-data/coverage.xml"
+html.directory = "test-data/htmlcov"
+run.omit = [ "src/testing/*", "tests/*" ]
+report.exclude_also = [ "if TYPE_CHECKING:" ]
 
 [tool.mypy]
 strict = true
