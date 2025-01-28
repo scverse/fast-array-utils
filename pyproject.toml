@@ -98,7 +98,7 @@ addopts = [
 filterwarnings = [
   "error",
   # codspeed seems to break this dtype added by h5py
-  "ignore:numpy.longdouble:UserWarning",
+  "ignore:.*numpy[.]longdouble:UserWarning",
 ]
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
