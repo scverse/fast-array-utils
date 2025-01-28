@@ -4,7 +4,6 @@ from __future__ import annotations
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
-import h5py
 import numpy as np
 import pytest
 
@@ -29,6 +28,8 @@ def skip_if_no(dist: str) -> pytest.MarkDecorator:
 def to_h5py_dataset(
     tmp_path_factory: pytest.TempPathFactory, worker_id: str = "serial"
 ) -> Generator[Callable[[ArrayLike], types.H5Dataset], None, None]:
+    import h5py
+
     tmp_path = tmp_path_factory.mktemp("backed_adata")
     tmp_path = tmp_path / f"test_{worker_id}.h5ad"
 
