@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    from ..types import CSBase
+    from ...types import CSBase
 
     DT_co = TypeVar("DT_co", bound=np.generic, covariant=True)
     DT = TypeVar("DT", bound=np.generic)

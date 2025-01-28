@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import pytest
 
-from fast_array_utils._asarray import asarray
+from fast_array_utils.conv import asarray
 
 
 if TYPE_CHECKING:

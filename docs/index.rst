@@ -5,8 +5,15 @@
    :members:
 
 
-``fast_array_utils.scipy``
+``fast_array_utils.conv``
+-------------------------
+
+.. automodule:: fast_array_utils.conv
+   :members:
+
+
+``fast_array_utils.types``
 --------------------------
 
-.. automodule:: fast_array_utils.scipy
-   :members:
+.. automodule:: fast_array_utils.types
+   :members: OutOfCoreDataset
