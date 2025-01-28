@@ -111,7 +111,7 @@ run.data_file = "test-data/.coverage"
 xml.output = "test-data/coverage.xml"
 html.directory = "test-data/htmlcov"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "if TYPE_CHECKING:", "@numba.njit" ]
+report.exclude_also = [ "if TYPE_CHECKING:", "@numba[.]njit", "[.]{3}" ]
 
 [tool.mypy]
 strict = true
