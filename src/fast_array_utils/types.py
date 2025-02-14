@@ -53,31 +53,33 @@ else:
     CSBase = CSMatrix | CSArray
 
 
-if find_spec("cupy") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("cupy"):
     from cupy import ndarray as CupyArray
 else:
     CupyArray = type("ndarray", (), {})
 
 
-if find_spec("cupyx") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
 else:
     CupySparseMatrix = type("spmatrix", (), {})
 
 
-if find_spec("dask") or TYPE_CHECKING:
+if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
+    from dask.array.core import Array as DaskArray
+elif find_spec("dask"):
     from dask.array import Array as DaskArray
 else:
     DaskArray = type("array", (), {})
 
 
-if find_spec("h5py") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("h5py"):
     from h5py import Dataset as H5Dataset
 else:
     H5Dataset = type("Dataset", (), {})
 
 
-if find_spec("zarr") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
 else:
     ZarrArray = type("Array", (), {})

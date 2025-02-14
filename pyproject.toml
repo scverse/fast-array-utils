@@ -59,6 +59,7 @@ extras = [ "min", "full" ]
 
 [tool.ruff]
 line-length = 100
+namespace-packages = [ "src/testing" ]
 lint.select = [ "ALL" ]
 lint.ignore = [
   "A005",    # submodules never shadow builtins.
@@ -74,6 +75,7 @@ lint.ignore = [
   "TID252",  # relative imports are fine
 ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ] # No __init__.py in docs
+lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ] # Shadows builtins like `sum`
 lint.per-file-ignores."stubs/**/*.pyi" = [ "F403", "F405", "N801" ] # Stubs don’t follow name conventions
 lint.per-file-ignores."tests/**/test_*.py" = [
   "D100",    # tests need no module docstrings
@@ -95,6 +97,7 @@ addopts = [
   "--import-mode=importlib",
   "--strict-markers",
   "--pyargs",
+  "-ptesting.fast_array_utils.pytest",
 ]
 filterwarnings = [
   "error",

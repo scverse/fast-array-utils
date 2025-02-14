@@ -32,5 +32,8 @@ repos:
           - numpy
           - scipy
           - types-scipy-sparse
+          - dask
+          - zarr
+          - h5py
 ci:
   skip: [mypy]  # too big
