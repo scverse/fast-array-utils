@@ -37,7 +37,7 @@ def test_sum(
             sum_ = sum_.compute()  # type: ignore[no-untyped-call]
         case None, _:
             assert isinstance(sum_, np.floating), type(sum_)
-        case 0 | 1, spmatrix() | sparray() | types.ZarrArray():
+        case 0 | 1, spmatrix() | sparray() | types.ZarrArray() | types.H5Dataset():
             assert isinstance(sum_, np.ndarray), type(sum_)
         case 0 | 1, _:
             assert isinstance(sum_, array_cls), type(sum_)

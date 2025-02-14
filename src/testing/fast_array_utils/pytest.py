@@ -179,7 +179,7 @@ def to_h5py_dataset(
         def to_h5py_dataset(x: ArrayLike, *, dtype: DTypeLike | None = None) -> types.H5Dataset:
             arr = np.asarray(x, dtype=dtype)
             test_name = os.environ["PYTEST_CURRENT_TEST"].rsplit(":", 1)[-1].split(" ", 1)[0]
-            return f.create_dataset(test_name, arr.shape, arr.dtype)
+            return f.create_dataset(test_name, arr.shape, arr.dtype, data=arr)
 
         yield to_h5py_dataset
 
