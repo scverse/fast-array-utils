@@ -46,8 +46,8 @@ def _(x: CSBase[DT_co]) -> NDArray[DT_co]:
 
 
 @asarray.register(DaskArray)
-def _(x: DaskArray[DT_co]) -> NDArray[DT_co]:
-    return asarray(x.compute())
+def _(x: DaskArray) -> NDArray[DT_co]:
+    return asarray(x.compute())  # type: ignore[no-untyped-call]
 
 
 @asarray.register(OutOfCoreDataset)
