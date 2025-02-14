@@ -12,6 +12,13 @@
    :members:
 
 
+``fast_array_utils.stats``
+--------------------------
+
+.. automodule:: fast_array_utils.stats
+   :members:
+
+
 ``fast_array_utils.types``
 --------------------------
 
