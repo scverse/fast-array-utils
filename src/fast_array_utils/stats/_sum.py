@@ -27,6 +27,7 @@ def sum(
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | np.dtype[DT_co] | None = None,
 ) -> NDArray[DT_co]:
+    """Sum over both or one axis."""
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
