@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 import pytest
-from scipy.sparse import sparray, spmatrix
+
+
+if TYPE_CHECKING or find_spec("scipy"):
+    from scipy.sparse import sparray, spmatrix
+else:
+    spmatrix = sparray = type("spmatrix", (), {})
 
 from fast_array_utils import stats, types
 

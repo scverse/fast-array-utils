@@ -53,13 +53,13 @@ else:
     CSBase = CSMatrix | CSArray
 
 
-if find_spec("cupy") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("cupy"):
     from cupy import ndarray as CupyArray
 else:
     CupyArray = type("ndarray", (), {})
 
 
-if find_spec("cupyx") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
 else:
     CupySparseMatrix = type("spmatrix", (), {})
@@ -73,16 +73,16 @@ else:
     DaskArray = type("array", (), {})
 
 
-if find_spec("h5py") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("h5py"):
     from h5py import Dataset as H5Dataset
 else:
     H5Dataset = type("Dataset", (), {})
 
 
-if find_spec("zarr") or TYPE_CHECKING:
+if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
 else:
-    ZarrArray = type("Array", (), {})  # type: ignore[misc]
+    ZarrArray = type("Array", (), {})
 
 
 @runtime_checkable
