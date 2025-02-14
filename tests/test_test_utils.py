@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 def test_conv(
     array_cls: type[_Array[DType_float]], to_array: _ToArray[DType_float], dtype: DType_float
 ) -> None:
-    arr = to_array([[1, 2, 3], [4, 5, 6]], dtype=dtype)
+    arr = to_array(np.arange(12).reshape(3, 4), dtype=dtype)
     assert isinstance(arr, array_cls)
     if isinstance(arr, types.DaskArray):
         arr = arr.compute()  # type: ignore[no-untyped-call]
     elif isinstance(arr, types.CupyArray):
         arr = arr.get()
-    assert arr.shape == (2, 3)
+    assert arr.shape == (3, 4)
     assert arr.dtype == dtype
