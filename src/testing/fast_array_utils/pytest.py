@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import re
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
@@ -13,6 +12,8 @@ import pytest
 
 from fast_array_utils import types
 
+from . import get_array_cls
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -20,9 +21,9 @@ if TYPE_CHECKING:
 
     from numpy.typing import ArrayLike, DTypeLike
 
-    from testing.fast_array_utils import _ToArray
+    from testing.fast_array_utils import ToArray
 
-    from . import _Array
+    from . import Array
 
     _SCT_co = TypeVar("_SCT_co", covariant=True, bound=np.generic)
 
@@ -57,66 +58,24 @@ def array_cls_name(request: pytest.FixtureRequest) -> str:
 
 
 @pytest.fixture(scope="session")
-def array_cls(array_cls_name: str) -> type[_Array[Any]]:
+def array_cls(array_cls_name: str) -> type[Array[Any]]:
     """Fixture for a supported array class."""
     return get_array_cls(array_cls_name)
 
 
-def get_array_cls(qualname: str) -> type[_Array[Any]]:  # noqa: PLR0911
-    """Get a supported array class by qualname."""
-    m = re.fullmatch(
-        r"(?P<mod>(?:\w+\.)*\w+)\.(?P<name>[^\[]+)(?:\[(?P<inner>[\w.]+)\])?", qualname
-    )
-    assert m
-    match m["mod"], m["name"], m["inner"]:
-        case "numpy", "ndarray", None:
-            return np.ndarray
-        case "scipy.sparse", (
-            "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
-        ) as cls_name, None:
-            import scipy.sparse
-
-            return getattr(scipy.sparse, cls_name)  # type: ignore[no-any-return]
-        case "cupy", "ndarray", None:
-            import cupy as cp
-
-            return cp.ndarray  # type: ignore[no-any-return]
-        case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
-            import cupyx.scipy.sparse as cu_sparse
-
-            return getattr(cu_sparse, cls_name)  # type: ignore[no-any-return]
-        case "dask.array", cls_name, _:
-            if TYPE_CHECKING:
-                from dask.array.core import Array as DaskArray
-            else:
-                from dask.array import Array as DaskArray
-
-            return DaskArray
-        case "h5py", "Dataset", _:
-            import h5py
-
-            return h5py.Dataset  # type: ignore[no-any-return]
-        case "zarr", "Array", _:
-            import zarr
-
-            return zarr.Array
-        case _:
-            pytest.fail(f"Unknown array class: {qualname}")
-
-
 @pytest.fixture(scope="session")
 def to_array(
-    request: pytest.FixtureRequest, array_cls: type[_Array[_SCT_co]], array_cls_name: str
-) -> _ToArray[_SCT_co]:
+    request: pytest.FixtureRequest, array_cls: type[Array[_SCT_co]], array_cls_name: str
+) -> ToArray[_SCT_co]:
     """Fixture for conversion into a supported array."""
     return get_to_array(array_cls, array_cls_name, request)
 
 
 def get_to_array(
-    array_cls: type[_Array[_SCT_co]],
+    array_cls: type[Array[_SCT_co]],
     array_cls_name: str | None = None,
     request: pytest.FixtureRequest | None = None,
-) -> _ToArray[_SCT_co]:
+) -> ToArray[_SCT_co]:
     """Create a function to convert to a supported array."""
     if array_cls is np.ndarray:
         return np.asarray  # type: ignore[return-value]
@@ -144,7 +103,7 @@ def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
     return tuple(half_rounded_up(x) for x in a)
 
 
-def to_dask_array(array_cls_name: str) -> _ToArray[Any]:
+def to_dask_array(array_cls_name: str) -> ToArray[Any]:
     """Convert to a dask array."""
     if TYPE_CHECKING:
         import dask.array.core as da
@@ -153,7 +112,7 @@ def to_dask_array(array_cls_name: str) -> _ToArray[Any]:
 
     inner_cls_name = array_cls_name.removeprefix("dask.array.Array[").removesuffix("]")
     inner_cls = get_array_cls(inner_cls_name)
-    to_array_fn: _ToArray[Any] = get_to_array(array_cls=inner_cls)
+    to_array_fn: ToArray[Any] = get_to_array(array_cls=inner_cls)
 
     def to_dask_array(x: ArrayLike, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         x = np.asarray(x, dtype=dtype)
@@ -167,7 +126,7 @@ def to_dask_array(array_cls_name: str) -> _ToArray[Any]:
 def to_h5py_dataset(
     tmp_path_factory: pytest.TempPathFactory,
     worker_id: str = "serial",
-) -> Generator[_ToArray[Any], None, None]:
+) -> Generator[ToArray[Any], None, None]:
     """Convert to a h5py dataset."""
     import h5py
 

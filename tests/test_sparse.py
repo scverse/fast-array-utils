@@ -8,14 +8,13 @@ import numpy as np
 import pytest
 
 from fast_array_utils.conv.scipy import to_dense
+from testing.fast_array_utils import random_mat
 
 
 if TYPE_CHECKING:
-    from typing import Literal, SupportsFloat, TypeVar
+    from typing import Literal, TypeVar
 
     from pytest_codspeed import BenchmarkFixture
-
-    from fast_array_utils.types import CSBase
 
     DType = TypeVar("DType", bound=np.generic)
     DType_float = TypeVar("DType_float", np.float32, np.float64)
@@ -37,24 +36,6 @@ def sp_container(request: pytest.FixtureRequest) -> Literal["array", "matrix"]:
 @pytest.fixture(scope="session", params=[np.float32, np.float64])
 def dtype(request: pytest.FixtureRequest) -> np.dtype[np.float32 | np.float64]:
     return np.dtype(request.param)
-
-
-def random_mat(
-    shape: tuple[int, int],
-    *,
-    density: SupportsFloat = 0.01,
-    format: Literal["csr", "csc"] = "csr",  # noqa: A002
-    dtype: np.dtype[DType_float] | None = None,
-    container: Literal["array", "matrix"] = "array",
-) -> CSBase[DType_float]:
-    from scipy.sparse import random, random_array
-
-    m, n = shape
-    return (
-        random(m, n, density=density, format=format, dtype=dtype)
-        if container == "matrix"
-        else random_array(shape, density=density, format=format, dtype=dtype)
-    )
 
 
 @pytest.mark.parametrize("order", ["C", "F"])

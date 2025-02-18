@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from testing.fast_array_utils import random_array
+
 
 if TYPE_CHECKING or find_spec("scipy"):
     from scipy.sparse import sparray, spmatrix
@@ -19,24 +21,41 @@ from fast_array_utils import stats, types
 if TYPE_CHECKING:
     from typing import Any, Literal
 
-    from testing.fast_array_utils import _Array, _ToArray
+    from pytest_codspeed import BenchmarkFixture
+
+    from testing.fast_array_utils import Array, ToArray
+
+    DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool_]
+    DTypeOut = type[np.float32 | np.float64 | np.int64]
 
 
-@pytest.mark.parametrize("dtype_in", [np.float32, np.float64, np.int32, np.bool_])
-@pytest.mark.parametrize("dtype_arg", [np.float32, np.float64, None])
-@pytest.mark.parametrize("axis", [0, 1, None])
+@pytest.fixture(scope="session", params=[0, 1, None])
+def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
+    return request.param  # type: ignore[no-any-return]
+
+
+@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool_])
+def dtype_in(request: pytest.FixtureRequest) -> DTypeIn:
+    return request.param  # type: ignore[no-any-return]
+
+
+@pytest.fixture(scope="session", params=[np.float32, np.float64, None])
+def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
+    return request.param  # type: ignore[no-any-return]
+
+
 def test_sum(
-    array_cls: type[_Array[Any]],
-    to_array: _ToArray[Any],
-    dtype_in: type[np.generic],
-    dtype_arg: type[np.generic] | None,
+    array_cls: type[Array[Any]],
+    to_array: ToArray[Any],
+    dtype_in: DTypeIn,
+    dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
     arr = to_array(np_arr.copy())
     assert arr.dtype == dtype_in
 
-    sum_: _Array[Any] | np.floating = stats.sum(arr, axis=axis, dtype=dtype_arg)  # type: ignore[type-arg,arg-type]
+    sum_: Array[Any] | np.floating = stats.sum(arr, axis=axis, dtype=dtype_arg)  # type: ignore[type-arg,arg-type]
 
     match axis, arr:
         case _, types.DaskArray():
@@ -61,3 +80,21 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))  # type: ignore[arg-type]
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
+def test_sum_benchmark(
+    benchmark: BenchmarkFixture,
+    array_cls_name: str,
+    axis: Literal[0, 1, None],
+    dtype: type[np.float32 | np.float64],
+) -> None:
+    try:
+        shape = (1_000, 1_000) if "sparse" in array_cls_name else (100, 100)
+        arr = random_array(array_cls_name, shape, dtype=dtype)  # type: ignore  # noqa: PGH003
+    except NotImplementedError:
+        pytest.skip("random_array not implemented for dtype")
+
+    stats.sum(arr, axis=axis)  # type: ignore[arg-type]  # warmup: numba compile
+    benchmark(stats.sum, arr, axis=axis)
