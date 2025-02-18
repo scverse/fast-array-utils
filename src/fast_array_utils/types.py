@@ -3,8 +3,14 @@
 
 from __future__ import annotations
 
+from functools import cache
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import UnionType
 
 
 __all__ = [
@@ -20,6 +26,39 @@ __all__ = [
 T_co = TypeVar("T_co", covariant=True)
 
 
+# registry for lazy exports:
+
+
+_REGISTRY: dict[str, str | Callable[[], UnionType]] = {}
+
+
+def _register(name: str) -> Callable[[Callable[[], UnionType]], Callable[[], UnionType]]:
+    def _decorator(fn: Callable[[], UnionType]) -> Callable[[], UnionType]:
+        _REGISTRY[name] = fn
+        return fn
+
+    return _decorator
+
+
+@cache
+def __getattr__(name: str) -> type | UnionType:
+    if (source := _REGISTRY.get(name)) is None:
+        # A name we don’t know about
+        raise AttributeError(name) from None
+
+    if callable(source):
+        return source()
+
+    try:
+        mod, name = source.rsplit(".", 1)
+        return getattr(__import__(mod, fromlist=[name]), name)  # type: ignore[no-any-return]
+    except ImportError:  # A name we can’t import
+        return type(name, (), {})
+
+
+# lazy exports:
+
+
 # scipy sparse
 if TYPE_CHECKING:
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
@@ -28,53 +67,52 @@ if TYPE_CHECKING:
     CSMatrix = csr_matrix | csc_matrix
     CSBase = CSMatrix | CSArray
 else:
-    try:  # cs?_array isn’t available in older scipy versions
-        from scipy.sparse import csc_array, csr_array
 
-        CSArray = csr_array | csc_array
-    except ImportError:  # pragma: no cover
-        CSArray = type("CSArray", (), {})
-
-    try:  # cs?_matrix is available when scipy is installed
+    @_register("CSMatrix")
+    def _get_cs_matrix() -> UnionType:
+        # cs?_matrix is available when scipy is installed
         from scipy.sparse import csc_matrix, csr_matrix
 
-        CSMatrix = csr_matrix | csc_matrix
-    except ImportError:  # pragma: no cover
-        CSMatrix = type("CSMatrix", (), {})
+        return csr_matrix | csc_matrix
 
-    CSBase = CSMatrix | CSArray
+    @_register("CSArray")
+    def _get_cs_array() -> UnionType:
+        from scipy.sparse import csc_array, csr_array
+
+        return csr_array | csc_array
+
+    @_register("CSBase")
+    def _get_cs_base() -> UnionType:
+        return __getattr__("CSMatrix") | __getattr__("CSArray")
 
 
-if TYPE_CHECKING or find_spec("cupy"):
+if TYPE_CHECKING:
     from cupy import ndarray as CupyArray
-else:  # pragma: no cover
-    CupyArray = type("ndarray", (), {})
-
-
-if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
-else:  # pragma: no cover
-    CupySparseMatrix = type("spmatrix", (), {})
+else:
+    _REGISTRY["CupyArray"] = "cupy.ndarray"
+    _REGISTRY["CupySparseMatrix"] = "cupyx.scipy.sparse.spmatrix"
 
 
 if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
     from dask.array.core import Array as DaskArray
-elif find_spec("dask"):
-    from dask.array import Array as DaskArray
-else:  # pragma: no cover
-    DaskArray = type("array", (), {})
+else:
+    _REGISTRY["DaskArray"] = "dask.array.Array"
 
 
-if TYPE_CHECKING or find_spec("h5py"):
+if TYPE_CHECKING:
     from h5py import Dataset as H5Dataset
-else:  # pragma: no cover
-    H5Dataset = type("Dataset", (), {})
+else:
+    _REGISTRY["H5Dataset"] = "h5py.Dataset"
 
 
 if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
-else:  # pragma: no cover
-    ZarrArray = type("Array", (), {})
+else:
+    _REGISTRY["ZarrArray"] = "zarr.Array"
+
+
+# protocols:
 
 
 @runtime_checkable
