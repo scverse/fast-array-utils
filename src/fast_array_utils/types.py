@@ -66,10 +66,11 @@ if TYPE_CHECKING:
     CSMatrix = csr_matrix | csc_matrix
     CSBase = CSMatrix | CSArray
 else:
+    # cs?_array isn’t available in older scipy versions,
+    # so we import them separately
 
     @_register("CSMatrix")
     def _get_cs_matrix() -> UnionType:
-        # cs?_matrix is available when scipy is installed
         from scipy.sparse import csc_matrix, csr_matrix
 
         return csr_matrix | csc_matrix
