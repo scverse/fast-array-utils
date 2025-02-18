@@ -91,6 +91,7 @@ lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
 lint.isort.required-imports = [ "from __future__ import annotations" ]
+lint.pydocstyle.convention = "numpy"
 
 [tool.pytest.ini_options]
 addopts = [

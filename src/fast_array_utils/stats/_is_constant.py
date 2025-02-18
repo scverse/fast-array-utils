@@ -13,22 +13,26 @@ from ..types import CSBase, DaskArray, H5Dataset, ZarrArray
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, TypeAlias, TypeVar
+    from typing import Any, Literal, TypeVar
 
     from numpy.typing import NDArray
-
-    _Array: TypeAlias = NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray
 
     C = TypeVar("C", bound=Callable[..., Any])
 
 
 @overload
-def is_constant(a: _Array, axis: None = None) -> bool: ...
+def is_constant(
+    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: None = None
+) -> bool: ...
 @overload
-def is_constant(a: _Array, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
+def is_constant(
+    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1]
+) -> NDArray[np.bool_]: ...
 
 
-def is_constant(a: _Array, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
+def is_constant(
+    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1] | None = None
+) -> bool | NDArray[np.bool_]:
     """Check whether values in array are constant.
 
     Params
@@ -38,12 +42,11 @@ def is_constant(a: _Array, axis: Literal[0, 1] | None = None) -> bool | NDArray[
     axis
         Axis to reduce over.
 
-
-    Returns:
+    Returns
     -------
     Boolean array, True values were constant.
 
-    Example:
+    Example
     -------
     >>> a = np.array([[0, 1], [0, 0]])
     >>> a
@@ -69,7 +72,9 @@ def is_constant(a: _Array, axis: Literal[0, 1] | None = None) -> bool | NDArray[
 
 
 @singledispatch
-def _is_constant(a: _Array, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
+def _is_constant(
+    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1] | None = None
+) -> bool | NDArray[np.bool_]:
     raise NotImplementedError
 
 
