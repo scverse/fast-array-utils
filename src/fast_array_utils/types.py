@@ -7,12 +7,6 @@ from importlib.util import find_spec
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
 
 
-if TYPE_CHECKING:
-    from typing import Any, TypeAlias
-
-    import numpy as np
-
-
 __all__ = [
     "CSBase",
     "CupyArray",
@@ -30,24 +24,22 @@ T_co = TypeVar("T_co", covariant=True)
 if TYPE_CHECKING:
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 
-    _SCT_co = TypeVar("_SCT_co", covariant=True, bound=np.generic)
-
-    CSArray: TypeAlias = csr_array[Any, np.dtype[_SCT_co]] | csc_array[Any, np.dtype[_SCT_co]]
-    CSMatrix: TypeAlias = csr_matrix[Any, np.dtype[_SCT_co]] | csc_matrix[Any, np.dtype[_SCT_co]]
-    CSBase: TypeAlias = CSMatrix[_SCT_co] | CSArray[_SCT_co]
+    CSArray = csr_array | csc_array
+    CSMatrix = csr_matrix | csc_matrix
+    CSBase = CSMatrix | CSArray
 else:
     try:  # cs?_array isn’t available in older scipy versions
         from scipy.sparse import csc_array, csr_array
 
         CSArray = csr_array | csc_array
-    except ImportError:
+    except ImportError:  # pragma: no cover
         CSArray = type("CSArray", (), {})
 
     try:  # cs?_matrix is available when scipy is installed
         from scipy.sparse import csc_matrix, csr_matrix
 
         CSMatrix = csr_matrix | csc_matrix
-    except ImportError:
+    except ImportError:  # pragma: no cover
         CSMatrix = type("CSMatrix", (), {})
 
     CSBase = CSMatrix | CSArray
@@ -55,13 +47,13 @@ else:
 
 if TYPE_CHECKING or find_spec("cupy"):
     from cupy import ndarray as CupyArray
-else:
+else:  # pragma: no cover
     CupyArray = type("ndarray", (), {})
 
 
 if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
-else:
+else:  # pragma: no cover
     CupySparseMatrix = type("spmatrix", (), {})
 
 
@@ -69,19 +61,19 @@ if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
     from dask.array.core import Array as DaskArray
 elif find_spec("dask"):
     from dask.array import Array as DaskArray
-else:
+else:  # pragma: no cover
     DaskArray = type("array", (), {})
 
 
 if TYPE_CHECKING or find_spec("h5py"):
     from h5py import Dataset as H5Dataset
-else:
+else:  # pragma: no cover
     H5Dataset = type("Dataset", (), {})
 
 
 if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
-else:
+else:  # pragma: no cover
     ZarrArray = type("Array", (), {})
 
 

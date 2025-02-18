@@ -45,8 +45,8 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
 
 
 def test_sum(
-    array_cls: type[Array[Any]],
-    to_array: ToArray[Any],
+    array_cls: type[Array],
+    to_array: ToArray,
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
@@ -92,7 +92,7 @@ def test_sum_benchmark(
 ) -> None:
     try:
         shape = (1_000, 1_000) if "sparse" in array_cls_name else (100, 100)
-        arr = random_array(array_cls_name, shape, dtype=dtype)  # type: ignore  # noqa: PGH003
+        arr = random_array(array_cls_name, shape, dtype=dtype)
     except NotImplementedError:
         pytest.skip("random_array not implemented for dtype")
 
