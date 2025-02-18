@@ -52,6 +52,8 @@ intersphinx_mapping = dict(
 # Try overriding type paths
 qualname_overrides = autodoc_type_aliases = {
     "np.dtype": "numpy.dtype",
+    "np.number": "numpy.number",
+    "np.integer": "numpy.integer",
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",
     "NDArray": "numpy.typing.NDArray",

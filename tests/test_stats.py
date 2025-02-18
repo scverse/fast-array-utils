@@ -1,21 +1,13 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
 
-from testing.fast_array_utils import random_array
-
-
-if TYPE_CHECKING or find_spec("scipy"):
-    from scipy.sparse import sparray, spmatrix
-else:
-    spmatrix = sparray = type("spmatrix", (), {})
-
 from fast_array_utils import stats, types
+from testing.fast_array_utils import random_array
 
 
 if TYPE_CHECKING:
@@ -45,7 +37,6 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
 
 
 def test_sum(
-    array_cls: type[Array],
     to_array: ToArray,
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
@@ -63,10 +54,8 @@ def test_sum(
             sum_ = sum_.compute()  # type: ignore[no-untyped-call]
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
-        case 0 | 1, spmatrix() | sparray() | types.ZarrArray() | types.H5Dataset():
-            assert isinstance(sum_, np.ndarray), type(sum_)
         case 0 | 1, _:
-            assert isinstance(sum_, array_cls), type(sum_)
+            assert isinstance(sum_, np.ndarray), type(sum_)
         case _:
             pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(sum_)}")
 
