@@ -10,11 +10,9 @@ from ..types import CSBase, CSMatrix, DaskArray
 
 
 if TYPE_CHECKING:
-    from typing import Literal, TypeVar
+    from typing import Any, Literal
 
     from numpy.typing import ArrayLike, DTypeLike, NDArray
-
-    DT_co = TypeVar("DT_co", covariant=True, bound=np.generic)
 
 
 # TODO(flying-sheep): overload so axis=None returns np.floating  # noqa: TD003
@@ -25,16 +23,16 @@ def sum(
     x: ArrayLike,
     *,
     axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | np.dtype[DT_co] | None = None,
-) -> NDArray[DT_co]:
+    dtype: DTypeLike | None = None,
+) -> NDArray[Any]:
     """Sum over both or one axis."""
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
 @sum.register(CSBase)  # type: ignore[misc,call-overload]
 def _(
-    x: CSBase[DT_co], *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> NDArray[DT_co]:
+    x: CSBase, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> NDArray[Any]:
     import scipy.sparse as sp
 
     if isinstance(x, CSMatrix):
@@ -56,12 +54,12 @@ def _(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[DT_co] | CSBase[DT_co],
+        a: NDArray[Any] | CSBase,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
-        dtype: np.dtype[DT_co] | None = None,
+        dtype: DTypeLike | None = None,
         keepdims: bool = False,
-    ) -> NDArray[DT_co]:
+    ) -> NDArray[Any]:
         del keepdims
         match axis:
             case (0 | 1 as n,):
@@ -71,7 +69,7 @@ def _(
             case tuple():
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
-        rv: NDArray[DT_co] | DT_co = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type]
+        rv: NDArray[Any] | np.number[Any] = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type]
         rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
         return rv.reshape((1, len(rv)))
 

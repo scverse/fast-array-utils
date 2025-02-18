@@ -10,38 +10,37 @@ import numpy as np
 
 
 if TYPE_CHECKING:
-    from typing import Any, Generic, Literal, Protocol, SupportsFloat, TypeAlias, TypeVar
+    from typing import Any, Literal, Protocol, SupportsFloat, TypeAlias
 
-    from numpy.typing import ArrayLike, NDArray
+    from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     from fast_array_utils import types
     from fast_array_utils.types import CSBase
 
-    _SCT_co = TypeVar("_SCT_co", covariant=True, bound=np.generic)
-    _SCT_contra = TypeVar("_SCT_contra", contravariant=True, bound=np.generic)
-    _SCT_float = TypeVar("_SCT_float", np.float32, np.float64)
-
     Array: TypeAlias = (
-        NDArray[_SCT_co]
-        | types.CSBase[_SCT_co]
-        | types.CupyArray[_SCT_co]
+        NDArray[Any]
+        | types.CSBase
+        | types.CupyArray
         | types.DaskArray
         | types.H5Dataset
         | types.ZarrArray
     )
 
-    class ToArray(Protocol, Generic[_SCT_contra]):
+    class ToArray(Protocol):
         """Convert to a supported array."""
 
         def __call__(  # noqa: D102
-            self, data: ArrayLike, /, *, dtype: _SCT_contra | None = None
-        ) -> Array[_SCT_contra]: ...
+            self, data: ArrayLike, /, *, dtype: DTypeLike | None = None
+        ) -> Array: ...
+
+    _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
+    _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
 
 
 RE_ARRAY_QUAL = re.compile(r"(?P<mod>(?:\w+\.)*\w+)\.(?P<name>[^\[]+)(?:\[(?P<inner>[\w.]+)\])?")
 
 
-def get_array_cls(qualname: str) -> type[Array[Any]]:  # noqa: PLR0911
+def get_array_cls(qualname: str) -> type[Array]:  # noqa: PLR0911
     """Get a supported array class by qualname."""
     m = RE_ARRAY_QUAL.fullmatch(qualname)
     assert m
@@ -87,10 +86,10 @@ def random_mat(
     *,
     density: SupportsFloat = 0.01,
     format: Literal["csr", "csc"] = "csr",  # noqa: A002
-    dtype: np.dtype[_SCT_float] | type[_SCT_float] | None = None,
+    dtype: DTypeLike | None = None,
     container: Literal["array", "matrix"] = "array",
     gen: np.random.Generator | None = None,
-) -> CSBase[_SCT_float]:
+) -> CSBase:
     """Create a random matrix."""
     from scipy.sparse import random as random_spmat
     from scipy.sparse import random_array as random_sparr
@@ -107,9 +106,9 @@ def random_array(
     qualname: str,
     shape: tuple[int, int],
     *,
-    dtype: np.dtype[_SCT_float] | type[_SCT_float] | None,
+    dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None,
     gen: np.random.Generator | None = None,
-) -> Array[_SCT_float]:
+) -> Array:
     """Create a random array."""
     gen = np.random.default_rng(gen)
 

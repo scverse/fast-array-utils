@@ -7,12 +7,6 @@ from importlib.util import find_spec
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
 
 
-if TYPE_CHECKING:
-    from typing import Any, TypeAlias
-
-    import numpy as np
-
-
 __all__ = [
     "CSBase",
     "CupyArray",
@@ -30,11 +24,9 @@ T_co = TypeVar("T_co", covariant=True)
 if TYPE_CHECKING:
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 
-    _SCT_co = TypeVar("_SCT_co", covariant=True, bound=np.generic)
-
-    CSArray: TypeAlias = csr_array[Any, np.dtype[_SCT_co]] | csc_array[Any, np.dtype[_SCT_co]]
-    CSMatrix: TypeAlias = csr_matrix[Any, np.dtype[_SCT_co]] | csc_matrix[Any, np.dtype[_SCT_co]]
-    CSBase: TypeAlias = CSMatrix[_SCT_co] | CSArray[_SCT_co]
+    CSArray = csr_array | csc_array
+    CSMatrix = csr_matrix | csc_matrix
+    CSBase = CSMatrix | CSArray
 else:
     try:  # cs?_array isn’t available in older scipy versions
         from scipy.sparse import csc_array, csr_array

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from testing.fast_array_utils import ToArray
 
 
-def test_asarray(to_array: ToArray[Any]) -> None:
+def test_asarray(to_array: ToArray) -> None:
     x = to_array([[1, 2, 3], [4, 5, 6]])
     arr: NDArray[Any] = asarray(x)  # type: ignore[arg-type]
     assert isinstance(arr, np.ndarray)
