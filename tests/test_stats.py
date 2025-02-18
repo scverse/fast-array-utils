@@ -91,6 +91,8 @@ def test_is_constant(
         [0, 0, 0, 0],
     ]
     x = to_array(x_data)
+    if isinstance(x, types.H5Dataset | types.ZarrArray):
+        pytest.xfail("H5Dataset and ZarrArray not yet supported for is_constant")
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
         result = result.compute()

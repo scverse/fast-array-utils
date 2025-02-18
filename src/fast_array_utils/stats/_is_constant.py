@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, overload
 import numba
 import numpy as np
 
-from ..types import CSBase, DaskArray, H5Dataset, ZarrArray
+from ..types import CSBase, DaskArray
 
 
 if TYPE_CHECKING:
@@ -21,17 +21,13 @@ if TYPE_CHECKING:
 
 
 @overload
-def is_constant(
-    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: None = None
-) -> bool: ...
+def is_constant(a: NDArray[Any] | CSBase | DaskArray, axis: None = None) -> bool: ...
 @overload
-def is_constant(
-    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1]
-) -> NDArray[np.bool_]: ...
+def is_constant(a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
 
 
 def is_constant(
-    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1] | None = None
+    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1] | None = None
 ) -> bool | NDArray[np.bool_]:
     """Check whether values in array are constant.
 
@@ -73,19 +69,17 @@ def is_constant(
 
 @singledispatch
 def _is_constant(
-    a: NDArray[Any] | CSBase | H5Dataset | ZarrArray | DaskArray, axis: Literal[0, 1] | None = None
+    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1] | None = None
 ) -> bool | NDArray[np.bool_]:
     raise NotImplementedError
 
 
 @_is_constant.register(np.ndarray)
-@_is_constant.register(H5Dataset)
-@_is_constant.register(ZarrArray)
 def _(a: NDArray[Any], axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
     # Should eventually support nd, not now.
     match axis:
         case None:
-            return bool((a == a[0, 0]).all())
+            return bool((a == a.flat[0]).all())
         case 0:
             return _is_constant_rows(a.T)
         case 1:
