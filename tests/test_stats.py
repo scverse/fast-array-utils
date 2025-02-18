@@ -71,6 +71,32 @@ def test_sum(
     np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    ("axis", "expected"),
+    [
+        pytest.param(None, False, id="None"),
+        pytest.param(0, [True, True, False, False], id="0"),
+        pytest.param(1, [False, False, True, True, False, True], id="1"),
+    ],
+)
+def test_is_constant_dask(
+    to_array: ToArray, axis: Literal[0, 1, None], expected: bool | list[bool]
+) -> None:
+    x_data = [
+        [0, 0, 1, 1],
+        [0, 0, 1, 1],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 0],
+    ]
+    x = to_array(x_data)
+    result = stats.is_constant(x, axis=axis)
+    if isinstance(result, types.DaskArray):
+        result = result.compute()
+    np.testing.assert_array_equal(expected, result)
+
+
 @pytest.mark.benchmark
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_sum_benchmark(
