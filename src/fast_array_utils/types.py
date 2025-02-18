@@ -59,7 +59,6 @@ def __getattr__(name: str) -> type | UnionType:
 # lazy exports:
 
 
-# scipy sparse
 if TYPE_CHECKING:
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 
