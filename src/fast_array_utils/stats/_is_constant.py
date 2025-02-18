@@ -85,7 +85,7 @@ def _(a: NDArray[Any], axis: Literal[0, 1] | None = None) -> bool | NDArray[np.b
     # Should eventually support nd, not now.
     match axis:
         case None:
-            return bool((a == a.flat[0]).all())
+            return bool((a == a[0, 0]).all())
         case 0:
             return _is_constant_rows(a.T)
         case 1:
