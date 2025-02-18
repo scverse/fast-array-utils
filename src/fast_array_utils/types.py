@@ -46,10 +46,10 @@ def __getattr__(name: str) -> type | UnionType:
         # A name we don’t know about
         raise AttributeError(name) from None
 
-    if callable(source):
-        return source()
-
     try:
+        if callable(source):
+            return source()
+
         mod, name = source.rsplit(".", 1)
         return getattr(__import__(mod, fromlist=[name]), name)  # type: ignore[no-any-return]
     except ImportError:  # A name we can’t import
