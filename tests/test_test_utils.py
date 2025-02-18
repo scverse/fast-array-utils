@@ -12,14 +12,14 @@ from fast_array_utils import types
 if TYPE_CHECKING:
     from typing import TypeVar
 
-    from testing.fast_array_utils import _Array, _ToArray
+    from testing.fast_array_utils import Array, ToArray
 
     DType_float = TypeVar("DType_float", np.float32, np.float64)
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_conv(
-    array_cls: type[_Array[DType_float]], to_array: _ToArray[DType_float], dtype: DType_float
+    array_cls: type[Array[DType_float]], to_array: ToArray[DType_float], dtype: DType_float
 ) -> None:
     arr = to_array(np.arange(12).reshape(3, 4), dtype=dtype)
     assert isinstance(arr, array_cls)
