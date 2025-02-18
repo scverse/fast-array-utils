@@ -79,7 +79,7 @@ def test_sum(
         pytest.param(1, [False, False, True, True, False, True], id="1"),
     ],
 )
-def test_is_constant_dask(
+def test_is_constant(
     to_array: ToArray, axis: Literal[0, 1, None], expected: bool | list[bool]
 ) -> None:
     x_data = [

@@ -139,13 +139,13 @@ def _(a: DaskArray, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool
     else:
         from dask.array import map_blocks
 
-    if axis is None:
-        v = a[tuple(0 for _ in range(a.ndim))].compute()
+    if isinstance(a._meta, np.ndarray) and axis is None:  # noqa: SLF001
+        v = a[0, 0].compute()
         return (a == v).all()  # type: ignore[no-any-return]
     # TODO(flying-sheep): use overlapping blocks and reduction instead of `drop_axis`  # noqa: TD003
     return map_blocks(  # type: ignore[no-any-return,no-untyped-call]
         partial(is_constant, axis=axis),
         a,
-        drop_axis=axis,
+        drop_axis=(0, 1) if axis is None else axis,
         meta=np.array([], dtype=a.dtype),
     )
