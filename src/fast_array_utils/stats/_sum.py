@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
@@ -15,24 +15,49 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 
-# TODO(flying-sheep): overload so axis=None returns np.floating  # noqa: TD003
+@overload
+def sum(x: ArrayLike, *, axis: None = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
+@overload
+def sum(x: ArrayLike, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: DaskArray, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+) -> DaskArray: ...
+
+
+def sum(
+    x: ArrayLike, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> NDArray[Any] | np.number[Any] | DaskArray:
+    """Sum over both or one axis.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
+    Otherwise, the sum over the given axis is returned as a 1D array.
+
+    See Also
+    --------
+    :func:`numpy.sum`
+
+    """
+    return _sum(x, axis=axis, dtype=dtype)
 
 
 @singledispatch
-def sum(
-    x: ArrayLike,
+def _sum(
+    x: ArrayLike | CSBase | DaskArray,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[Any]:
-    """Sum over both or one axis."""
+) -> NDArray[Any] | np.number[Any] | DaskArray:
+    assert not isinstance(x, CSBase | DaskArray)
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
-@sum.register(CSBase)  # type: ignore[misc,call-overload]
+@_sum.register(CSBase)  # type: ignore[call-overload,misc]
 def _(
     x: CSBase, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> NDArray[Any]:
+) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
 
     if isinstance(x, CSMatrix):
@@ -40,7 +65,7 @@ def _(
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[call-overload,no-any-return]
 
 
-@sum.register(DaskArray)
+@_sum.register(DaskArray)
 def _(
     x: DaskArray, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> DaskArray:
@@ -69,7 +94,7 @@ def _(
             case tuple():  # pragma: no cover
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
-        rv: NDArray[Any] | np.number[Any] = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type]
+        rv: NDArray[Any] | np.number[Any] = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type,misc]
         rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
         return rv.reshape((1, len(rv)))
 
