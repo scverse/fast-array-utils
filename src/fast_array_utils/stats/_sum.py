@@ -49,7 +49,7 @@ def _(
     else:
         from dask.array import reduction
 
-    if isinstance(x._meta, np.matrix):  # noqa: SLF001
+    if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum does not support numpy matrices"
         raise TypeError(msg)
 
@@ -66,7 +66,7 @@ def _(
                 axis = n
             case (0, 1) | (1, 0):
                 axis = None
-            case tuple():
+            case tuple():  # pragma: no cover
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
         rv: NDArray[Any] | np.number[Any] = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type]

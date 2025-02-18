@@ -32,14 +32,14 @@ else:
         from scipy.sparse import csc_array, csr_array
 
         CSArray = csr_array | csc_array
-    except ImportError:
+    except ImportError:  # pragma: no cover
         CSArray = type("CSArray", (), {})
 
     try:  # cs?_matrix is available when scipy is installed
         from scipy.sparse import csc_matrix, csr_matrix
 
         CSMatrix = csr_matrix | csc_matrix
-    except ImportError:
+    except ImportError:  # pragma: no cover
         CSMatrix = type("CSMatrix", (), {})
 
     CSBase = CSMatrix | CSArray
@@ -47,13 +47,13 @@ else:
 
 if TYPE_CHECKING or find_spec("cupy"):
     from cupy import ndarray as CupyArray
-else:
+else:  # pragma: no cover
     CupyArray = type("ndarray", (), {})
 
 
 if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
-else:
+else:  # pragma: no cover
     CupySparseMatrix = type("spmatrix", (), {})
 
 
@@ -61,19 +61,19 @@ if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
     from dask.array.core import Array as DaskArray
 elif find_spec("dask"):
     from dask.array import Array as DaskArray
-else:
+else:  # pragma: no cover
     DaskArray = type("array", (), {})
 
 
 if TYPE_CHECKING or find_spec("h5py"):
     from h5py import Dataset as H5Dataset
-else:
+else:  # pragma: no cover
     H5Dataset = type("Dataset", (), {})
 
 
 if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
-else:
+else:  # pragma: no cover
     ZarrArray = type("Array", (), {})
 
 
