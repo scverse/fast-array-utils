@@ -70,7 +70,7 @@ def _(
 
     if isinstance(x, CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
-    return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[call-overload,no-any-return]
+    return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
 @_sum.register("dask.array:Array")
@@ -103,7 +103,7 @@ def _(
             case tuple():  # pragma: no cover
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
-        rv: NDArray[Any] | np.number[Any] = sum(a, axis=axis, dtype=dtype)  # type: ignore[arg-type,misc]
+        rv = sum(a, axis=axis, dtype=dtype)
         rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
         return rv.reshape((1, len(rv)))
 
