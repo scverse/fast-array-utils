@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from functools import singledispatch
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .. import types
+from .._import import lazy_singledispatch
+from ..types import OutOfCoreDataset
 
 
 if TYPE_CHECKING:
@@ -14,12 +14,14 @@ if TYPE_CHECKING:
 
     from numpy.typing import ArrayLike, NDArray
 
+    from .. import types
+
 
 __all__ = ["asarray"]
 
 
 # fallback’s arg0 type has to include types of registered functions
-@singledispatch
+@lazy_singledispatch
 def asarray(
     x: ArrayLike
     | types.CSBase
@@ -45,28 +47,28 @@ def asarray(
     return np.asarray(x)
 
 
-@asarray.register(types.CSBase)
+@asarray.register("fast_array_utils.types:CSBase", "scipy.sparse")
 def _(x: types.CSBase) -> NDArray[Any]:
     from .scipy import to_dense
 
     return to_dense(x)
 
 
-@asarray.register(types.DaskArray)
+@asarray.register("dask.array:Array")
 def _(x: types.DaskArray) -> NDArray[Any]:
     return asarray(x.compute())  # type: ignore[no-untyped-call]
 
 
-@asarray.register(types.OutOfCoreDataset)
+@asarray.register(OutOfCoreDataset)
 def _(x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]]) -> NDArray[Any]:
     return asarray(x.to_memory())
 
 
-@asarray.register(types.CupyArray)
+@asarray.register("cupy:ndarray")
 def _(x: types.CupyArray) -> NDArray[Any]:
     return x.get()  # type: ignore[no-any-return]
 
 
-@asarray.register(types.CupySparseMatrix)
+@asarray.register("cupyx.scipy.sparse:spmatrix")
 def _(x: types.CupySparseMatrix) -> NDArray[Any]:
     return x.toarray().get()  # type: ignore[no-any-return]
