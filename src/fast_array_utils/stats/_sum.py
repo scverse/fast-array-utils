@@ -55,7 +55,11 @@ def sum(
 
 @lazy_singledispatch
 def _sum(
-    x: ArrayLike, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+    x: ArrayLike | types.CSBase | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
