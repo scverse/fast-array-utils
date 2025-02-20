@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from functools import cache
-from importlib.util import find_spec
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, runtime_checkable
 
 from ._import import import_by_qualname
@@ -107,7 +106,7 @@ else:
     _REGISTRY["H5Dataset"] = "h5py:Dataset"
 
 
-if TYPE_CHECKING or find_spec("zarr"):
+if TYPE_CHECKING:
     from zarr import Array as ZarrArray
 else:
     _REGISTRY["ZarrArray"] = "zarr:Array"

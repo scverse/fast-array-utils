@@ -24,6 +24,11 @@ def import_by_qualname(qualname: str) -> object:
 
     mod = import_module(mod_path)
 
+    if mod_path == "dask" or mod_path.startswith("dask."):
+        from ._patches import patch_dask
+
+        patch_dask()
+
     # get object
     obj = mod
     for name in obj_path.split("."):
