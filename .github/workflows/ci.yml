@@ -38,6 +38,7 @@ jobs:
           files: test-data/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
       - uses: CodSpeedHQ/action@v3
+        if: ${{ matrix.python-version == '3.13' && matrix.extras == 'full' }}
         with:
           run: pytest -m benchmark --codspeed
           token: ${{ secrets.CODSPEED_TOKEN }}
