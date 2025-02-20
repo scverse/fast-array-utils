@@ -57,11 +57,17 @@ qualname_overrides = autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",
     "NDArray": "numpy.typing.NDArray",
-    "CSBase": "scipy.sparse.spmatrix",
-    "CupyArray": "cupy.ndarray",
-    "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
-    "DaskArray": "dask.array.Array",
-    "H5Dataset": "h5py.Dataset",
+    **{
+        k: v
+        for k_plain, v in {
+            "CSBase": "scipy.sparse.spmatrix",
+            "CupyArray": "cupy.ndarray",
+            "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+            "DaskArray": "dask.array.Array",
+            "H5Dataset": "h5py.Dataset",
+        }.items()
+        for k in (k_plain, f"types.{k_plain}")
+    },
 }
 # If that doesn’t work, ignore them
 nitpick_ignore = {
