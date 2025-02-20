@@ -30,7 +30,6 @@ repos:
           - numba
           - numpy
           - scipy
-          - types-scipy-sparse
           - dask
           - zarr
           - h5py
