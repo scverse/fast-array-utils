@@ -91,7 +91,7 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool_]:
     return (a == b).all(axis=1)  # type: ignore[no-any-return]
 
 
-@_is_constant.register(CSBase)  # type: ignore[call-overload,misc]
+@_is_constant.register(CSBase)
 def _(a: CSBase, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
     n_row, n_col = a.shape
     if axis is None:
