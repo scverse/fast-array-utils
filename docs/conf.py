@@ -48,6 +48,7 @@ intersphinx_mapping = dict(
     numpy=("https://numpy.org/doc/stable/", None),
     python=("https://docs.python.org/3", None),
     scipy=("https://docs.scipy.org/doc/scipy/", None),
+    zarr=("https://zarr.readthedocs.io/en/stable/", None),
 )
 # Try overriding type paths
 qualname_overrides = autodoc_type_aliases = {
@@ -57,15 +58,21 @@ qualname_overrides = autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",
     "NDArray": "numpy.typing.NDArray",
-    "CSBase": "scipy.sparse.spmatrix",
-    "CupyArray": "cupy.ndarray",
-    "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
-    "DaskArray": "dask.array.Array",
-    "H5Dataset": "h5py.Dataset",
+    **{
+        k: v
+        for k_plain, v in {
+            "CSBase": "scipy.sparse.spmatrix",
+            "CupyArray": "cupy.ndarray",
+            "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+            "DaskArray": "dask.array.Array",
+            "H5Dataset": "h5py.Dataset",
+            "ZarrArray": "zarr.Array",
+        }.items()
+        for k in (k_plain, f"types.{k_plain}")
+    },
 }
 # If that doesn’t work, ignore them
 nitpick_ignore = {
-    ("py:class", "DT_co"),
     ("py:class", "fast_array_utils.types.T_co"),
     # sphinx bugs, should be covered by `autodoc_type_aliases` above
     ("py:class", "ArrayLike"),

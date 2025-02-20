@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
-from ..types import CSBase, CSMatrix, DaskArray
+from .. import types
 
 
 if TYPE_CHECKING:
@@ -16,18 +16,22 @@ if TYPE_CHECKING:
 
 
 @overload
-def sum(x: ArrayLike, *, axis: None = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
-@overload
-def sum(x: ArrayLike, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[Any]: ...
+def sum(
+    x: ArrayLike, /, *, axis: None = None, dtype: DTypeLike | None = None
+) -> np.number[Any]: ...
 @overload
 def sum(
-    x: DaskArray, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
-) -> DaskArray: ...
+    x: ArrayLike, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+) -> types.DaskArray: ...
 
 
 def sum(
-    x: ArrayLike, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> NDArray[Any] | np.number[Any] | DaskArray:
+    x: ArrayLike, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
     Returns
@@ -45,30 +49,31 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: ArrayLike | CSBase | DaskArray,
+    x: ArrayLike | types.CSBase | types.DaskArray,
+    /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | DaskArray:
-    assert not isinstance(x, CSBase | DaskArray)
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
+    assert not isinstance(x, types.CSBase | types.DaskArray)
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
-@_sum.register(CSBase)
+@_sum.register(types.CSBase)
 def _(
-    x: CSBase, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+    x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
 
-    if isinstance(x, CSMatrix):
+    if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
-@_sum.register(DaskArray)
+@_sum.register(types.DaskArray)
 def _(
-    x: DaskArray, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> DaskArray:
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.reductions import reduction
     else:
@@ -79,7 +84,8 @@ def _(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | CSBase,
+        a: NDArray[Any] | types.CSBase,
+        /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
         dtype: DTypeLike | None = None,
