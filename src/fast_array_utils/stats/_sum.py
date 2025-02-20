@@ -18,17 +18,25 @@ if TYPE_CHECKING:
 
 
 @overload
-def sum(x: ArrayLike, *, axis: None = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
-@overload
-def sum(x: ArrayLike, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[Any]: ...
+def sum(
+    x: ArrayLike, /, *, axis: None = None, dtype: DTypeLike | None = None
+) -> np.number[Any]: ...
 @overload
 def sum(
-    x: types.DaskArray, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+    x: ArrayLike, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray: ...
 
 
 def sum(
-    x: ArrayLike, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+    x: ArrayLike | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
