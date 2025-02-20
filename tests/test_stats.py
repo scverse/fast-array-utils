@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -80,7 +81,10 @@ def test_sum(
     ],
 )
 def test_is_constant(
-    to_array: ToArray, axis: Literal[0, 1, None], expected: bool | list[bool]
+    request: pytest.FixtureRequest,
+    to_array: ToArray,
+    axis: Literal[0, 1, None],
+    expected: bool | list[bool],
 ) -> None:
     x_data = [
         [0, 0, 1, 1],
@@ -92,11 +96,28 @@ def test_is_constant(
     ]
     x = to_array(x_data)
     if isinstance(x, types.H5Dataset | types.ZarrArray):
-        pytest.xfail("H5Dataset and ZarrArray not yet supported for is_constant")
+        reason = "H5Dataset and ZarrArray not yet supported for is_constant"
+        request.applymarker(pytest.mark.xfail(reason=reason))
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = result.compute()
-    np.testing.assert_array_equal(expected, result)
+        result = result.compute()  # type: ignore[no-untyped-call]
+    if isinstance(expected, list):
+        np.testing.assert_array_equal(expected, result)
+    else:
+        assert expected is result
+
+
+@pytest.mark.skipif(not find_spec("dask"), reason="dask not installed")
+def test_is_constant_dask() -> None:
+    if TYPE_CHECKING:
+        import dask.array.core as da
+    else:
+        import dask.array as da
+
+    x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
+    x: da.Array = da.from_array(x_np, (2, 2))  # type: ignore[no-untyped-call]
+    result = stats.is_constant(x, axis=None).compute()  # type: ignore[attr-defined]
+    assert result is False
 
 
 @pytest.mark.benchmark

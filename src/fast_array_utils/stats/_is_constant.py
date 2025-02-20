@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, overload
 import numba
 import numpy as np
 
-from ..types import CSBase, DaskArray
+from .. import types
 
 
 if TYPE_CHECKING:
@@ -21,14 +21,16 @@ if TYPE_CHECKING:
 
 
 @overload
-def is_constant(a: NDArray[Any] | CSBase | DaskArray, axis: None = None) -> bool: ...
+def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
+def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
+@overload
+def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 
 
 def is_constant(
-    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool_]:
+    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
+) -> bool | NDArray[np.bool_] | types.DaskArray:
     """Check whether values in array are constant.
 
     Params
@@ -65,18 +67,18 @@ def is_constant(
             msg = "We only support axis 0 and 1 at the moment"
             raise NotImplementedError(msg)
 
-    return _is_constant(a, axis)
+    return _is_constant(a, axis=axis)
 
 
 @singledispatch
 def _is_constant(
-    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1, None] = None
+    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool_]:
     raise NotImplementedError
 
 
 @_is_constant.register(np.ndarray)
-def _(a: NDArray[Any], axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -92,13 +94,13 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool_]:
     return (a == b).all(axis=1)  # type: ignore[no-any-return]
 
 
-@_is_constant.register(CSBase)
-def _(a: CSBase, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+@_is_constant.register(types.CSBase)
+def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
-            return is_constant(a.data)
-        return (a.data == 0).all()  # type: ignore[no-any-return]
+            return is_constant(a.data)  # type: ignore[no-any-return]
+        return bool((a.data == 0).all())
     shape = (n_row, n_col) if axis == 1 else (n_col, n_row)
     match axis, a.format:
         case 0, "csr":
@@ -127,8 +129,8 @@ def _is_constant_csr_rows(
     return result
 
 
-@_is_constant.register(DaskArray)
-def _(a: DaskArray, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+@_is_constant.register(types.DaskArray)
+def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.core import map_blocks
     else:
@@ -136,11 +138,12 @@ def _(a: DaskArray, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_
 
     if isinstance(a._meta, np.ndarray) and axis is None:  # noqa: SLF001
         v = a[0, 0].compute()
-        return (a == v).all()  # type: ignore[no-any-return]
+        return map_blocks(bool, (a == v).all(), meta=np.array([], dtype=bool))  # type: ignore[no-any-return,no-untyped-call]
+
     # TODO(flying-sheep): use overlapping blocks and reduction instead of `drop_axis`  # noqa: TD003
     return map_blocks(  # type: ignore[no-any-return,no-untyped-call]
         partial(is_constant, axis=axis),
         a,
         drop_axis=(0, 1) if axis is None else axis,
-        meta=np.array([], dtype=a.dtype),
+        meta=np.array([], dtype=bool),
     )
