@@ -36,7 +36,7 @@ def asarray(x: ArrayLike | CSBase | OutOfCoreDataset[Any]) -> NDArray[Any]:
     return np.asarray(x)
 
 
-@asarray.register(CSBase)  # type: ignore[call-overload,misc]
+@asarray.register(CSBase)
 def _(x: CSBase) -> NDArray[Any]:
     from .scipy import to_dense
 
