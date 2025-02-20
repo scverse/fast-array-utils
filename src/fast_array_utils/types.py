@@ -5,7 +5,9 @@ from __future__ import annotations
 
 from functools import cache
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, runtime_checkable
+
+from ._import import _import_by_qualname
 
 
 if TYPE_CHECKING:
@@ -50,8 +52,7 @@ def __getattr__(name: str) -> type | UnionType:
         if callable(source):
             return source()
 
-        mod, name = source.rsplit(".", 1)
-        return getattr(__import__(mod, fromlist=[name]), name)  # type: ignore[no-any-return]
+        return cast(type, _import_by_qualname(source))
     except ImportError:  # A name we can’t import
         return type(name, (), {})
 
