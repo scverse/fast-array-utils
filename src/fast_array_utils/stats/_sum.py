@@ -25,7 +25,7 @@ def sum(
 ) -> NDArray[Any]: ...
 @overload
 def sum(
-    x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray: ...
 
 
@@ -87,7 +87,7 @@ def _(
         a: NDArray[Any] | types.CSBase,
         /,
         *,
-        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
+        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
         dtype: DTypeLike | None = None,
         keepdims: bool = False,
     ) -> NDArray[Any]:

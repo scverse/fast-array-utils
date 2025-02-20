@@ -97,9 +97,11 @@ lint.pydocstyle.convention = "numpy"
 addopts = [
   "--import-mode=importlib",
   "--strict-markers",
+  "--doctest-modules",
   "--pyargs",
   "-ptesting.fast_array_utils.pytest",
 ]
+testpaths = [ "./tests", "fast_array_utils" ]
 filterwarnings = [
   "error",
   # codspeed seems to break this dtype added by h5py

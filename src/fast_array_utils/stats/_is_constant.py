@@ -27,7 +27,7 @@ def is_constant(a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1]) -> ND
 
 
 def is_constant(
-    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1] | None = None
+    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool_]:
     """Check whether values in array are constant.
 
@@ -40,7 +40,8 @@ def is_constant(
 
     Returns
     -------
-    Boolean array, True values were constant.
+    If ``axis`` is :data:`None`, return if all values were constant.
+    Else returns a boolean array with :data:`True` representing constant columns/rows.
 
     Example
     -------
@@ -69,13 +70,13 @@ def is_constant(
 
 @singledispatch
 def _is_constant(
-    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1] | None = None
+    a: NDArray[Any] | CSBase | DaskArray, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool_]:
     raise NotImplementedError
 
 
 @_is_constant.register(np.ndarray)
-def _(a: NDArray[Any], axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
+def _(a: NDArray[Any], axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -92,7 +93,7 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool_]:
 
 
 @_is_constant.register(CSBase)
-def _(a: CSBase, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
+def _(a: CSBase, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
@@ -127,7 +128,7 @@ def _is_constant_csr_rows(
 
 
 @_is_constant.register(DaskArray)
-def _(a: DaskArray, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool_]:
+def _(a: DaskArray, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     if TYPE_CHECKING:
         from dask.array.core import map_blocks
     else:
