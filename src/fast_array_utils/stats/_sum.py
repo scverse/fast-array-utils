@@ -1,18 +1,20 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from functools import partial, singledispatch
+from functools import partial
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
-from ..types import CSBase, CSMatrix, DaskArray
+from .._import import lazy_singledispatch
 
 
 if TYPE_CHECKING:
     from typing import Any, Literal
 
     from numpy.typing import ArrayLike, DTypeLike, NDArray
+
+    from .. import types
 
 
 @overload
@@ -21,13 +23,13 @@ def sum(x: ArrayLike, *, axis: None = None, dtype: DTypeLike | None = None) -> n
 def sum(x: ArrayLike, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[Any]: ...
 @overload
 def sum(
-    x: DaskArray, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
-) -> DaskArray: ...
+    x: types.DaskArray, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+) -> types.DaskArray: ...
 
 
 def sum(
     x: ArrayLike, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> NDArray[Any] | np.number[Any] | DaskArray:
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
     Returns
@@ -43,32 +45,30 @@ def sum(
     return _sum(x, axis=axis, dtype=dtype)
 
 
-@singledispatch
+@lazy_singledispatch
 def _sum(
-    x: ArrayLike | CSBase | DaskArray,
-    *,
-    axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | DaskArray:
-    assert not isinstance(x, CSBase | DaskArray)
+    x: ArrayLike, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
 
 
-@_sum.register(CSBase)  # type: ignore[call-overload,misc]
+@_sum.register("fast_array_utils.types:CSBase", "scipy.sparse")
 def _(
-    x: CSBase, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+    x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
+
+    from ..types import CSMatrix
 
     if isinstance(x, CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[call-overload,no-any-return]
 
 
-@_sum.register(DaskArray)
+@_sum.register("dask.array:Array")
 def _(
-    x: DaskArray, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> DaskArray:
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.reductions import reduction
     else:
@@ -79,7 +79,8 @@ def _(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | CSBase,
+        a: NDArray[Any] | types.CSBase,
+        /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
         dtype: DTypeLike | None = None,

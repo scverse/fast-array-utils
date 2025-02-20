@@ -7,7 +7,7 @@ from functools import cache
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, runtime_checkable
 
-from ._import import _import_by_qualname
+from ._import import import_by_qualname
 
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ def __getattr__(name: str) -> type | UnionType:
         if callable(source):
             return source()
 
-        return cast(type, _import_by_qualname(source))
+        return cast(type, import_by_qualname(source))
     except ImportError:  # A name we can’t import
         return type(name, (), {})
 
@@ -91,26 +91,26 @@ if TYPE_CHECKING:
     from cupy import ndarray as CupyArray
     from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
 else:
-    _REGISTRY["CupyArray"] = "cupy.ndarray"
-    _REGISTRY["CupySparseMatrix"] = "cupyx.scipy.sparse.spmatrix"
+    _REGISTRY["CupyArray"] = "cupy:ndarray"
+    _REGISTRY["CupySparseMatrix"] = "cupyx.scipy.sparse:spmatrix"
 
 
 if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
     from dask.array.core import Array as DaskArray
 else:
-    _REGISTRY["DaskArray"] = "dask.array.Array"
+    _REGISTRY["DaskArray"] = "dask.array:Array"
 
 
 if TYPE_CHECKING:
     from h5py import Dataset as H5Dataset
 else:
-    _REGISTRY["H5Dataset"] = "h5py.Dataset"
+    _REGISTRY["H5Dataset"] = "h5py:Dataset"
 
 
 if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
 else:
-    _REGISTRY["ZarrArray"] = "zarr.Array"
+    _REGISTRY["ZarrArray"] = "zarr:Array"
 
 
 # protocols:
