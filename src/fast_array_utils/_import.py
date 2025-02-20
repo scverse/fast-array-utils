@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import cache
 from types import UnionType
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, cast, overload
 
@@ -42,16 +43,24 @@ class lazy_singledispatch(Generic[P, R]):  # noqa: N801
     _eager: dict[type | UnionType, Callable[..., R]] = field(init=False, default_factory=dict)
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        for typ_, fn in self._eager.items():
-            if isinstance(args[0], typ_):
-                return fn(*args, **kwargs)
+        fn = self.dispatch(type(args[0]))  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/11470
+        return fn(*args, **kwargs)
+
+    def __hash__(self) -> int:
+        return hash(self.fallback)
+
+    @cache  # noqa: B019
+    def dispatch(self, typ: type) -> Callable[P, R]:
+        for cls_reg, fn in self._eager.items():
+            if issubclass(typ, cls_reg):
+                return fn
         for (import_qualname, host_mod_name), fn in self._lazy.items():
-            for cls in type(args[0]).mro():
+            for cls in typ.mro():
                 if cls.__module__.startswith(host_mod_name):  # can be deeper
                     cls_reg = cast(type, import_by_qualname(import_qualname))
-                    if isinstance(args[0], cls_reg):
-                        return fn(*args, **kwargs)
-        return self.fallback(*args, **kwargs)
+                    if issubclass(typ, cls_reg):
+                        return fn
+        return self.fallback
 
     @overload
     def register(
