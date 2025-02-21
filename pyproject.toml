@@ -23,7 +23,14 @@ classifiers = [
 ]
 dynamic = [ "description", "version" ]
 dependencies = [ "numba", "numpy" ]
-optional-dependencies.doc = [ "furo", "scanpydoc>=0.15.2", "sphinx>=8", "sphinx-autodoc-typehints" ]
+optional-dependencies.doc = [
+  "furo",
+  "pytest",
+  "scanpydoc>=0.15.2",
+  "sphinx>=8",
+  "sphinx-autodoc-typehints",
+  "sphinx-autofixture",
+]
 optional-dependencies.full = [ "dask", "fast-array-utils[sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.8" ]
 optional-dependencies.test = [ "coverage[toml]", "pytest", "pytest-codspeed" ]

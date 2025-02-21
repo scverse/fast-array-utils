@@ -40,6 +40,18 @@ if TYPE_CHECKING:
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
 
 
+__all__ = [
+    "SUPPORTED_TYPES",
+    "SUPPORTED_TYPES_DASK",
+    "SUPPORTED_TYPES_IN_DASK",
+    "SUPPORTED_TYPES_OTHER",
+    "Array",
+    "ArrayType",
+    "ConversionContext",
+    "ToArray",
+]
+
+
 @dataclass
 class ConversionContext:
     """Conversion context required for h5py."""

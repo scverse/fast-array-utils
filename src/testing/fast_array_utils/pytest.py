@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
+__all__ = ["array_type", "conversion_context"]
+
+
 def _skip_if_no(dist: str) -> pytest.MarkDecorator:
     return pytest.mark.skipif(not find_spec(dist), reason=f"{dist} not installed")
 
@@ -28,7 +31,7 @@ def _skip_if_no(dist: str) -> pytest.MarkDecorator:
     ],
 )
 def array_type(request: pytest.FixtureRequest) -> ArrayType:
-    """Fixture for a supported array class."""
+    """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`."""
     from fast_array_utils.types import H5Dataset
 
     at = cast(ArrayType, request.param)
@@ -44,7 +47,10 @@ def conversion_context(
     tmp_path_factory: pytest.TempPathFactory,
     worker_id: str = "serial",
 ) -> Generator[ConversionContext, None, None]:
-    """Convert to a h5py dataset."""
+    """Fixture providing a :class:`~testing.fast_array_utils.ConversionContext`.
+
+    Makes sure h5py works even when running tests in parallel.
+    """
     import h5py
 
     tmp_path = tmp_path_factory.mktemp("backed_adata")
