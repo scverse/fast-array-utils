@@ -63,6 +63,7 @@ def conversion_context(
     tmp_path = tmp_path / f"test_{worker_id}.h5ad"
 
     def get_ds_name() -> str:
+        """Get dataset name from test name, so tests running in parallel each get their own."""
         return os.environ["PYTEST_CURRENT_TEST"].rsplit(":", 1)[-1].split(" ", 1)[0]
 
     with h5py.File(tmp_path, "x") as f:
