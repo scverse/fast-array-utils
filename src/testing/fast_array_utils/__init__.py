@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass
 from functools import cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -11,8 +11,10 @@ import numpy as np
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any, Literal, Protocol, SupportsFloat, TypeAlias
 
+    import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     from fast_array_utils import types
@@ -39,12 +41,22 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ConversionContext:
+    """Conversion context required for h5py."""
+
+    hdf5_file: h5py.File
+    get_ds_name: Callable[[], str]
+
+
+@dataclass
 class ArrayType:
-    """Supported array type."""
+    """Supported array type with methods for conversion and random generation."""
 
     mod: str
     name: str
-    inner: ArrayType | None
+    inner: ArrayType | None = None
+    _: KW_ONLY
+    conversion_context: ConversionContext | None = None
 
     @classmethod
     @cache
@@ -128,6 +140,63 @@ class ArrayType:
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
 
+    def __call__(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Array:
+        """Create a function to convert to a supported array."""
+        from fast_array_utils import types
+
+        fn: ToArray
+        if self.cls is np.ndarray:
+            fn = np.asarray  # type: ignore[assignment]
+        elif self.cls is types.DaskArray:
+            if self.inner is None:
+                msg = "Cannot convert to dask array without inner array type"
+                raise AssertionError(msg)
+            fn = self.to_dask_array
+        elif self.cls is types.H5Dataset:
+            fn = self.to_h5py_dataset
+        elif self.cls is types.ZarrArray:
+            fn = self.to_zarr_array
+        elif self.cls is types.CupyArray:
+            import cupy as cu
+
+            fn = cu.asarray
+        else:
+            fn = self.cls  # type: ignore[assignment]
+
+        return fn(x, dtype=dtype)
+
+    def to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
+        """Convert to a dask array."""
+        if TYPE_CHECKING:
+            import dask.array.core as da
+        else:
+            import dask.array as da
+
+        assert self.inner is not None
+
+        x = np.asarray(x, dtype=dtype)
+        return da.from_array(self.inner.__call__(x), _half_chunk_size(x.shape))  # type: ignore[no-untyped-call,no-any-return]
+
+    def to_h5py_dataset(
+        self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
+    ) -> types.H5Dataset:
+        """Convert to a h5py dataset."""
+        if (ctx := self.conversion_context) is None:
+            msg = "`conversion_context` must be set for h5py"
+            raise RuntimeError(msg)
+        arr = np.asarray(x, dtype=dtype)
+        return ctx.hdf5_file.create_dataset(ctx.get_ds_name(), arr.shape, arr.dtype, data=arr)
+
+    @staticmethod
+    def to_zarr_array(x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
+        """Convert to a zarr array."""
+        import zarr
+
+        arr = np.asarray(x, dtype=dtype)
+        za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
+        za[...] = arr
+        return za
+
 
 _SUPPORTED_TYPE_NAMES_IN_DASK = [
     "numpy.ndarray",
@@ -170,3 +239,11 @@ def random_mat(
         if container == "matrix"
         else random_sparr(shape, density=density, format=format, dtype=dtype, random_state=gen)
     )
+
+
+def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
+    def half_rounded_up(x: int) -> int:
+        div, mod = divmod(x, 2)
+        return div + (mod > 0)
+
+    return tuple(half_rounded_up(x) for x in a)
