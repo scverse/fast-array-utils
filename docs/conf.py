@@ -52,6 +52,7 @@ intersphinx_mapping = dict(
 )
 # Try overriding type paths
 qualname_overrides = autodoc_type_aliases = {
+    "np.bool_": ("py:data", "numpy.bool_"),
     "np.dtype": "numpy.dtype",
     "np.number": "numpy.number",
     "np.integer": "numpy.integer",
@@ -78,6 +79,7 @@ nitpick_ignore = {
     ("py:class", "ArrayLike"),
     ("py:class", "DTypeLike"),
     ("py:class", "NDArray"),
+    ("py:class", "np.bool_"),
 }
 
 # Options for HTML output
