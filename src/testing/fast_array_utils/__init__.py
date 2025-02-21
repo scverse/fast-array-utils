@@ -269,7 +269,7 @@ SUPPORTED_TYPES_MEM: tuple[ArrayType, ...] = (
 """Supported array types that are valid inside dask arrays."""
 
 SUPPORTED_TYPES_DASK: tuple[ArrayType, ...] = tuple(
-    ArrayType("dask.array", ".Array", t) for t in SUPPORTED_TYPES_MEM
+    ArrayType("dask.array", "Array", t) for t in SUPPORTED_TYPES_MEM
 )
 """Supported dask array types."""
 
