@@ -32,6 +32,7 @@ jobs:
           coverage run -m pytest -m "not benchmark"
           coverage xml
           coverage report
+          rm test-data/.coverage
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
