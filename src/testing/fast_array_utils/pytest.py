@@ -23,15 +23,18 @@ if TYPE_CHECKING:
 __all__ = ["array_type", "conversion_context"]
 
 
-def _skip_if_no(dist: str) -> pytest.MarkDecorator:
-    return pytest.mark.skipif(not find_spec(dist), reason=f"{dist} not installed")
+def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
+    dist = None
+    skip = False
+    for t in (array_type, array_type.inner):
+        if t and not find_spec(dist := t.mod.split(".", 1)[0]):
+            skip = True
+    return pytest.mark.skipif(skip, reason=f"{dist} not installed")
 
 
 @pytest.fixture(
     scope="session",
-    params=[
-        pytest.param(t, id=str(t), marks=_skip_if_no(t.mod.split(".")[0])) for t in SUPPORTED_TYPES
-    ],
+    params=[pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES],
 )
 def array_type(request: pytest.FixtureRequest) -> ArrayType:
     """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`."""
