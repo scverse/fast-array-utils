@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import os
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
@@ -32,7 +33,8 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
 
     at = cast(ArrayType, request.param)
     if at.cls is H5Dataset:
-        at.conversion_context = request.getfixturevalue("conversion_context")
+        ctx = request.getfixturevalue("conversion_context")
+        at = dataclasses.replace(at, conversion_context=ctx)
     return at
 
 

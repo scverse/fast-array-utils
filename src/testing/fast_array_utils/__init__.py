@@ -48,7 +48,7 @@ class ConversionContext:
     get_ds_name: Callable[[], str]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ArrayType:
     """Supported array type with methods for conversion and random generation."""
 
