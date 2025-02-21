@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import KW_ONLY, dataclass
+from dataclasses import KW_ONLY, dataclass, field
 from functools import cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -62,28 +62,44 @@ class ConversionContext:
 
 @dataclass(frozen=True)
 class ArrayType:
-    """Supported array type with methods for conversion and random generation."""
+    """Supported array type with methods for conversion and random generation.
+
+    Examples
+    --------
+    >>> at = ArrayType("numpy", "ndarray")
+    >>> arr = at([1, 2, 3])
+    >>> arr
+    array([1, 2, 3])
+    >>> assert isinstance(arr, at.cls)
+
+    """
 
     mod: str
+    """Module name."""
     name: str
+    """Array class name."""
     inner: ArrayType | None = None
+    """Inner array type (e.g. for dask)."""
+
     _: KW_ONLY
-    conversion_context: ConversionContext | None = None
+
+    conversion_context: ConversionContext | None = field(default=None, compare=False)
+    """Conversion context required for converting to h5py."""
 
     @classmethod
     @cache
     def from_qualname(cls, qualname: str, inner: str | None = None) -> ArrayType:
-        """Get a supported array type by qualname."""
+        """Create from qualnames of type and inner type."""
         mod, name = qualname.rsplit(".", 1)
         return cls(mod, name, ArrayType.from_qualname(inner) if inner else None)
 
-    def __str__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:  # noqa: D105
         rv = f"{self.mod}.{self.name}"
         return f"{rv}[{self.inner}]" if self.inner else rv
 
     @cached_property
     def cls(self) -> type[Array]:  # noqa: PLR0911
-        """Get a supported array class by qualname."""
+        """Array class for :func:`isinstance` checks."""
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
                 return np.ndarray
@@ -153,7 +169,7 @@ class ArrayType:
                 raise ValueError(msg)
 
     def __call__(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Array:
-        """Create a function to convert to a supported array."""
+        """Convert to this array type."""
         from fast_array_utils import types
 
         fn: ToArray
@@ -224,12 +240,24 @@ _SUPPORTED_TYPE_NAMES_OTHER = [
     "cupyx.scipy.sparse.csr_matrix",
     "cupyx.scipy.sparse.csc_matrix",
 ]
-SUPPORTED_TYPES_IN_DASK = tuple(map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_IN_DASK))
-SUPPORTED_TYPES_DASK = tuple(
+SUPPORTED_TYPES_IN_DASK: tuple[ArrayType, ...] = tuple(
+    map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_IN_DASK)
+)
+"""Supported array types that are valid inside dask arrays."""
+SUPPORTED_TYPES_DASK: tuple[ArrayType, ...] = tuple(
     ArrayType.from_qualname("dask.array.Array", t) for t in _SUPPORTED_TYPE_NAMES_IN_DASK
 )
-SUPPORTED_TYPES_OTHER = tuple(map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_OTHER))
-SUPPORTED_TYPES = (*SUPPORTED_TYPES_IN_DASK, *SUPPORTED_TYPES_DASK, *SUPPORTED_TYPES_OTHER)
+"""Supported dask array types."""
+SUPPORTED_TYPES_OTHER: tuple[ArrayType, ...] = tuple(
+    map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_OTHER)
+)
+"""Supported array types that are not valid inside dask arrays."""
+SUPPORTED_TYPES: tuple[ArrayType, ...] = (
+    *SUPPORTED_TYPES_IN_DASK,
+    *SUPPORTED_TYPES_DASK,
+    *SUPPORTED_TYPES_OTHER,
+)
+"""All supported array types."""
 
 
 def random_mat(

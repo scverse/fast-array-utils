@@ -39,6 +39,10 @@ extensions = [
 nitpicky = True
 autosummary_generate = True
 autodoc_member_order = "bysource"
+autodoc_default_options = {
+    "special-members": "__call__",  # `True` adds too much stuff to dataclasses
+    "inherited-members": False,
+}
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 todo_include_todos = False

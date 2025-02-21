@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Testing utilities."""
+"""Pytest fixtures to get supported array types.
+
+Can be used as pytest plugin: ``pytest -p testing.fast_array_utils.pytest``.
+"""
 
 from __future__ import annotations
 
