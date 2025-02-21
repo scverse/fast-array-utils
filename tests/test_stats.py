@@ -109,6 +109,7 @@ def test_is_constant(
 
 @pytest.mark.skipif(not find_spec("dask"), reason="dask not installed")
 def test_is_constant_dask() -> None:
+    """Tests if is_constant works if each chunk is individually constant."""
     if TYPE_CHECKING:
         import dask.array.core as da
     else:
