@@ -40,8 +40,9 @@ nitpicky = True
 autosummary_generate = True
 autodoc_member_order = "bysource"
 autodoc_default_options = {
-    "special-members": "__call__",  # `True` adds too much stuff to dataclasses
-    "inherited-members": False,
+    "special-members": True,
+    # everything except __call__ really, to avoid having to write autosummary templates
+    "exclude-members": "__setattr__,__delattr__,__repr__,__eq__,__hash__,__weakref__,__init__",
 }
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

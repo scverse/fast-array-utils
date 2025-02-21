@@ -180,11 +180,11 @@ class ArrayType:
             if self.inner is None:
                 msg = "Cannot convert to dask array without inner array type"
                 raise AssertionError(msg)
-            fn = self.to_dask_array
+            fn = self._to_dask_array
         elif self.cls is types.H5Dataset:
-            fn = self.to_h5py_dataset
+            fn = self._to_h5py_dataset
         elif self.cls is types.ZarrArray:
-            fn = self.to_zarr_array
+            fn = self._to_zarr_array
         elif self.cls is types.CupyArray:
             import cupy as cu
 
@@ -194,7 +194,7 @@ class ArrayType:
 
         return fn(x, dtype=dtype)
 
-    def to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
+    def _to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         """Convert to a dask array."""
         if TYPE_CHECKING:
             import dask.array.core as da
@@ -206,7 +206,7 @@ class ArrayType:
         arr = self.inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))  # type: ignore[no-untyped-call,no-any-return]
 
-    def to_h5py_dataset(
+    def _to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
     ) -> types.H5Dataset:
         """Convert to a h5py dataset."""
@@ -217,7 +217,7 @@ class ArrayType:
         return ctx.hdf5_file.create_dataset(ctx.get_ds_name(), arr.shape, arr.dtype, data=arr)
 
     @staticmethod
-    def to_zarr_array(x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
+    def _to_zarr_array(x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
         """Convert to a zarr array."""
         import zarr
 
