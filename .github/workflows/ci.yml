@@ -30,8 +30,10 @@ jobs:
       - run: uv pip install --system -e .[test${{ matrix.extras == 'full' && ',full' || '' }}]
       - run: |
           coverage run -m pytest -m "not benchmark"
-          coverage xml
           coverage report
+          # https://github.com/codecov/codecov-cli/issues/648
+          coverage xml
+          rm test-data/.coverage
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
