@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from fast_array_utils import stats, types
-from testing.fast_array_utils import random_array
 
 
 if TYPE_CHECKING:
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 
     from pytest_codspeed import BenchmarkFixture
 
-    from testing.fast_array_utils import Array, ToArray
+    from testing.fast_array_utils import Array, ArrayType, ToArray
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool_]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
@@ -75,13 +74,13 @@ def test_sum(
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_sum_benchmark(
     benchmark: BenchmarkFixture,
-    array_cls_name: str,
+    array_type: ArrayType,
     axis: Literal[0, 1, None],
     dtype: type[np.float32 | np.float64],
 ) -> None:
     try:
-        shape = (1_000, 1_000) if "sparse" in array_cls_name else (100, 100)
-        arr = random_array(array_cls_name, shape, dtype=dtype)
+        shape = (1_000, 1_000) if "sparse" in array_type.mod else (100, 100)
+        arr = array_type.random(shape, dtype=dtype)
     except NotImplementedError:
         pytest.skip("random_array not implemented for dtype")
 

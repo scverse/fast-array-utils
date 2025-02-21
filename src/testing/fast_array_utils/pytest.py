@@ -12,7 +12,7 @@ import pytest
 
 from fast_array_utils import types
 
-from . import get_array_cls
+from . import SUPPORTED_TYPES, ArrayType
 
 
 if TYPE_CHECKING:
@@ -22,8 +22,6 @@ if TYPE_CHECKING:
 
     from testing.fast_array_utils import ToArray
 
-    from . import Array
-
 
 def _skip_if_no(dist: str) -> pytest.MarkDecorator:
     return pytest.mark.skipif(not find_spec(dist), reason=f"{dist} not installed")
@@ -31,65 +29,37 @@ def _skip_if_no(dist: str) -> pytest.MarkDecorator:
 
 @pytest.fixture(
     scope="session",
-    params=[
-        pytest.param("numpy.ndarray"),
-        pytest.param("scipy.sparse.csr_array", marks=_skip_if_no("scipy")),
-        pytest.param("scipy.sparse.csc_array", marks=_skip_if_no("scipy")),
-        pytest.param("scipy.sparse.csr_matrix", marks=_skip_if_no("scipy")),
-        pytest.param("scipy.sparse.csc_matrix", marks=_skip_if_no("scipy")),
-        pytest.param("dask.array.Array[numpy.ndarray]", marks=_skip_if_no("dask")),
-        pytest.param("dask.array.Array[scipy.sparse.csr_array]", marks=_skip_if_no("dask")),
-        pytest.param("dask.array.Array[scipy.sparse.csc_array]", marks=_skip_if_no("dask")),
-        pytest.param("dask.array.Array[scipy.sparse.csr_matrix]", marks=_skip_if_no("dask")),
-        pytest.param("dask.array.Array[scipy.sparse.csc_matrix]", marks=_skip_if_no("dask")),
-        pytest.param("h5py.Dataset", marks=_skip_if_no("h5py")),
-        pytest.param("zarr.Array", marks=_skip_if_no("zarr")),
-        pytest.param("cupy.ndarray", marks=_skip_if_no("cupy")),
-        pytest.param("cupyx.scipy.sparse.csr_matrix", marks=_skip_if_no("cupy")),
-        pytest.param("cupyx.scipy.sparse.csc_matrix", marks=_skip_if_no("cupy")),
-    ],
+    params=[pytest.param(t, marks=_skip_if_no(t.mod.split(".")[0])) for t in SUPPORTED_TYPES],
 )
-def array_cls_name(request: pytest.FixtureRequest) -> str:
+def array_type(request: pytest.FixtureRequest) -> ArrayType:
     """Fixture for a supported array class."""
-    return cast(str, request.param)
+    return cast(ArrayType, request.param)
 
 
 @pytest.fixture(scope="session")
-def array_cls(array_cls_name: str) -> type[Array]:
-    """Fixture for a supported array class."""
-    return get_array_cls(array_cls_name)
-
-
-@pytest.fixture(scope="session")
-def to_array(
-    request: pytest.FixtureRequest, array_cls: type[Array], array_cls_name: str
-) -> ToArray:
+def to_array(request: pytest.FixtureRequest, array_type: ArrayType) -> ToArray:
     """Fixture for conversion into a supported array."""
-    return get_to_array(array_cls, array_cls_name, request)
+    return get_to_array(array_type, request)
 
 
-def get_to_array(
-    array_cls: type[Array],
-    array_cls_name: str | None = None,
-    request: pytest.FixtureRequest | None = None,
-) -> ToArray:
+def get_to_array(array_type: ArrayType, request: pytest.FixtureRequest | None = None) -> ToArray:
     """Create a function to convert to a supported array."""
-    if array_cls is np.ndarray:
+    if array_type.cls is np.ndarray:
         return np.asarray  # type: ignore[return-value]
-    if array_cls is types.DaskArray:
-        assert array_cls_name is not None
-        return to_dask_array(array_cls_name)
-    if array_cls is types.H5Dataset:
+    if array_type.cls is types.DaskArray:
+        assert array_type.inner is not None
+        return to_dask_array(array_type.inner)
+    if array_type.cls is types.H5Dataset:
         assert request is not None
         return request.getfixturevalue("to_h5py_dataset")  # type: ignore[no-any-return]
-    if array_cls is types.ZarrArray:
+    if array_type.cls is types.ZarrArray:
         return to_zarr_array
-    if array_cls is types.CupyArray:
+    if array_type.cls is types.CupyArray:
         import cupy as cu
 
         return cu.asarray  # type: ignore[no-any-return]
 
-    return array_cls  # type: ignore[return-value]
+    return array_type.cls  # type: ignore[return-value]
 
 
 def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
@@ -100,16 +70,16 @@ def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
     return tuple(half_rounded_up(x) for x in a)
 
 
-def to_dask_array(array_cls_name: str) -> ToArray:
+def to_dask_array(array_type: ArrayType) -> ToArray:
     """Convert to a dask array."""
     if TYPE_CHECKING:
         import dask.array.core as da
     else:
         import dask.array as da
 
-    inner_cls_name = array_cls_name.removeprefix("dask.array.Array[").removesuffix("]")
-    inner_cls = get_array_cls(inner_cls_name)
-    to_array_fn: ToArray = get_to_array(array_cls=inner_cls)
+    inner_cls = array_type.inner
+    assert inner_cls is not None
+    to_array_fn: ToArray = get_to_array(inner_cls)
 
     def to_dask_array(x: ArrayLike, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         x = np.asarray(x, dtype=dtype)
