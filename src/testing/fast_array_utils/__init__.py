@@ -202,8 +202,8 @@ class ArrayType:
 
         assert self.inner is not None
 
-        x = np.asarray(x, dtype=dtype)
-        return da.from_array(self.inner.__call__(x), _half_chunk_size(x.shape))  # type: ignore[no-untyped-call,no-any-return]
+        arr = self.inner(x, dtype=dtype)
+        return da.from_array(arr, _half_chunk_size(arr.shape))  # type: ignore[no-untyped-call,no-any-return]
 
     def to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
