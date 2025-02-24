@@ -147,6 +147,8 @@ class ArrayType:
         *,
         dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None,
         gen: np.random.Generator | None = None,
+        # sparse only
+        density: SupportsFloat = 0.01,
     ) -> Array:
         """Create a random array."""
         gen = np.random.default_rng(gen)
@@ -158,7 +160,13 @@ class ArrayType:
                 "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
             ) as cls_name, None:
                 fmt, container = cls_name.split("_")
-                return random_mat(shape, format=fmt, container=container, dtype=dtype)  # type: ignore[arg-type]
+                return random_mat(
+                    shape,
+                    density=density,
+                    format=fmt,  # type: ignore[arg-type]
+                    container=container,  # type: ignore[arg-type]
+                    dtype=dtype,
+                )
             case "cupy", "ndarray", None:
                 raise NotImplementedError
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
@@ -171,7 +179,8 @@ class ArrayType:
 
                 arr = zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
                 return arr.map_blocks(
-                    lambda x: self.random(x.shape, dtype=x.dtype, gen=gen), dtype=dtype
+                    lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),
+                    dtype=dtype,
                 )
             case "h5py", "Dataset", _:
                 raise NotImplementedError
