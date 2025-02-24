@@ -7,9 +7,7 @@ import numpy as np
 import pytest
 
 from fast_array_utils import stats, types
-from testing.fast_array_utils import SUPPORTED_TYPES
 from testing.fast_array_utils.array_type import Flags
-from testing.fast_array_utils.pytest import _skip_if_unimportable
 
 
 if TYPE_CHECKING:
@@ -74,16 +72,8 @@ def test_sum(
 
 
 @pytest.mark.benchmark
+@pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
-@pytest.mark.parametrize(
-    "array_type",
-    # TODO(flying-sheep): remove need for private import  # noqa: TD003
-    [
-        pytest.param(t, id=str(t), marks=_skip_if_unimportable(t))
-        for t in SUPPORTED_TYPES
-        if t.flags & ~(Flags.Dask | Flags.Disk | Flags.Gpu)
-    ],
-)
 def test_sum_benchmark(
     benchmark: BenchmarkFixture,
     array_type: ArrayType,

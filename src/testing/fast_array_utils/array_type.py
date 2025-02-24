@@ -12,7 +12,6 @@ import numpy as np
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from typing import Any, Literal, Protocol, SupportsFloat, TypeAlias
 
     import h5py
@@ -45,10 +44,23 @@ __all__ = ["ArrayType", "ConversionContext", "ToArray"]
 
 
 class Flags(enum.Flag):
+    """Array classification flags.
+
+    Use ``Flags(0)`` and ``~Flags(0)`` for no or all flags set.
+    """
+
+    Any = enum.auto()
+    Sparse = enum.auto()
     Gpu = enum.auto()
     Dask = enum.auto()
-    Sparse = enum.auto()
     Disk = enum.auto()
+
+    def __repr__(self) -> str:
+        if self is Flags(0):
+            return "Flags(0)"
+        if self is ~Flags(0):
+            return "~Flags(0)"
+        return super().__repr__()
 
 
 @dataclass
@@ -56,7 +68,6 @@ class ConversionContext:
     """Conversion context required for h5py."""
 
     hdf5_file: h5py.File
-    get_ds_name: Callable[[], str]
 
 
 @dataclass(frozen=True)
@@ -77,7 +88,7 @@ class ArrayType:
     """Module name."""
     name: str
     """Array class name."""
-    flags: Flags = Flags(0)  # noqa: RUF009
+    flags: Flags = Flags.Any
     """Classification flags."""
 
     _: KW_ONLY
@@ -215,7 +226,7 @@ class ArrayType:
             msg = "`conversion_context` must be set for h5py"
             raise RuntimeError(msg)
         arr = np.asarray(x, dtype=dtype)
-        return ctx.hdf5_file.create_dataset(ctx.get_ds_name(), arr.shape, arr.dtype, data=arr)
+        return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @staticmethod
     def _to_zarr_array(x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:

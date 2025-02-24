@@ -24,19 +24,21 @@ __all__ = [
 
 
 _TP_MEM = (
-    ArrayType("numpy", "ndarray"),
-    ArrayType("cupy", "ndarray", Flags.Gpu),
+    ArrayType("numpy", "ndarray", Flags.Any),
+    ArrayType("cupy", "ndarray", Flags.Any | Flags.Gpu),
     *(
-        ArrayType("scipy.sparse", n, Flags.Sparse)
+        ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse)
         for n in ["csr_array", "csc_array", "csr_matrix", "csc_matrix"]
     ),
     *(
-        ArrayType("cupyx.scipy.sparse", n, Flags.Gpu | Flags.Sparse)
+        ArrayType("cupyx.scipy.sparse", n, Flags.Any | Flags.Gpu | Flags.Sparse)
         for n in ["csr_matrix", "csc_matrix"]
     ),
 )
 _TP_DASK = tuple(ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t) for t in _TP_MEM)
-_TP_DISK = tuple(ArrayType(m, n, Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")])
+_TP_DISK = tuple(
+    ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]
+)
 
 SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK)
 """All supported array types."""

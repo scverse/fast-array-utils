@@ -38,6 +38,8 @@ urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
 urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
 
+entry_points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
+
 [tool.hatch.version]
 source = "vcs"
 raw-options = { local_scheme = "no-local-version" } # be able to publish dev version
@@ -96,6 +98,8 @@ lint.per-file-ignores."tests/**/test_*.py" = [
   "S101",    # tests use `assert`
 ]
 lint.allowed-confusables = [ "×", "’" ]
+lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
+
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true

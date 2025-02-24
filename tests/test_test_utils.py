@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from fast_array_utils import types
+from testing.fast_array_utils.array_type import Flags
 
 
 if TYPE_CHECKING:
@@ -25,3 +26,11 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
         arr = arr.get()
     assert arr.shape == (3, 4)
     assert arr.dtype == dtype
+
+
+def test_array_types(array_type: ArrayType) -> None:
+    assert array_type.flags & Flags.Any
+    assert ("sparse" in str(array_type)) == bool(array_type.flags & Flags.Sparse)
+    assert ("cupy" in str(array_type)) == bool(array_type.flags & Flags.Gpu)
+    assert ("dask" in str(array_type)) == bool(array_type.flags & Flags.Dask)
+    assert (array_type.mod in {"zarr", "h5py"}) == bool(array_type.flags & Flags.Disk)
