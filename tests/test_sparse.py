@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
 
 from fast_array_utils.conv.scipy import to_dense
-from fast_array_utils.types import CSBase
-from testing.fast_array_utils.array_type import Flags
+from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
@@ -17,7 +16,9 @@ if TYPE_CHECKING:
 
     from pytest_codspeed import BenchmarkFixture
 
-    from testing.fast_array_utils.array_type import ArrayType, _DTypeLikeFloat32, _DTypeLikeFloat64
+    from fast_array_utils.types import CSBase
+    from testing.fast_array_utils import ArrayType
+    from testing.fast_array_utils._array_type import _DTypeLikeFloat32, _DTypeLikeFloat64
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")]
@@ -41,11 +42,11 @@ def dtype(request: pytest.FixtureRequest) -> type[np.float32 | np.float64]:
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask)
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense(
-    array_type: ArrayType,
+    array_type: ArrayType[CSBase, None],
     order: Literal["C", "F"],
     dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
 ) -> None:
-    mat = cast(CSBase, array_type.random((10, 10), density=0.1, dtype=dtype))
+    mat = array_type.random((10, 10), density=0.1, dtype=dtype)
     arr = to_dense(mat, order=order)
     assert arr.flags[order]
     assert arr.dtype == mat.dtype
@@ -57,10 +58,10 @@ def test_to_dense(
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense_benchmark(
     benchmark: BenchmarkFixture,
-    array_type: ArrayType,
+    array_type: ArrayType[CSBase, None],
     order: Literal["C", "F"],
     dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
 ) -> None:
-    mat = cast(CSBase, array_type.random((1_000, 1_000), dtype=dtype))
+    mat = array_type.random((1_000, 1_000), dtype=dtype)
     to_dense(mat, order=order)  # warmup: numba compile
     benchmark(to_dense, mat, order=order)

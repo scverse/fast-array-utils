@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .array_type import ArrayType, ConversionContext, Flags, random_mat
+from ._array_type import ArrayType, ConversionContext, Flags, random_mat
 
 
 if TYPE_CHECKING:
-    from .array_type import Array, ToArray  # noqa: TC004
+    from ._array_type import Array, ToArray  # noqa: TC004
 
 
 __all__ = [

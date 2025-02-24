@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from fast_array_utils import stats, types
-from testing.fast_array_utils.array_type import Flags
+from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
