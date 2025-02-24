@@ -30,6 +30,8 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
 
 def test_array_types(array_type: ArrayType) -> None:
     assert array_type.flags & Flags.Any
+    assert array_type.flags & ~Flags(0)
+    assert not (array_type.flags & Flags(0))
     assert ("sparse" in str(array_type)) == bool(array_type.flags & Flags.Sparse)
     assert ("cupy" in str(array_type)) == bool(array_type.flags & Flags.Gpu)
     assert ("dask" in str(array_type)) == bool(array_type.flags & Flags.Dask)
