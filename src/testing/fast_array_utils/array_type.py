@@ -118,7 +118,7 @@ class ArrayType:
                 import cupyx.scipy.sparse as cu_sparse
 
                 return getattr(cu_sparse, cls_name)  # type: ignore[no-any-return]
-            case "dask.array", cls_name, _:
+            case "dask.array", "Array", _:
                 if TYPE_CHECKING:
                     from dask.array.core import Array as DaskArray
                 else:
@@ -159,7 +159,7 @@ class ArrayType:
                 raise NotImplementedError
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
                 raise NotImplementedError
-            case "dask.array", cls_name, _:
+            case "dask.array", "Array", _:
                 raise NotImplementedError
             case "h5py", "Dataset", _:
                 raise NotImplementedError
