@@ -160,7 +160,15 @@ class ArrayType:
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
                 raise NotImplementedError
             case "dask.array", "Array", _:
-                raise NotImplementedError
+                if TYPE_CHECKING:
+                    from dask.array.wrap import zeros
+                else:
+                    from dask.array import zeros
+
+                arr = zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
+                return arr.map_blocks(
+                    lambda x: self.random(x.shape, dtype=x.dtype, gen=gen), dtype=dtype
+                )
             case "h5py", "Dataset", _:
                 raise NotImplementedError
             case "zarr", "Array", _:
