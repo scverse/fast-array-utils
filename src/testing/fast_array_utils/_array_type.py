@@ -50,23 +50,21 @@ __all__ = ["ArrayType", "ConversionContext", "ToArray"]
 
 
 class Flags(enum.Flag):
-    """Array classification flags.
+    """Array classification flags."""
 
-    Use ``Flags(0)`` and ``~Flags(0)`` for no or all flags set.
-    """
-
+    None_ = 0
+    """No array type."""
     Any = enum.auto()
-    Sparse = enum.auto()
-    Gpu = enum.auto()
-    Dask = enum.auto()
-    Disk = enum.auto()
+    """Any array type."""
 
-    def __repr__(self) -> str:
-        if self is Flags(0):
-            return "Flags(0)"
-        if self is ~Flags(0):
-            return "~Flags(0)"
-        return super().__repr__()
+    Sparse = enum.auto()
+    """Sparse array."""
+    Gpu = enum.auto()
+    """GPU array."""
+    Dask = enum.auto()
+    """Dask array."""
+    Disk = enum.auto()
+    """On-disk array."""
 
 
 @dataclass
