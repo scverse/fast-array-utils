@@ -6,13 +6,13 @@ from __future__ import annotations
 import enum
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar, cast
 
 import numpy as np
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Protocol, SupportsFloat, TypeAlias
+    from typing import Any, Protocol, SupportsFloat, TypeAlias
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
@@ -37,13 +37,14 @@ if TYPE_CHECKING:
     class ToArray(Protocol, Generic[Arr_co]):
         """Convert to a supported array."""
 
-        def __call__(self, data: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Array: ...
+        def __call__(self, data: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Arr_co: ...
 
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
 else:
     Arr = TypeVar("Arr")
     Inner = TypeVar("Inner")
+    ToArray = list  # needs to have 1 type parameter
 
 
 __all__ = ["ArrayType", "ConversionContext", "ToArray"]
@@ -111,36 +112,36 @@ class ArrayType(Generic[Arr, Inner]):
         """Array class for :func:`isinstance` checks."""
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
-                return np.ndarray  # type: ignore[return-value]
+                return cast(type[Arr], np.ndarray)
             case "scipy.sparse", (
                 "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
             ) as cls_name, None:
                 import scipy.sparse
 
-                return getattr(scipy.sparse, cls_name)  # type: ignore[no-any-return]
+                return cast(type[Arr], getattr(scipy.sparse, cls_name))
             case "cupy", "ndarray", None:
                 import cupy as cp
 
-                return cp.ndarray  # type: ignore[no-any-return]
+                return cast(type[Arr], cp.ndarray)
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
                 import cupyx.scipy.sparse as cu_sparse
 
-                return getattr(cu_sparse, cls_name)  # type: ignore[no-any-return]
+                return cast(type[Arr], getattr(cu_sparse, cls_name))
             case "dask.array", "Array", _:
                 if TYPE_CHECKING:
                     from dask.array.core import Array as DaskArray
                 else:
                     from dask.array import Array as DaskArray
 
-                return DaskArray  # type: ignore[return-value]
+                return cast(type[Arr], DaskArray)
             case "h5py", "Dataset", _:
                 import h5py
 
-                return h5py.Dataset  # type: ignore[no-any-return]
+                return cast(type[Arr], h5py.Dataset)
             case "zarr", "Array", _:
                 import zarr
 
-                return zarr.Array  # type: ignore[return-value]
+                return cast(type[Arr], zarr.Array)
             case _:
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
@@ -159,15 +160,18 @@ class ArrayType(Generic[Arr, Inner]):
 
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
-                return gen.random(shape, dtype=dtype or np.float64)  # type: ignore[return-value]
+                return cast(Arr, gen.random(shape, dtype=dtype or np.float64))
             case "scipy.sparse", (
                 "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
             ) as cls_name, None:
-                fmt: Literal["csr", "csc"]
-                container: Literal["array", "matrix"]
-                fmt, container = cls_name.split("_")  # type: ignore[assignment]
-                return random_mat(  # type: ignore[no-any-return]
-                    shape, density=density, format=fmt, container=container, dtype=dtype
+                fmt, container = cast(
+                    tuple[Literal["csr", "csc"], Literal["array", "matrix"]], cls_name.split("_")
+                )
+                return cast(
+                    Arr,
+                    random_mat(
+                        shape, density=density, format=fmt, container=container, dtype=dtype
+                    ),
                 )
             case "cupy", "ndarray", None:
                 raise NotImplementedError
@@ -180,9 +184,12 @@ class ArrayType(Generic[Arr, Inner]):
                     from dask.array import zeros
 
                 arr = zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
-                return arr.map_blocks(  # type: ignore[no-any-return]
-                    lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),
-                    dtype=dtype,
+                return cast(
+                    Arr,
+                    arr.map_blocks(
+                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),
+                        dtype=dtype,
+                    ),
                 )
             case "h5py", "Dataset", _:
                 raise NotImplementedError
@@ -198,27 +205,29 @@ class ArrayType(Generic[Arr, Inner]):
 
         fn: ToArray[Arr]
         if self.cls is np.ndarray:
-            fn = np.asarray  # type: ignore[assignment]
+            fn = cast(ToArray[Arr], np.asarray)
         elif self.cls is types.DaskArray:
             if self.inner is None:
                 msg = "Cannot convert to dask array without inner array type"
                 raise AssertionError(msg)
-            fn = self._to_dask_array
+            fn = cast(ToArray[Arr], self._to_dask_array)
         elif self.cls is types.H5Dataset:
-            fn = self._to_h5py_dataset
+            fn = cast(ToArray[Arr], self._to_h5py_dataset)
         elif self.cls is types.ZarrArray:
-            fn = self._to_zarr_array
+            fn = cast(ToArray[Arr], self._to_zarr_array)
         elif self.cls is types.CupyArray:
             import cupy as cu
 
-            fn = cu.asarray
+            fn = cast(ToArray[Arr], cu.asarray)
         else:
-            fn = self.cls  # type: ignore[assignment]
+            fn = cast(ToArray[Arr], self.cls)
 
-        return fn(x, dtype=dtype)  # type: ignore[return-value]
+        return fn(x, dtype=dtype)
 
     def _to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         """Convert to a dask array."""
+        from fast_array_utils.types import DaskArray
+
         if TYPE_CHECKING:
             import dask.array.core as da
         else:
@@ -227,7 +236,7 @@ class ArrayType(Generic[Arr, Inner]):
         assert self.inner is not None
 
         arr = self.inner(x, dtype=dtype)
-        return da.from_array(arr, _half_chunk_size(arr.shape))  # type: ignore[no-untyped-call,no-any-return]
+        return cast(DaskArray, da.from_array(arr, _half_chunk_size(arr.shape)))  # type: ignore[no-untyped-call]
 
     def _to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
