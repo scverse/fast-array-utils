@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+import enum
 from dataclasses import KW_ONLY, dataclass, field
-from functools import cache, cached_property
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -40,17 +41,14 @@ if TYPE_CHECKING:
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
 
 
-__all__ = [
-    "SUPPORTED_TYPES",
-    "SUPPORTED_TYPES_DASK",
-    "SUPPORTED_TYPES_DISK",
-    "SUPPORTED_TYPES_MEM",
-    "SUPPORTED_TYPES_MEM_DENSE",
-    "SUPPORTED_TYPES_MEM_SPARSE",
-    "ArrayType",
-    "ConversionContext",
-    "ToArray",
-]
+__all__ = ["ArrayType", "ConversionContext", "ToArray"]
+
+
+class Flags(enum.Flag):
+    Gpu = enum.auto()
+    Dask = enum.auto()
+    Sparse = enum.auto()
+    Disk = enum.auto()
 
 
 @dataclass
@@ -79,20 +77,15 @@ class ArrayType:
     """Module name."""
     name: str
     """Array class name."""
-    inner: ArrayType | None = None
-    """Inner array type (e.g. for dask)."""
+    flags: Flags = Flags(0)  # noqa: RUF009
+    """Classification flags."""
 
     _: KW_ONLY
 
+    inner: ArrayType | None = None
+    """Inner array type (e.g. for dask)."""
     conversion_context: ConversionContext | None = field(default=None, compare=False)
     """Conversion context required for converting to h5py."""
-
-    @classmethod
-    @cache
-    def from_qualname(cls, qualname: str, inner: str | None = None) -> ArrayType:
-        """Create from qualnames of type and inner type."""
-        mod, name = qualname.rsplit(".", 1)
-        return cls(mod, name, ArrayType.from_qualname(inner) if inner else None)
 
     def __repr__(self) -> str:  # noqa: D105
         rv = f"{self.mod}.{self.name}"
@@ -233,60 +226,6 @@ class ArrayType:
         za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
         za[...] = arr
         return za
-
-
-_SUPPORTED_TYPE_NAMES_DISK = [
-    "h5py.Dataset",
-    "zarr.Array",
-]
-_SUPPORTED_TYPE_NAMES_DENSE = [
-    "numpy.ndarray",
-    "cupy.ndarray",
-]
-_SUPPORTED_TYPE_NAMES_SPARSE = [
-    "scipy.sparse.csr_array",
-    "scipy.sparse.csc_array",
-    "scipy.sparse.csr_matrix",
-    "scipy.sparse.csc_matrix",
-    "cupyx.scipy.sparse.csr_matrix",
-    "cupyx.scipy.sparse.csc_matrix",
-]
-
-SUPPORTED_TYPES_DISK: tuple[ArrayType, ...] = tuple(
-    map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_DISK)
-)
-"""Supported array types that represent on-disk data
-
-These on-disk array types are not supported inside dask arrays.
-"""
-
-SUPPORTED_TYPES_MEM_DENSE: tuple[ArrayType, ...] = tuple(
-    map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_DENSE)
-)
-"""Supported dense in-memory array types."""
-
-SUPPORTED_TYPES_MEM_SPARSE: tuple[ArrayType, ...] = tuple(
-    map(ArrayType.from_qualname, _SUPPORTED_TYPE_NAMES_SPARSE)
-)
-"""Supported sparse in-memory array types."""
-
-SUPPORTED_TYPES_MEM: tuple[ArrayType, ...] = (
-    *SUPPORTED_TYPES_MEM_DENSE,
-    *SUPPORTED_TYPES_MEM_SPARSE,
-)
-"""Supported array types that are valid inside dask arrays."""
-
-SUPPORTED_TYPES_DASK: tuple[ArrayType, ...] = tuple(
-    ArrayType("dask.array", "Array", t) for t in SUPPORTED_TYPES_MEM
-)
-"""Supported dask array types."""
-
-SUPPORTED_TYPES: tuple[ArrayType, ...] = (
-    *SUPPORTED_TYPES_MEM,
-    *SUPPORTED_TYPES_DASK,
-    *SUPPORTED_TYPES_DISK,
-)
-"""All supported array types."""
 
 
 def random_mat(
