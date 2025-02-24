@@ -82,6 +82,9 @@ qualname_overrides = autodoc_type_aliases = {
 # If that doesn’t work, ignore them
 nitpick_ignore = {
     ("py:class", "fast_array_utils.types.T_co"),
+    ("py:class", "Arr"),
+    ("py:class", "testing.fast_array_utils._array_type.Arr"),
+    ("py:class", "testing.fast_array_utils._array_type.Inner"),
     ("py:class", "_DTypeLikeFloat32"),
     ("py:class", "_DTypeLikeFloat64"),
     # sphinx bugs, should be covered by `autodoc_type_aliases` above
