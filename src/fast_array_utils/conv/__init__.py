@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from ._asarray import asarray
+from ._to_dense import to_dense
 
 
-__all__ = ["asarray"]
+__all__ = ["to_dense"]
