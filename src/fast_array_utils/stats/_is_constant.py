@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 import numba
 import numpy as np
+from numpy.typing import NDArray
 
 from .. import types
 from .._validation import validate_axis
@@ -13,9 +14,7 @@ from .._validation import validate_axis
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, TypeVar
-
-    from numpy.typing import NDArray
+    from typing import Literal, TypeVar
 
     C = TypeVar("C", bound=Callable[..., Any])
 
@@ -84,7 +83,7 @@ def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray
 
 def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool_]:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
-    return (a == b).all(axis=1)  # type: ignore[no-any-return]
+    return cast(NDArray[np.bool_], (a == b).all(axis=1))
 
 
 @_is_constant.register(types.CSBase)
@@ -92,7 +91,7 @@ def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
-            return is_constant(a.data)  # type: ignore[no-any-return]
+            return is_constant(cast(NDArray[Any], a.data))
         return bool((a.data == 0).all())
     shape = (n_row, n_col) if axis == 1 else (n_col, n_row)
     match axis, a.format:
@@ -131,12 +130,18 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
 
     if isinstance(a._meta, np.ndarray) and axis is None:  # noqa: SLF001
         v = a[0, 0].compute()
-        return map_blocks(bool, (a == v).all(), meta=np.array([], dtype=bool))  # type: ignore[no-any-return,no-untyped-call]
+        return cast(
+            types.DaskArray,
+            map_blocks(bool, (a == v).all(), meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
+        )
 
     # TODO(flying-sheep): use overlapping blocks and reduction instead of `drop_axis`  # noqa: TD003
-    return map_blocks(  # type: ignore[no-any-return,no-untyped-call]
-        partial(is_constant, axis=axis),
-        a,
-        drop_axis=(0, 1) if axis is None else axis,
-        meta=np.array([], dtype=bool),
+    return cast(
+        types.DaskArray,
+        map_blocks(  # type: ignore[no-untyped-call]
+            partial(is_constant, axis=axis),
+            a,
+            drop_axis=(0, 1) if axis is None else axis,
+            meta=np.array([], dtype=bool),
+        ),
     )
