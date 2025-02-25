@@ -9,11 +9,11 @@ from fast_array_utils.conv import asarray
 
 
 if TYPE_CHECKING:
-    from testing.fast_array_utils import ToArray
+    from testing.fast_array_utils import ArrayType
 
 
-def test_asarray(to_array: ToArray) -> None:
-    x = to_array([[1, 2, 3], [4, 5, 6]])
+def test_asarray(array_type: ArrayType) -> None:
+    x = array_type([[1, 2, 3], [4, 5, 6]])
     arr = asarray(x)
     assert isinstance(arr, np.ndarray)
     assert arr.shape == (2, 3)

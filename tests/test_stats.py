@@ -2,52 +2,58 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
 import pytest
 
 from fast_array_utils import stats, types
-from testing.fast_array_utils import random_array
+from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal
+    from typing import Any
 
+    from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from testing.fast_array_utils import Array, ToArray
+    from testing.fast_array_utils import ArrayType
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool_]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
+else:
+    DTypeIn = type
+    DTypeOut = type
 
 
 @pytest.fixture(scope="session", params=[0, 1, None])
 def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
-    return request.param  # type: ignore[no-any-return]
+    return cast(Literal[0, 1, None], request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool_])
 def dtype_in(request: pytest.FixtureRequest) -> DTypeIn:
-    return request.param  # type: ignore[no-any-return]
+    return cast(DTypeIn, request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, None])
 def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
-    return request.param  # type: ignore[no-any-return]
+    return cast(DTypeOut | None, request.param)
 
 
 def test_sum(
-    to_array: ToArray,
+    array_type: ArrayType,
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
-    arr = to_array(np_arr.copy())
+    arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
-    sum_: Array[Any] | np.floating = stats.sum(arr, axis=axis, dtype=dtype_arg)  # type: ignore[type-arg,arg-type]
+    sum_: NDArray[Any] | np.number[Any] | types.DaskArray = stats.sum(
+        arr, axis=axis, dtype=dtype_arg
+    )
 
     match axis, arr:
         case _, types.DaskArray():
@@ -69,9 +75,10 @@ def test_sum(
     else:
         assert sum_.dtype == dtype_in
 
-    np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))  # type: ignore[arg-type]
+    np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))
 
 
+@pytest.mark.array_type(skip=Flags.Disk)
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -81,10 +88,7 @@ def test_sum(
     ],
 )
 def test_is_constant(
-    request: pytest.FixtureRequest,
-    to_array: ToArray,
-    axis: Literal[0, 1, None],
-    expected: bool | list[bool],
+    array_type: ArrayType, axis: Literal[0, 1, None], expected: bool | list[bool]
 ) -> None:
     x_data = [
         [0, 0, 1, 1],
@@ -94,10 +98,7 @@ def test_is_constant(
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    x = to_array(x_data)
-    if isinstance(x, types.H5Dataset | types.ZarrArray):
-        reason = "H5Dataset and ZarrArray not yet supported for is_constant"
-        request.applymarker(pytest.mark.xfail(reason=reason))
+    x = array_type(x_data)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
         result = result.compute()  # type: ignore[no-untyped-call]
@@ -122,18 +123,16 @@ def test_is_constant_dask() -> None:
 
 
 @pytest.mark.benchmark
+@pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_sum_benchmark(
     benchmark: BenchmarkFixture,
-    array_cls_name: str,
+    array_type: ArrayType[NDArray[Any] | types.CSBase],
     axis: Literal[0, 1, None],
     dtype: type[np.float32 | np.float64],
 ) -> None:
-    try:
-        shape = (1_000, 1_000) if "sparse" in array_cls_name else (100, 100)
-        arr = random_array(array_cls_name, shape, dtype=dtype)
-    except NotImplementedError:
-        pytest.skip("random_array not implemented for dtype")
+    shape = (1_000, 1_000) if "sparse" in array_type.mod else (100, 100)
+    arr = array_type.random(shape, dtype=dtype)
 
-    stats.sum(arr, axis=axis)  # type: ignore[arg-type]  # warmup: numba compile
+    stats.sum(arr, axis=axis)  # warmup: numba compile
     benchmark(stats.sum, arr, axis=axis)
