@@ -14,12 +14,12 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
-__all__ = ["asarray"]
+__all__ = ["to_dense"]
 
 
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
-def asarray(
+def to_dense(
     x: ArrayLike
     | types.CSBase
     | types.DaskArray
@@ -44,28 +44,28 @@ def asarray(
     return np.asarray(x)
 
 
-@asarray.register(types.CSBase)
+@to_dense.register(types.CSBase)
 def _(x: types.CSBase) -> NDArray[Any]:
-    from .scipy import to_dense
+    from . import scipy
 
-    return to_dense(x)
+    return scipy.to_dense(x)
 
 
-@asarray.register(types.DaskArray)
+@to_dense.register(types.DaskArray)
 def _(x: types.DaskArray) -> NDArray[Any]:
-    return asarray(x.compute())  # type: ignore[no-untyped-call]
+    return to_dense(x.compute())  # type: ignore[no-untyped-call]
 
 
-@asarray.register(types.OutOfCoreDataset)
+@to_dense.register(types.OutOfCoreDataset)
 def _(x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]]) -> NDArray[Any]:
-    return asarray(x.to_memory())
+    return to_dense(x.to_memory())
 
 
-@asarray.register(types.CupyArray)
+@to_dense.register(types.CupyArray)
 def _(x: types.CupyArray) -> NDArray[Any]:
     return cast(NDArray[Any], x.get())
 
 
-@asarray.register(types.CupySparseMatrix)
+@to_dense.register(types.CupySparseMatrix)
 def _(x: types.CupySparseMatrix) -> NDArray[Any]:
     return cast(NDArray[Any], x.toarray().get())
