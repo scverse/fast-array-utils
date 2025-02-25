@@ -32,12 +32,20 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "scanpydoc.elegant_typehints",
+    "sphinx_autofixture",
 ]
 
 #  API documentation when building
 nitpicky = True
 autosummary_generate = True
 autodoc_member_order = "bysource"
+autodoc_default_options = {
+    "special-members": True,
+    # everything except __call__ really, to avoid having to write autosummary templates
+    "exclude-members": (
+        "__setattr__,__delattr__,__repr__,__eq__,__or__,__ror__,__hash__,__weakref__,__init__,__new__"
+    ),
+}
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 todo_include_todos = False
@@ -55,9 +63,11 @@ qualname_overrides = autodoc_type_aliases = {
     "np.dtype": "numpy.dtype",
     "np.number": "numpy.number",
     "np.integer": "numpy.integer",
+    "np.random.Generator": "numpy.random.Generator",
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",
     "NDArray": "numpy.typing.NDArray",
+    "_pytest.fixtures.FixtureRequest": "pytest.FixtureRequest",
     **{
         k: v
         for k_plain, v in {
@@ -74,10 +84,17 @@ qualname_overrides = autodoc_type_aliases = {
 # If that doesn’t work, ignore them
 nitpick_ignore = {
     ("py:class", "fast_array_utils.types.T_co"),
+    ("py:class", "Arr"),
+    ("py:class", "testing.fast_array_utils._array_type.Arr"),
+    ("py:class", "testing.fast_array_utils._array_type.Inner"),
+    ("py:class", "_DTypeLikeFloat32"),
+    ("py:class", "_DTypeLikeFloat64"),
     # sphinx bugs, should be covered by `autodoc_type_aliases` above
+    ("py:class", "Array"),
     ("py:class", "ArrayLike"),
     ("py:class", "DTypeLike"),
     ("py:class", "NDArray"),
+    ("py:class", "_pytest.fixtures.FixtureRequest"),
 }
 
 # Options for HTML output
