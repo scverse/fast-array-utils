@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from importlib.util import find_spec
 from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
@@ -119,16 +118,12 @@ def test_is_constant(
         assert expected is result
 
 
-@pytest.mark.skipif(not find_spec("dask"), reason="dask not installed")
-def test_is_constant_dask() -> None:
+@pytest.mark.array_type(Flags.Dask)
+def test_is_constant_dask(array_type: ArrayType[types.DaskArray, Any]) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
-    if TYPE_CHECKING:
-        import dask.array.core as da
-    else:
-        import dask.array as da
-
     x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
-    x: da.Array = da.from_array(x_np, (2, 2))  # type: ignore[no-untyped-call]
+    x = array_type(x_np)
+    assert x.blocks.shape == (2, 2)
     result = stats.is_constant(x, axis=None).compute()  # type: ignore[attr-defined]
     assert result is False
 
