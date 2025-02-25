@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import types
+from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
@@ -49,6 +50,7 @@ def sum(
     :func:`numpy.sum`
 
     """
+    validate_axis(axis)
     return _sum(x, axis=axis, dtype=dtype)
 
 

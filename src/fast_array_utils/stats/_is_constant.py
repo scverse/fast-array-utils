@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from numbers import Integral
 from typing import TYPE_CHECKING, overload
 
 import numba
 import numpy as np
 
 from .. import types
+from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
@@ -59,21 +59,14 @@ def is_constant(
     array([False,  True])
 
     """
-    if axis is not None:
-        if not isinstance(axis, Integral):
-            msg = "axis must be integer or None."
-            raise TypeError(msg)
-        if axis not in (0, 1):
-            msg = "We only support axis 0 and 1 at the moment"
-            raise NotImplementedError(msg)
-
+    validate_axis(axis)
     return _is_constant(a, axis=axis)
 
 
 @singledispatch
 def _is_constant(
     a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool_]:
+) -> bool | NDArray[np.bool_]:  # pragma: no cover
     raise NotImplementedError
 
 
