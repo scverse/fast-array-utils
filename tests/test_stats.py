@@ -91,7 +91,7 @@ def test_sum(
 @pytest.mark.array_type(skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("func", [stats.sum])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
-def test_sum_benchmark(
+def test_stats_benchmark(
     benchmark: BenchmarkFixture,
     func: BenchFun,
     array_type: ArrayType[Benchmarkable, None],
