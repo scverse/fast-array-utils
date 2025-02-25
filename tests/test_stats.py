@@ -11,7 +11,7 @@ from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Protocol, TypeAlias
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
@@ -20,6 +20,16 @@ if TYPE_CHECKING:
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool_]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
+    Benchmarkable: TypeAlias = NDArray[Any] | types.CSBase
+
+    class BenchFun(Protocol):  # noqa: D101
+        def __call__(  # noqa: D102
+            self,
+            arr: Benchmarkable,
+            *,
+            axis: Literal[0, 1, None] = None,
+            dtype: DTypeOut | None = None,
+        ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
 else:
     DTypeIn = type
     DTypeOut = type
@@ -78,16 +88,18 @@ def test_sum(
 
 
 @pytest.mark.benchmark
-@pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
+@pytest.mark.array_type(skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
+@pytest.mark.parametrize("func", [stats.sum])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_sum_benchmark(
     benchmark: BenchmarkFixture,
-    array_type: ArrayType[NDArray[Any] | types.CSBase],
+    func: BenchFun,
+    array_type: ArrayType[Benchmarkable, None],
     axis: Literal[0, 1, None],
     dtype: type[np.float32 | np.float64],
 ) -> None:
     shape = (1_000, 1_000) if "sparse" in array_type.mod else (100, 100)
     arr = array_type.random(shape, dtype=dtype)
 
-    stats.sum(arr, axis=axis)  # warmup: numba compile
-    benchmark(stats.sum, arr, axis=axis)
+    func(arr, axis=axis)  # warmup: numba compile
+    benchmark(func, arr, axis=axis)

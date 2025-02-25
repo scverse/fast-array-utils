@@ -26,13 +26,11 @@ __all__ = [
 _TP_MEM = (
     ArrayType("numpy", "ndarray", Flags.Any),
     ArrayType("cupy", "ndarray", Flags.Any | Flags.Gpu),
+    *(ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse) for n in ["csr_array", "csc_array"]),
     *(
-        ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse)
-        for n in ["csr_array", "csc_array", "csr_matrix", "csc_matrix"]
-    ),
-    *(
-        ArrayType("cupyx.scipy.sparse", n, Flags.Any | Flags.Gpu | Flags.Sparse)
+        ArrayType(mod, n, Flags.Any | Flags.Sparse | Flags.Matrix | flags)
         for n in ["csr_matrix", "csc_matrix"]
+        for (mod, flags) in [("scipy.sparse", Flags(0)), ("cupyx.scipy.sparse", Flags.Gpu)]
     ),
 )
 _TP_DASK = tuple(ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t) for t in _TP_MEM)
