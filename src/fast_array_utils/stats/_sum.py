@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import types
+from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
@@ -26,7 +27,7 @@ def sum(
 ) -> NDArray[Any]: ...
 @overload
 def sum(
-    x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray: ...
 
 
@@ -49,6 +50,7 @@ def sum(
     :func:`numpy.sum`
 
     """
+    validate_axis(axis)
     return _sum(x, axis=axis, dtype=dtype)
 
 
@@ -92,7 +94,7 @@ def _(
         a: NDArray[Any] | types.CSBase,
         /,
         *,
-        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
+        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
         dtype: DTypeLike | None = None,
         keepdims: bool = False,
     ) -> NDArray[Any]:
