@@ -23,18 +23,17 @@ __all__ = [
 ]
 
 
-_TP_MEM = (
+_TP_MEM_MAT = tuple(
+    ArrayType(mod, n, Flags.Any | Flags.Sparse | Flags.Matrix | flags)
+    for n in ["csr_matrix", "csc_matrix"]
+    for (mod, flags) in [("scipy.sparse", Flags(0)), ("cupyx.scipy.sparse", Flags.Gpu)]
+)
+_TP_MEM_ARR = (
     ArrayType("numpy", "ndarray", Flags.Any),
     ArrayType("cupy", "ndarray", Flags.Any | Flags.Gpu),
-    *(
-        ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse)
-        for n in ["csr_array", "csc_array", "csr_matrix", "csc_matrix"]
-    ),
-    *(
-        ArrayType("cupyx.scipy.sparse", n, Flags.Any | Flags.Gpu | Flags.Sparse)
-        for n in ["csr_matrix", "csc_matrix"]
-    ),
+    *(ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse) for n in ["csr_array", "csc_array"]),
 )
+_TP_MEM = (*_TP_MEM_MAT, *_TP_MEM_ARR)
 _TP_DASK = tuple(ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t) for t in _TP_MEM)
 _TP_DISK = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]

@@ -60,6 +60,8 @@ class Flags(enum.Flag):
 
     Sparse = enum.auto()
     """Sparse array."""
+    Matrix = enum.auto()
+    """Matrix API (``A * B`` means ``A @ B``)."""
     Gpu = enum.auto()
     """GPU array."""
     Dask = enum.auto()
