@@ -20,11 +20,11 @@ if TYPE_CHECKING:
 
 
 @overload
+def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
+@overload
 def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
 @overload
 def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
-@overload
-def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 
 
 def is_constant(
