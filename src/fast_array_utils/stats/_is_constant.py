@@ -144,7 +144,8 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
         else map_overlap(  # type: ignore[no-untyped-call]
             lambda a: np.array([[is_constant(a)]]),
             a,
-            depth=1,
+            # use asymmetric overlaps to avoid unnecessary computation
+            depth={d: (0, 1) for d in range(a.ndim)},
             trim=False,
             meta=np.array([], dtype=bool),
         ).all(),
