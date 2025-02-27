@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from testing.fast_array_utils import ArrayType
 
-    DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool_]
+    DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
     Benchmarkable: TypeAlias = NDArray[Any] | types.CSBase
@@ -41,7 +41,7 @@ def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
     return cast(Literal[0, 1, None], request.param)
 
 
-@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool_])
+@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool])
 def dtype_in(request: pytest.FixtureRequest) -> DTypeIn:
     return cast(DTypeIn, request.param)
 
@@ -80,7 +80,7 @@ def test_sum(
 
     if dtype_arg is not None:
         assert sum_.dtype == dtype_arg, (sum_.dtype, dtype_arg)
-    elif dtype_in in {np.bool_, np.int32}:
+    elif dtype_in in {np.bool, np.int32}:
         assert sum_.dtype == np.int64
     else:
         assert sum_.dtype == dtype_in

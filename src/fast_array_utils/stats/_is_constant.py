@@ -24,12 +24,12 @@ def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> t
 @overload
 def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
+def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
 
 
 def is_constant(
     a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool_] | types.DaskArray:
+) -> bool | NDArray[np.bool] | types.DaskArray:
     """Check whether values in array are constant.
 
     Params
@@ -65,12 +65,12 @@ def is_constant(
 @singledispatch
 def _is_constant(
     a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool_]:  # pragma: no cover
+) -> bool | NDArray[np.bool]:  # pragma: no cover
     raise NotImplementedError
 
 
 @_is_constant.register(np.ndarray)
-def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -81,13 +81,13 @@ def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray
             return _is_constant_rows(a)
 
 
-def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool_]:
+def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
-    return cast(NDArray[np.bool_], (a == b).all(axis=1))
+    return cast(NDArray[np.bool], (a == b).all(axis=1))
 
 
 @_is_constant.register(types.CSBase)
-def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
@@ -107,9 +107,9 @@ def _is_constant_csr_rows(
     data: NDArray[np.number[Any]],
     indptr: NDArray[np.integer[Any]],
     shape: tuple[int, int],
-) -> NDArray[np.bool_]:
+) -> NDArray[np.bool]:
     n = len(indptr) - 1
-    result = np.ones(n, dtype=np.bool_)
+    result = np.ones(n, dtype=np.bool)
     for i in numba.prange(n):
         start = indptr[i]
         stop = indptr[i + 1]
