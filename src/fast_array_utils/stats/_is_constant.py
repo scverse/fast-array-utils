@@ -125,23 +125,31 @@ def _is_constant_csr_rows(
 def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.core import map_blocks
+        from dask.array.overlap import map_overlap
     else:
-        from dask.array import map_blocks
+        from dask.array import map_blocks, map_overlap
 
-    if isinstance(a._meta, np.ndarray) and axis is None:  # noqa: SLF001
-        v = a[0, 0].compute()
+    if axis is not None:
         return cast(
             types.DaskArray,
-            map_blocks(bool, (a == v).all(), meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
+            map_blocks(  # type: ignore[no-untyped-call]
+                partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
+            ),
         )
 
-    # TODO(flying-sheep): use overlapping blocks and reduction instead of `drop_axis`  # noqa: TD003
+    rv = cast(
+        types.DaskArray,
+        (a == a[0, 0].compute()).all()
+        if isinstance(a._meta, np.ndarray)  # noqa: SLF001
+        else map_overlap(  # type: ignore[no-untyped-call]
+            lambda a: np.array([[is_constant(a)]]),
+            a,
+            depth=1,
+            trim=False,
+            meta=np.array([], dtype=bool),
+        ).all(),
+    )
     return cast(
         types.DaskArray,
-        map_blocks(  # type: ignore[no-untyped-call]
-            partial(is_constant, axis=axis),
-            a,
-            drop_axis=(0, 1) if axis is None else axis,
-            meta=np.array([], dtype=bool),
-        ),
+        map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
     )
