@@ -120,7 +120,7 @@ def test_is_constant(
 
 
 @pytest.mark.array_type(Flags.Dask)
-def test_is_constant_dask(
+def test_dask_constant_blocks(
     dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
 ) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
