@@ -11,6 +11,7 @@ from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any, Protocol, TypeAlias
 
     from numpy.typing import NDArray
@@ -119,7 +120,9 @@ def test_is_constant(
 
 
 @pytest.mark.array_type(Flags.Dask)
-def test_is_constant_dask(array_type: ArrayType[types.DaskArray, Any]) -> None:
+def test_is_constant_dask(
+    dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
+) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
     x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)
@@ -127,6 +130,7 @@ def test_is_constant_dask(array_type: ArrayType[types.DaskArray, Any]) -> None:
     assert all(stats.is_constant(block).compute() for block in x.blocks.ravel())
 
     result = stats.is_constant(x, axis=None)
+    dask_viz(result)
     assert result.compute() is False  # type: ignore[no-untyped-call]
 
 
