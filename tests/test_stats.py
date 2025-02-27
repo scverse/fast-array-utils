@@ -124,6 +124,8 @@ def test_is_constant_dask(array_type: ArrayType[types.DaskArray, Any]) -> None:
     x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)
     assert x.blocks.shape == (2, 2)
+    assert all(stats.is_constant(block).compute() for block in x.blocks.ravel())
+
     result = stats.is_constant(x, axis=None)
     assert result.compute() is False  # type: ignore[no-untyped-call]
 
