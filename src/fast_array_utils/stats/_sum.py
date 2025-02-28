@@ -32,7 +32,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | types.ZarrArray,
+    x: ArrayLike | types.ZarrArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
