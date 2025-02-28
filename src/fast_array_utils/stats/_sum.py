@@ -17,18 +17,18 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike
 
     # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
-    _Array: TypeAlias = (
+    Array: TypeAlias = (
         NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
     )
 
 
 @overload
 def sum(
-    x: _Array | types.CSBase, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: Array | types.CSBase, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: _Array | types.CSBase, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: Array | types.CSBase, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -37,7 +37,7 @@ def sum(
 
 
 def sum(
-    x: _Array | types.CSBase | types.DaskArray,
+    x: Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -61,7 +61,7 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: _Array | types.CSBase | types.DaskArray,
+    x: Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
