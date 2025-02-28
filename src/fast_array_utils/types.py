@@ -22,6 +22,9 @@ T_co = TypeVar("T_co", covariant=True)
 
 # scipy sparse
 if TYPE_CHECKING:
+    from typing import Any
+
+    import numpy as np
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 
     CSArray = csr_array | csc_array
@@ -80,6 +83,9 @@ else:  # pragma: no cover
 @runtime_checkable
 class OutOfCoreDataset(Protocol, Generic[T_co]):
     """An out-of-core dataset."""
+
+    shape: tuple[int, int]
+    dtype: np.dtype[Any]
 
     def to_memory(self) -> T_co:
         """Load data into memory."""

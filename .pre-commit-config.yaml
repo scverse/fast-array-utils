@@ -29,7 +29,7 @@ repos:
           - pytest
           - numba
           - numpy
-          - scipy
+          - scipy-stubs
           - dask
           - zarr
           - h5py

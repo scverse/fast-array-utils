@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
+    from fast_array_utils.stats._sum import Array
     from testing.fast_array_utils import ArrayType
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
@@ -53,7 +54,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
 
 
 def test_sum(
-    array_type: ArrayType,
+    array_type: ArrayType[Array | types.CSBase | types.DaskArray],
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
@@ -87,7 +88,8 @@ def test_sum(
     np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))
 
 
-@pytest.mark.array_type(skip=Flags.Disk)
+# TODO(flying-sheep): enable for GPU  # noqa: TD003
+@pytest.mark.array_type(skip=Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -97,7 +99,9 @@ def test_sum(
     ],
 )
 def test_is_constant(
-    array_type: ArrayType, axis: Literal[0, 1, None], expected: bool | list[bool]
+    array_type: ArrayType[NDArray[Any] | types.CSBase | types.DaskArray],
+    axis: Literal[0, 1, None],
+    expected: bool | list[bool],
 ) -> None:
     x_data = [
         [0, 0, 1, 1],
