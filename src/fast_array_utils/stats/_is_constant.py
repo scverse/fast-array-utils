@@ -86,8 +86,11 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
     return cast(NDArray[np.bool], (a == b).all(axis=1))
 
 
-@_is_constant.register(types.CSBase)
+@_is_constant.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
+    if len(a.shape) == 1:  # pragma: no cover
+        msg = "array must have 2 dimensions"
+        raise ValueError(msg)
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
@@ -123,16 +126,12 @@ def _is_constant_csr_rows(
 
 @_is_constant.register(types.DaskArray)
 def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
-    if TYPE_CHECKING:
-        from dask.array.core import map_blocks
-        from dask.array.overlap import map_overlap
-    else:
-        from dask.array import map_blocks, map_overlap
+    import dask.array as da
 
     if axis is not None:
         return cast(
             types.DaskArray,
-            map_blocks(  # type: ignore[no-untyped-call]
+            da.map_blocks(  # type: ignore[no-untyped-call]
                 partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
             ),
         )
@@ -141,7 +140,7 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
         types.DaskArray,
         (a == a[0, 0].compute()).all()
         if isinstance(a._meta, np.ndarray)  # noqa: SLF001
-        else map_overlap(  # type: ignore[no-untyped-call]
+        else da.map_overlap(  # type: ignore[no-untyped-call]
             lambda a: np.array([[is_constant(a)]]),
             a,
             # use asymmetric overlaps to avoid unnecessary computation
@@ -152,5 +151,5 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
     )
     return cast(
         types.DaskArray,
-        map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
+        da.map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
     )

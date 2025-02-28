@@ -10,15 +10,14 @@ from typing import TYPE_CHECKING, Generic, Literal, TypeVar, cast
 
 import numpy as np
 
+from fast_array_utils import types
+
 
 if TYPE_CHECKING:
-    from typing import Any, Protocol, SupportsFloat, TypeAlias
+    from typing import Any, Protocol, TypeAlias
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
-
-    from fast_array_utils import types
-    from fast_array_utils.types import CSBase
 
     Array: TypeAlias = (
         NDArray[Any]
@@ -130,12 +129,9 @@ class ArrayType(Generic[Arr, Inner]):
 
                 return cast(type[Arr], getattr(cu_sparse, cls_name))
             case "dask.array", "Array", _:
-                if TYPE_CHECKING:
-                    from dask.array.core import Array as DaskArray
-                else:
-                    from dask.array import Array as DaskArray
+                import dask.array as da
 
-                return cast(type[Arr], DaskArray)
+                return cast(type[Arr], da.Array)
             case "h5py", "Dataset", _:
                 import h5py
 
@@ -155,7 +151,7 @@ class ArrayType(Generic[Arr, Inner]):
         dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None,
         gen: np.random.Generator | None = None,
         # sparse only
-        density: SupportsFloat = 0.01,
+        density: float | np.floating[Any] = 0.01,
     ) -> Arr:
         """Create a random array."""
         gen = np.random.default_rng(gen)
@@ -180,12 +176,9 @@ class ArrayType(Generic[Arr, Inner]):
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
                 raise NotImplementedError
             case "dask.array", "Array", _:
-                if TYPE_CHECKING:
-                    from dask.array.wrap import zeros
-                else:
-                    from dask.array import zeros
+                import dask.array as da
 
-                arr = zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
+                arr = da.zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
                 return cast(
                     Arr,
                     arr.map_blocks(
@@ -228,17 +221,12 @@ class ArrayType(Generic[Arr, Inner]):
 
     def _to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         """Convert to a dask array."""
-        from fast_array_utils.types import DaskArray
-
-        if TYPE_CHECKING:
-            import dask.array.core as da
-        else:
-            import dask.array as da
+        import dask.array as da
 
         assert self.inner is not None
 
         arr = self.inner(x, dtype=dtype)
-        return cast(DaskArray, da.from_array(arr, _half_chunk_size(arr.shape)))  # type: ignore[no-untyped-call]
+        return cast(da.Array, da.from_array(arr, _half_chunk_size(arr.shape)))  # type: ignore[no-untyped-call]
 
     def _to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
@@ -264,21 +252,22 @@ class ArrayType(Generic[Arr, Inner]):
 def random_mat(
     shape: tuple[int, int],
     *,
-    density: SupportsFloat = 0.01,
+    density: float | np.floating[Any] = 0.01,
     format: Literal["csr", "csc"] = "csr",  # noqa: A002
-    dtype: DTypeLike | None = None,
+    dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None = None,
     container: Literal["array", "matrix"] = "array",
-    gen: np.random.Generator | None = None,
-) -> CSBase:
+    rng: np.random.Generator | None = None,
+) -> types.CSBase:
     """Create a random matrix."""
     from scipy.sparse import random as random_spmat
     from scipy.sparse import random_array as random_sparr
 
     m, n = shape
-    return (
-        random_spmat(m, n, density=density, format=format, dtype=dtype, random_state=gen)
+    return cast(
+        types.CSBase,
+        random_spmat(m, n, density=density, format=format, dtype=dtype, rng=rng)
         if container == "matrix"
-        else random_sparr(shape, density=density, format=format, dtype=dtype, random_state=gen)
+        else random_sparr(shape, density=density, format=format, dtype=dtype, rng=rng),
     )
 
 

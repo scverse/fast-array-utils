@@ -64,6 +64,7 @@ qualname_overrides = autodoc_type_aliases = {
     "np.dtype": "numpy.dtype",
     "np.number": "numpy.number",
     "np.integer": "numpy.integer",
+    "np.floating": "numpy.floating",
     "np.random.Generator": "numpy.random.Generator",
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",

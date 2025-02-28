@@ -65,6 +65,9 @@ env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
 ]
+overrides.matrix.extras.dependencies = [
+  { if = [ "full" ], value = "scipy-stubs" },
+]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [ "3.13", "3.12", "3.11" ]
@@ -136,6 +139,8 @@ report.exclude_also = [ "if TYPE_CHECKING:", "@numba[.]njit", "[.]{3}" ]
 
 [tool.mypy]
 strict = true
+# https://github.com/dask/dask/issues/8853
+implicit_reexport = true
 explicit_package_bases = true
 mypy_path = [ "$MYPY_CONFIG_FILE_DIR/stubs", "$MYPY_CONFIG_FILE_DIR/src" ]
 
