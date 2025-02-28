@@ -1,9 +1,14 @@
 ``fast_array_utils``
 ====================
 
+.. toctree::
+   :hidden:
+
+   fast-array-utils <self>
+   testing
+
 .. automodule:: fast_array_utils
    :members:
-
 
 ``fast_array_utils.conv``
 -------------------------

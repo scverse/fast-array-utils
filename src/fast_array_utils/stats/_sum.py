@@ -2,37 +2,38 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 import numpy as np
+from numpy.typing import NDArray
 
+from .. import types
 from .._import import lazy_singledispatch
+from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal
+    from typing import Literal
 
-    from numpy.typing import ArrayLike, DTypeLike, NDArray
-
-    from .. import types
+    from numpy.typing import ArrayLike, DTypeLike
 
 
 @overload
 def sum(
-    x: ArrayLike, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: ArrayLike | types.ZarrArray, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: ArrayLike | types.ZarrArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
 @overload
 def sum(
-    x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray: ...
 
 
 def sum(
-    x: ArrayLike | types.DaskArray,
+    x: ArrayLike | types.ZarrArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -50,6 +51,7 @@ def sum(
     :func:`numpy.sum`
 
     """
+    validate_axis(axis)
     return _sum(x, axis=axis, dtype=dtype)
 
 
@@ -61,7 +63,7 @@ def _sum(
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
-    return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
+    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register("fast_array_utils.types:CSBase", "scipy.sparse")
@@ -74,7 +76,7 @@ def _(
 
     if isinstance(x, CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
-    return np.sum(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]
+    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register("dask.array:Array")
@@ -94,7 +96,7 @@ def _(
         a: NDArray[Any] | types.CSBase,
         /,
         *,
-        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1] | None = None,
+        axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
         dtype: DTypeLike | None = None,
         keepdims: bool = False,
     ) -> NDArray[Any]:
@@ -115,11 +117,14 @@ def _(
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
         dtype = np.zeros(1, dtype=x.dtype).sum().dtype
 
-    return reduction(  # type: ignore[no-any-return,no-untyped-call]
-        x,
-        sum_drop_keepdims,
-        partial(np.sum, dtype=dtype),
-        axis=axis,
-        dtype=dtype,
-        meta=np.array([], dtype=dtype),
+    return cast(
+        types.DaskArray,
+        reduction(  # type: ignore[no-untyped-call]
+            x,
+            sum_drop_keepdims,
+            partial(np.sum, dtype=dtype),
+            axis=axis,
+            dtype=dtype,
+            meta=np.array([], dtype=dtype),
+        ),
     )

@@ -1,18 +1,17 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .._import import lazy_singledispatch
 from ..types import OutOfCoreDataset
 
 
 if TYPE_CHECKING:
-    from typing import Any
-
-    from numpy.typing import ArrayLike, NDArray
+    from numpy.typing import ArrayLike
 
     from .. import types
 
@@ -66,9 +65,9 @@ def _(x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]]) -> NDArray[Any]:
 
 @asarray.register("cupy:ndarray")
 def _(x: types.CupyArray) -> NDArray[Any]:
-    return x.get()  # type: ignore[no-any-return]
+    return cast(NDArray[Any], x.get())
 
 
 @asarray.register("cupyx.scipy.sparse:spmatrix")
 def _(x: types.CupySparseMatrix) -> NDArray[Any]:
-    return x.toarray().get()  # type: ignore[no-any-return]
+    return cast(NDArray[Any], x.toarray().get())

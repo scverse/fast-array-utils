@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
+from ._is_constant import is_constant
 from ._sum import sum
 
 
-__all__ = ["sum"]
+__all__ = ["is_constant", "sum"]
