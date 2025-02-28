@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from functools import partial, singledispatch
+from functools import partial
 from typing import TYPE_CHECKING, Any, cast, overload
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .. import types
+from .._import import lazy_singledispatch
 from .._validation import validate_axis
 
 
@@ -54,7 +55,7 @@ def sum(
     return _sum(x, axis=axis, dtype=dtype)
 
 
-@singledispatch
+@lazy_singledispatch
 def _sum(
     x: ArrayLike | types.CSBase | types.DaskArray,
     /,
@@ -62,22 +63,23 @@ def _sum(
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
-    assert not isinstance(x, types.CSBase | types.DaskArray)
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
-@_sum.register(types.CSBase)
+@_sum.register("fast_array_utils.types:CSBase", "scipy.sparse")
 def _(
     x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
 
-    if isinstance(x, types.CSMatrix):
+    from ..types import CSMatrix
+
+    if isinstance(x, CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
-@_sum.register(types.DaskArray)
+@_sum.register("dask.array:Array")
 def _(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
