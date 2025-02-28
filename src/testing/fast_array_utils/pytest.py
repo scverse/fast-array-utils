@@ -18,10 +18,6 @@ from . import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
-    from _pytest.nodes import Node
-else:
-    Node = object
-
 
 __all__ = ["array_type", "conversion_context"]
 
@@ -32,6 +28,34 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
 
+def _resolve_sel(select: Flags = ~Flags(0), skip: Flags = Flags(0)) -> tuple[Flags, Flags]:
+    return select, skip
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,  # noqa: ARG001
+    items: list[pytest.Item],
+) -> None:
+    """Filter tests using `pytest.mark.array_type` based on `testing.fast_array_utils.Flags`."""
+    # reverse so we can .pop() items from the back without changing others’ index
+    for i, item in reversed(list(enumerate(items))):
+        if not (
+            isinstance(item, pytest.Function) and (mark := item.get_closest_marker("array_type"))
+        ):
+            continue
+
+        msg = "Test function marked with `pytest.mark.array_type` must have `array_type` parameter"
+        if not (at := item.callspec.params.get("array_type")):
+            raise TypeError(msg)
+        if not isinstance(at, ArrayType):
+            msg = f"{msg} of type {ArrayType.__name__}, got {type(at).__name__}"
+            raise TypeError(msg)
+        select, skip = _resolve_sel(*mark.args, **mark.kwargs)
+        if not (at.flags & select) or (at.flags & skip):
+            del items[i]
+
+
 def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
     dist = None
     skip = False
@@ -39,12 +63,6 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
         if t and not find_spec(dist := t.mod.split(".", 1)[0]):
             skip = True
     return pytest.mark.skipif(skip, reason=f"{dist} not installed")
-
-
-def _resolve_sel(
-    select: Flags = ~Flags(0), skip: Flags = Flags(0), *, reason: str | None = None
-) -> tuple[Flags, Flags, str | None]:
-    return select, skip, reason
 
 
 @pytest.fixture(
@@ -59,7 +77,7 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
 
         ..  code:: python
 
-            @pytest.mark.array_type(Flags.Sparse, reason="`something` only supports sparse arrays")
+            @pytest.mark.array_type(Flags.Sparse)
             def test_something(array_type: ArrayType) -> None:
                 ...
 
@@ -74,17 +92,9 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
     from fast_array_utils.types import H5Dataset
 
     at = cast(ArrayType, request.param)
-
-    mark = cast(Node, request.node).get_closest_marker("array_type")
-    if mark:
-        select, skip, reason = _resolve_sel(*mark.args, **mark.kwargs)
-        if not (at.flags & select) or (at.flags & skip):
-            pytest.skip(reason or f"{at} not included in {select=}, {skip=}")
-
     if at.cls is H5Dataset:
         ctx = request.getfixturevalue("conversion_context")
         at = dataclasses.replace(at, conversion_context=ctx)
-
     return at
 
 
@@ -101,7 +111,7 @@ def conversion_context(
     """
     import h5py
 
-    node = cast(Node, request.node)
+    node = cast(pytest.Item, request.node)
     tmp_path = tmp_path_factory.mktemp("backed_adata")
     tmp_path = tmp_path / f"test_{node.name}_{worker_id}.h5ad"
 
@@ -122,7 +132,7 @@ def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[o
         else:
             from dask import visualize
 
-        path = cache.mkdir("dask-viz") / cast(Node, request.node).name
+        path = cache.mkdir("dask-viz") / cast(pytest.Item, request.node).name
         visualize(obj, filename=str(path), engine="ipycytoscape")
 
     return viz
