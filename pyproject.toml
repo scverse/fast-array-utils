@@ -60,7 +60,7 @@ scripts.clean = "git clean -fdX docs"
 
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
-extra-dependencies = [ "ipykernel" ]
+extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
@@ -106,14 +106,17 @@ lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
 lint.isort.required-imports = [ "from __future__ import annotations" ]
+lint.pydocstyle.convention = "numpy"
 
 [tool.pytest.ini_options]
 addopts = [
   "--import-mode=importlib",
   "--strict-markers",
+  "--doctest-modules",
   "--pyargs",
   "-ptesting.fast_array_utils.pytest",
 ]
+testpaths = [ "./tests", "fast_array_utils" ]
 filterwarnings = [
   "error",
   # codspeed seems to break this dtype added by h5py
