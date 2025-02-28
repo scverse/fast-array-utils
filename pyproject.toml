@@ -67,8 +67,8 @@ overrides.matrix.extras.features = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.11", "3.12", "3.13" ]
-extras = [ "min", "full" ]
+python = [ "3.13", "3.12", "3.11" ]
+extras = [ "full", "min" ]
 
 [tool.ruff]
 line-length = 100
