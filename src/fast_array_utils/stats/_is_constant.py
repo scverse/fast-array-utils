@@ -123,16 +123,12 @@ def _is_constant_csr_rows(
 
 @_is_constant.register(types.DaskArray)
 def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
-    if TYPE_CHECKING:
-        from dask.array.core import map_blocks
-        from dask.array.overlap import map_overlap
-    else:
-        from dask.array import map_blocks, map_overlap
+    import dask.array as da
 
     if axis is not None:
         return cast(
             types.DaskArray,
-            map_blocks(  # type: ignore[no-untyped-call]
+            da.map_blocks(  # type: ignore[no-untyped-call]
                 partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
             ),
         )
@@ -141,7 +137,7 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
         types.DaskArray,
         (a == a[0, 0].compute()).all()
         if isinstance(a._meta, np.ndarray)  # noqa: SLF001
-        else map_overlap(  # type: ignore[no-untyped-call]
+        else da.map_overlap(  # type: ignore[no-untyped-call]
             lambda a: np.array([[is_constant(a)]]),
             a,
             # use asymmetric overlaps to avoid unnecessary computation
@@ -152,5 +148,5 @@ def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskA
     )
     return cast(
         types.DaskArray,
-        map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
+        da.map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
     )

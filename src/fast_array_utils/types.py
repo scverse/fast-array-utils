@@ -57,9 +57,7 @@ else:  # pragma: no cover
     CupySparseMatrix = type("spmatrix", (), {})
 
 
-if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
-    from dask.array.core import Array as DaskArray
-elif find_spec("dask"):
+if TYPE_CHECKING or find_spec("dask"):
     from dask.array import Array as DaskArray
 else:  # pragma: no cover
     DaskArray = type("array", (), {})

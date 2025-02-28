@@ -30,7 +30,7 @@ repos:
           - numba
           - numpy
           - scipy
-          - dask
+          - dask @ git+https://github.com/dask/dask.git
           - zarr
           - h5py
 ci:

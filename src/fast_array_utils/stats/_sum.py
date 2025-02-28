@@ -32,7 +32,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | types.ZarrArray,
+    x: ArrayLike | types.ZarrArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -81,10 +81,7 @@ def _(
 def _(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
-    if TYPE_CHECKING:
-        from dask.array.reductions import reduction
-    else:
-        from dask.array import reduction
+    import dask.array as da
 
     if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum does not support numpy matrices"
@@ -117,7 +114,7 @@ def _(
 
     return cast(
         types.DaskArray,
-        reduction(  # type: ignore[no-untyped-call]
+        da.reduction(  # type: ignore[no-untyped-call]
             x,
             sum_drop_keepdims,
             partial(np.sum, dtype=dtype),
