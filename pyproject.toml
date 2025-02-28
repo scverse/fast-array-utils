@@ -38,7 +38,7 @@ urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
 urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
 
-entry_points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
+entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 
 [tool.hatch.version]
 source = "vcs"
@@ -117,7 +117,6 @@ addopts = [
   "--strict-markers",
   "--doctest-modules",
   "--pyargs",
-  "-ptesting.fast_array_utils.pytest",
 ]
 testpaths = [ "./tests", "fast_array_utils" ]
 filterwarnings = [
