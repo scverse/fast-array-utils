@@ -17,8 +17,6 @@ from . import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
-else:
-    Node = object
 
 
 __all__ = ["array_type", "conversion_context"]
