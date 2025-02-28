@@ -30,6 +30,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
 
+def _resolve_sel(select: Flags = ~Flags(0), skip: Flags = Flags(0)) -> tuple[Flags, Flags]:
+    return select, skip
+
+
 def pytest_collection_modifyitems(
     session: pytest.Session,  # noqa: ARG001
     config: pytest.Config,  # noqa: ARG001
@@ -49,7 +53,7 @@ def pytest_collection_modifyitems(
         if not isinstance(at, ArrayType):
             msg = f"{msg} of type {ArrayType.__name__}, got {type(at).__name__}"
             raise TypeError(msg)
-        select, skip, reason = _resolve_sel(*mark.args, **mark.kwargs)
+        select, skip = _resolve_sel(*mark.args, **mark.kwargs)
         if not (at.flags & select) or (at.flags & skip):
             del items[i]
 
@@ -61,12 +65,6 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
         if t and not find_spec(dist := t.mod.split(".", 1)[0]):
             skip = True
     return pytest.mark.skipif(skip, reason=f"{dist} not installed")
-
-
-def _resolve_sel(
-    select: Flags = ~Flags(0), skip: Flags = Flags(0), *, reason: str | None = None
-) -> tuple[Flags, Flags, str | None]:
-    return select, skip, reason
 
 
 @pytest.fixture(
@@ -81,7 +79,7 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
 
         ..  code:: python
 
-            @pytest.mark.array_type(Flags.Sparse, reason="`something` only supports sparse arrays")
+            @pytest.mark.array_type(Flags.Sparse)
             def test_something(array_type: ArrayType) -> None:
                 ...
 
