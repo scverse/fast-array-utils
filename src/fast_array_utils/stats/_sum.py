@@ -12,18 +12,23 @@ from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from typing import Literal, TypeAlias
 
     from numpy.typing import ArrayLike, DTypeLike
 
+    # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
+    _Array: TypeAlias = (
+        NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
+    )
+
 
 @overload
 def sum(
-    x: ArrayLike | types.ZarrArray, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: _Array | types.CSBase, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | types.ZarrArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: _Array | types.CSBase, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -32,7 +37,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | types.ZarrArray | types.DaskArray,
+    x: _Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -56,17 +61,23 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: ArrayLike | types.CSBase | types.DaskArray,
+    x: _Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
-    assert not isinstance(x, types.CSBase | types.DaskArray)
+    if TYPE_CHECKING:
+        # these are never passed to this fallback function, but `singledispatch` wants them
+        assert not isinstance(x, types.CSBase | types.DaskArray)
+        # np.sum supports these, but doesn’t know it. (TODO: test cupy)
+        assert not isinstance(
+            x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix
+        )
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
-@_sum.register(types.CSBase)
+@_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _(
     x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
@@ -74,6 +85,8 @@ def _(
 
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
+    if TYPE_CHECKING:
+        assert isinstance(x, ArrayLike)
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
@@ -81,10 +94,7 @@ def _(
 def _(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
-    if TYPE_CHECKING:
-        from dask.array.reductions import reduction
-    else:
-        from dask.array import reduction
+    import dask.array as da
 
     if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum does not support numpy matrices"
@@ -117,7 +127,7 @@ def _(
 
     return cast(
         types.DaskArray,
-        reduction(  # type: ignore[no-untyped-call]
+        da.reduction(  # type: ignore[no-untyped-call]
             x,
             sum_drop_keepdims,
             partial(np.sum, dtype=dtype),

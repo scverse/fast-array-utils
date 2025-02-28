@@ -87,7 +87,8 @@ def test_sum(
     np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))
 
 
-@pytest.mark.array_type(skip=Flags.Disk)
+# TODO(flying-sheep): enable for GPU  # noqa: TD003
+@pytest.mark.array_type(skip=Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -97,7 +98,9 @@ def test_sum(
     ],
 )
 def test_is_constant(
-    array_type: ArrayType, axis: Literal[0, 1, None], expected: bool | list[bool]
+    array_type: ArrayType[NDArray[Any] | types.CSBase | types.DaskArray],
+    axis: Literal[0, 1, None],
+    expected: bool | list[bool],
 ) -> None:
     x_data = [
         [0, 0, 1, 1],

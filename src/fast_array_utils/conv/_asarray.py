@@ -44,7 +44,7 @@ def asarray(
     return np.asarray(x)
 
 
-@asarray.register(types.CSBase)
+@asarray.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _(x: types.CSBase) -> NDArray[Any]:
     from .scipy import to_dense
 
