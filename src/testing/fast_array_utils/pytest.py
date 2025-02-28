@@ -16,7 +16,7 @@ from . import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Generator
 
 
 __all__ = ["array_type", "conversion_context"]
@@ -117,17 +117,3 @@ def conversion_context(
 
     with h5py.File(tmp_path, "x") as f:
         yield ConversionContext(hdf5_file=f)
-
-
-@pytest.fixture
-def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[object], None]:
-    def viz(obj: object) -> None:
-        from fast_array_utils.types import DaskArray
-
-        if not isinstance(obj, DaskArray) or not find_spec("ipycytoscape"):
-            return
-
-        path = cache.mkdir("dask-viz") / cast(pytest.Item, request.node).name
-        obj.visualize(str(path), engine="ipycytoscape")  # type: ignore[no-untyped-call]
-
-    return viz

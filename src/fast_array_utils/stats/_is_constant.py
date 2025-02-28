@@ -65,7 +65,7 @@ def is_constant(
 @singledispatch
 def _is_constant(
     a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool]:  # pragma: no cover
+) -> bool | NDArray[np.bool] | types.DaskArray:  # pragma: no cover
     raise NotImplementedError
 
 
