@@ -88,7 +88,7 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
 
 @_is_constant.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
-    if len(a.shape) == 1:
+    if len(a.shape) == 1:  # pragma: no cover
         msg = "array must have 2 dimensions"
         raise ValueError(msg)
     n_row, n_col = a.shape
