@@ -62,9 +62,7 @@ def test_sum(
     arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
-    sum_: NDArray[Any] | np.number[Any] | types.DaskArray = stats.sum(
-        arr, axis=axis, dtype=dtype_arg
-    )
+    sum_ = stats.sum(arr, axis=axis, dtype=dtype_arg)
 
     match axis, arr:
         case _, types.DaskArray():
