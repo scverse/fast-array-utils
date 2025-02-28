@@ -23,7 +23,9 @@ if TYPE_CHECKING:
         NDArray[Any]
         | types.CSBase
         | types.CupyArray
+        | types.CupySparseMatrix
         | types.DaskArray
+        | types.OutOfCoreDataset[Any]
         | types.H5Dataset
         | types.ZarrArray
     )

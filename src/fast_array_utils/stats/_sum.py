@@ -12,12 +12,12 @@ from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
-    from typing import Literal, TypeAlias
+    from typing import Literal
 
     from numpy.typing import ArrayLike, DTypeLike
 
     # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
-    Array: TypeAlias = (
+    Array = (
         NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
     )
 

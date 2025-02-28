@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
+    from fast_array_utils.stats._sum import Array
     from testing.fast_array_utils import ArrayType
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
@@ -53,7 +54,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
 
 
 def test_sum(
-    array_type: ArrayType,
+    array_type: ArrayType[Array | types.CSBase | types.DaskArray],
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
