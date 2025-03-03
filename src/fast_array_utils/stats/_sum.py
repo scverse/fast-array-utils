@@ -14,7 +14,8 @@ from .._validation import validate_axis
 if TYPE_CHECKING:
     from typing import Literal
 
-    from numpy.typing import ArrayLike, DTypeLike
+    from numpy._typing._array_like import _ArrayLikeFloat_co
+    from numpy.typing import DTypeLike
 
     # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
     Array = (
@@ -24,11 +25,19 @@ if TYPE_CHECKING:
 
 @overload
 def sum(
-    x: Array | types.CSBase, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: _ArrayLikeFloat_co | Array | types.CSBase,
+    /,
+    *,
+    axis: None = None,
+    dtype: DTypeLike | None = None,
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: Array | types.CSBase, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: _ArrayLikeFloat_co | Array | types.CSBase,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -37,7 +46,7 @@ def sum(
 
 
 def sum(
-    x: Array | types.CSBase | types.DaskArray,
+    x: _ArrayLikeFloat_co | Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -61,7 +70,7 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: Array | types.CSBase | types.DaskArray,
+    x: _ArrayLikeFloat_co | Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -86,7 +95,7 @@ def _(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
-        assert isinstance(x, ArrayLike)
+        assert isinstance(x, _ArrayLikeFloat_co)
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
