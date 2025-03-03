@@ -23,7 +23,7 @@ version = meta["version"]
 release = version
 
 # default settings
-source_suffix = ".rst"
+ource_suffix = {".rst": "restructuredtext"}
 master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 

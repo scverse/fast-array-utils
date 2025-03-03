@@ -11,7 +11,7 @@ from ._sum import sum as sum_
 if TYPE_CHECKING:
     from typing import Any, Literal, TypeAlias
 
-    from numpy._typing._array_like import _ArrayLikeFloat_co
+    from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
     from .. import types
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def mean(
-    x: _ArrayLikeFloat_co | Array,
+    x: ArrayLike | Array,
     /,
     *,
     axis: Literal[0, 1, None] = None,
