@@ -23,10 +23,7 @@ version = meta["version"]
 release = version
 
 # default settings
-ource_suffix = {".rst": "restructuredtext"}
 master_doc = "index"
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-
 extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
