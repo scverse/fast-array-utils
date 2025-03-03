@@ -49,7 +49,7 @@ def mean(
     if not hasattr(x, "shape"):
         raise NotImplementedError  # TODO(flying-sheep): infer shape  # noqa: TD003
     if TYPE_CHECKING:
-        assert isinstance(x, Array)
+        assert isinstance(x, Array)  # type:ignore[unused-ignore]
     total = sum_(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
     return total / n

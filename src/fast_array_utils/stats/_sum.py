@@ -95,7 +95,7 @@ def _sum_cs(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
-        assert isinstance(x, ArrayLike)
+        assert isinstance(x, ArrayLike)  # type:ignore[unused-ignore]
     return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
