@@ -90,13 +90,39 @@ def test_sum(
 
 @pytest.mark.parametrize(("axis", "expected"), [(None, 3.5), (0, [2.5, 3.5, 4.5]), (1, [2.0, 5.0])])
 def test_mean(
-    array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: list[float]
+    array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]
 ) -> None:
-    arr = array_type(np.array([[1, 2, 3], [4, 5, 6]]))
+    np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
+
+    arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)
     if isinstance(result, types.DaskArray):
         result = result.compute()  # type: ignore[no-untyped-call]
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.array_type(skip=Flags.Disk)
+@pytest.mark.parametrize(
+    ("axis", "mean_expected", "var_expected"),
+    [(None, 3.5, 3.5), (0, [2.5, 3.5, 4.5], [4.5, 4.5, 4.5]), (1, [2.0, 5.0], [1.0, 1.0])],
+)
+def test_mean_var(
+    array_type: ArrayType[
+        NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+    ],
+    axis: Literal[0, 1, None],
+    mean_expected: float | list[float],
+    var_expected: float | list[float],
+) -> None:
+    np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)
+    np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)
+
+    arr = array_type(np_arr)
+    mean, var = stats.mean_var(arr, axis=axis, correction=1)
+    np.testing.assert_array_equal(mean, mean_expected)
+    np.testing.assert_array_almost_equal(var, var_expected)
 
 
 # TODO(flying-sheep): enable for GPU  # noqa: TD003
