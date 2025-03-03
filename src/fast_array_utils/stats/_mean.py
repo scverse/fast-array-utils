@@ -35,6 +35,17 @@ def mean(
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | types.DaskArray:
+    """Mean over both or one axis.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
+    Otherwise, the sum over the given axis is returned as a 1D array.
+
+    See Also
+    --------
+    :func:`numpy.mean`
+    """
     if not hasattr(x, "shape"):
         raise NotImplementedError  # TODO(flying-sheep): infer shape  # noqa: TD003
     if TYPE_CHECKING:
