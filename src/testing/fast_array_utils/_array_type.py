@@ -14,12 +14,12 @@ from fast_array_utils import types
 
 
 if TYPE_CHECKING:
-    from typing import Any, Protocol, TypeAlias
+    from typing import Any, Protocol
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
-    Array: TypeAlias = (
+    Array = (
         NDArray[Any]
         | types.CSBase
         | types.CupyArray

@@ -9,7 +9,7 @@ from ._sum import sum as sum_
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal
 
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .. import types
 
     # all supported types except OutOfCoreDataset (TODO)
-    Array: TypeAlias = (
+    Array = (
         NDArray[Any]
         | types.CSBase
         | types.H5Dataset

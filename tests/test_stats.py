@@ -12,7 +12,7 @@ from testing.fast_array_utils import Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Protocol, TypeAlias
+    from typing import Any, Protocol
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
-    Benchmarkable: TypeAlias = NDArray[Any] | types.CSBase
+    Benchmarkable = NDArray[Any] | types.CSBase
 
     class BenchFun(Protocol):  # noqa: D101
         def __call__(  # noqa: D102
