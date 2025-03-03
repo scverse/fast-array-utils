@@ -90,7 +90,7 @@ def _to_dense(
 
 
 @_to_dense.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
+def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
     from . import scipy
 
     del to_memory  # it already is
@@ -98,7 +98,9 @@ def _(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
 
 
 @_to_dense.register(types.DaskArray)
-def _(x: types.DaskArray, /, *, to_memory: bool = False) -> NDArray[Any] | types.DaskArray:
+def _to_dense_dask(
+    x: types.DaskArray, /, *, to_memory: bool = False
+) -> NDArray[Any] | types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.core import map_blocks
     else:
@@ -109,7 +111,7 @@ def _(x: types.DaskArray, /, *, to_memory: bool = False) -> NDArray[Any] | types
 
 
 @_to_dense.register(types.OutOfCoreDataset)
-def _(
+def _to_dense_ooc(
     x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]], /, *, to_memory: bool = False
 ) -> NDArray[Any]:
     if not to_memory:
@@ -120,7 +122,7 @@ def _(
 
 
 @_to_dense.register(types.CupyArray | types.CupySparseMatrix)  # type: ignore[call-overload,misc]
-def _(
+def _to_dense_cupy(
     x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.CupyArray:
     x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x

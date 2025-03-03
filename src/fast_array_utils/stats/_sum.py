@@ -87,7 +87,7 @@ def _sum(
 
 
 @_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _(
+def _sum_cs(
     x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
@@ -100,7 +100,7 @@ def _(
 
 
 @_sum.register(types.DaskArray)
-def _(
+def _sum_dask(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
     import dask.array as da
