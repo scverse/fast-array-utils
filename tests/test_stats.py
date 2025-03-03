@@ -12,18 +12,18 @@ from testing.fast_array_utils import Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Protocol, TypeAlias
+    from typing import Any, Protocol
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from fast_array_utils.stats._sum import Array
+    from fast_array_utils.stats._mean import Array
     from testing.fast_array_utils import ArrayType
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
-    Benchmarkable: TypeAlias = NDArray[Any] | types.CSBase
+    Benchmarkable = NDArray[Any] | types.CSBase
 
     class BenchFun(Protocol):  # noqa: D101
         def __call__(  # noqa: D102
@@ -54,7 +54,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
 
 
 def test_sum(
-    array_type: ArrayType[Array | types.CSBase | types.DaskArray],
+    array_type: ArrayType[Array],
     dtype_in: DTypeIn,
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
@@ -86,6 +86,17 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))
+
+
+@pytest.mark.parametrize(("axis", "expected"), [(None, 3.5), (0, [2.5, 3.5, 4.5]), (1, [2.0, 5.0])])
+def test_mean(
+    array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: list[float]
+) -> None:
+    arr = array_type(np.array([[1, 2, 3], [4, 5, 6]]))
+    result = stats.mean(arr, axis=axis)
+    if isinstance(result, types.DaskArray):
+        result = result.compute()  # type: ignore[no-untyped-call]
+    np.testing.assert_array_equal(result, expected)
 
 
 # TODO(flying-sheep): enable for GPU  # noqa: TD003
@@ -138,7 +149,7 @@ def test_dask_constant_blocks(
 
 @pytest.mark.benchmark
 @pytest.mark.array_type(skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
-@pytest.mark.parametrize("func", [stats.sum, stats.is_constant])
+@pytest.mark.parametrize("func", [stats.sum, stats.mean, stats.is_constant])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,

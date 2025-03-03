@@ -70,7 +70,9 @@ def _is_constant(
 
 
 @_is_constant.register(np.ndarray)
-def _(a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
+def _is_constant_ndarray(
+    a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None
+) -> bool | NDArray[np.bool]:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -87,7 +89,9 @@ def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
 
 
 @_is_constant.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
+def _is_constant_cs(
+    a: types.CSBase, /, *, axis: Literal[0, 1, None] = None
+) -> bool | NDArray[np.bool]:
     if len(a.shape) == 1:  # pragma: no cover
         msg = "array must have 2 dimensions"
         raise ValueError(msg)
@@ -102,11 +106,11 @@ def _(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray
             a = a.T.tocsr()
         case 1, "csc":
             a = a.T.tocsc()
-    return _is_constant_csr_rows(a.data, a.indptr, shape)
+    return _is_constant_cs_major(a.data, a.indptr, shape)
 
 
 @numba.njit(cache=True)
-def _is_constant_csr_rows(
+def _is_constant_cs_major(
     data: NDArray[np.number[Any]],
     indptr: NDArray[np.integer[Any]],
     shape: tuple[int, int],
@@ -125,7 +129,9 @@ def _is_constant_csr_rows(
 
 
 @_is_constant.register(types.DaskArray)
-def _(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
+def _is_constant_dask(
+    a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None
+) -> types.DaskArray:
     import dask.array as da
 
     if axis is not None:
