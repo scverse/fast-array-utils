@@ -1,6 +1,7 @@
 {
     "python.testing.pytestArgs": ["-vv", "--color=yes"],
     "python.testing.pytestEnabled": true,
+    "python.languageServer": "None",
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
 def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]])
-    arr = to_dense(x, to_memory=to_memory)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/14764
+    arr = to_dense(x, to_memory=to_memory)
     match (to_memory, x):
         case False, types.DaskArray():
             assert isinstance(arr, types.DaskArray)

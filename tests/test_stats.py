@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, Protocol
 
-    from numpy.typing import NDArray
+    from numpy.typing import NBitBase, NDArray
     from pytest_codspeed import BenchmarkFixture
 
     from fast_array_utils.stats._mean import Array
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
-    Benchmarkable = NDArray[Any] | types.CSBase
+    Benchmarkable = NDArray[np.generic] | types.CSBase
 
     class BenchFun(Protocol):  # noqa: D101
         def __call__(  # noqa: D102
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
             *,
             axis: Literal[0, 1, None] = None,
             dtype: DTypeOut | None = None,
-        ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
+        ) -> NDArray[np.generic] | np.number[NBitBase] | types.DaskArray: ...
 else:
     DTypeIn = type
     DTypeOut = type
@@ -68,12 +68,12 @@ def test_sum(
     match axis, arr:
         case _, types.DaskArray():
             assert isinstance(sum_, types.DaskArray), type(sum_)
-            sum_ = sum_.compute()  # type: ignore[no-untyped-call]
+            sum_ = sum_.compute()
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
         case 0 | 1, _:
             assert isinstance(sum_, np.ndarray), type(sum_)
-        case _:
+        case _:  # pyright: ignore[reportUnnecessaryComparison]
             pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(sum_)}")
 
     assert sum_.shape == () if axis is None else arr.shape[axis], (sum_.shape, arr.shape)
@@ -98,7 +98,7 @@ def test_mean(
     arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = result.compute()  # type: ignore[no-untyped-call]
+        result = result.compute()
     np.testing.assert_array_equal(result, expected)
 
 
@@ -109,7 +109,11 @@ def test_mean(
 )
 def test_mean_var(
     array_type: ArrayType[
-        NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+        NDArray[np.generic]
+        | types.CSBase
+        | types.CupyArray
+        | types.CupySparseMatrix
+        | types.DaskArray
     ],
     axis: Literal[0, 1, None],
     mean_expected: float | list[float],
@@ -136,7 +140,7 @@ def test_mean_var(
     ],
 )
 def test_is_constant(
-    array_type: ArrayType[NDArray[Any] | types.CSBase | types.DaskArray],
+    array_type: ArrayType[NDArray[np.generic] | types.CSBase | types.DaskArray],
     axis: Literal[0, 1, None],
     expected: bool | list[bool],
 ) -> None:
@@ -151,7 +155,7 @@ def test_is_constant(
     x = array_type(x_data)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = result.compute()  # type: ignore[no-untyped-call]
+        result = result.compute()
     if isinstance(expected, list):
         np.testing.assert_array_equal(expected, result)
     else:
@@ -170,7 +174,7 @@ def test_dask_constant_blocks(
 
     result = stats.is_constant(x, axis=None)
     dask_viz(result)
-    assert result.compute() is False  # type: ignore[no-untyped-call]
+    assert result.compute() is False
 
 
 @pytest.mark.benchmark
@@ -187,5 +191,5 @@ def test_stats_benchmark(
     shape = (1_000, 1_000) if "sparse" in array_type.mod else (100, 100)
     arr = array_type.random(shape, dtype=dtype)
 
-    func(arr, axis=axis)  # warmup: numba compile
-    benchmark(func, arr, axis=axis)
+    _ = func(arr, axis=axis)  # warmup: numba compile
+    _ = benchmark(func, arr, axis=axis)

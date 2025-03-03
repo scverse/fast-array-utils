@@ -20,12 +20,12 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     Array = (
-        NDArray[Any]
+        NDArray[np.generic]
         | types.CSBase
         | types.CupyArray
         | types.CupySparseMatrix
         | types.DaskArray
-        | types.OutOfCoreDataset[Any]
+        | types.OutOfCoreDataset[np.generic]
         | types.H5Dataset
         | types.ZarrArray
     )
@@ -101,7 +101,7 @@ class ArrayType(Generic[Arr, Inner]):
 
     _: KW_ONLY
 
-    inner: Inner = None  # type: ignore[assignment]
+    inner: Inner = None  # pyright: ignore[reportAssignmentType]
     """Inner array type (e.g. for dask)."""
     conversion_context: ConversionContext | None = field(default=None, compare=False)
     """Conversion context required for converting to h5py."""
@@ -228,7 +228,7 @@ class ArrayType(Generic[Arr, Inner]):
         assert self.inner is not None
 
         arr = self.inner(x, dtype=dtype)
-        return cast(da.Array, da.from_array(arr, _half_chunk_size(arr.shape)))  # type: ignore[no-untyped-call]
+        return cast(da.Array, da.from_array(arr, _half_chunk_size(arr.shape)))
 
     def _to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None

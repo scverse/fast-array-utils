@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
@@ -9,7 +9,7 @@ from ._sum import sum as sum_
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal
+    from typing import Any, Literal, TypeVar
 
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import NDArray

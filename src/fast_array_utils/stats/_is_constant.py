@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numba
 import numpy as np
@@ -16,19 +16,23 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Literal, TypeVar
 
-    C = TypeVar("C", bound=Callable[..., Any])
+    from numpy.typing import NBitBase
+
+    C = TypeVar("C", bound=Callable[..., object])
 
 
 @overload
 def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 @overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
+def is_constant(a: NDArray[np.generic] | types.CSBase, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
+def is_constant(
+    a: NDArray[np.generic] | types.CSBase, /, *, axis: Literal[0, 1]
+) -> NDArray[np.bool]: ...
 
 
 def is_constant(
-    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
+    a: NDArray[np.generic] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool] | types.DaskArray:
     """Check whether values in array are constant.
 
@@ -64,14 +68,14 @@ def is_constant(
 
 @singledispatch
 def _is_constant(
-    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
+    a: NDArray[np.generic] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool] | types.DaskArray:  # pragma: no cover
     raise NotImplementedError
 
 
 @_is_constant.register(np.ndarray)
-def _is_constant_ndarray(
-    a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None
+def _is_constant_ndarray(  # pyright: ignore[reportUnusedFunction]
+    a: NDArray[np.generic], /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool]:
     # Should eventually support nd, not now.
     match axis:
@@ -83,13 +87,13 @@ def _is_constant_ndarray(
             return _is_constant_rows(a)
 
 
-def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
+def _is_constant_rows(a: NDArray[np.generic]) -> NDArray[np.bool]:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
     return cast(NDArray[np.bool], (a == b).all(axis=1))
 
 
-@_is_constant.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _is_constant_cs(
+@_is_constant.register(types.CSBase)
+def _is_constant_cs(  # pyright: ignore[reportUnusedFunction]
     a: types.CSBase, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool]:
     if len(a.shape) == 1:  # pragma: no cover
@@ -98,7 +102,7 @@ def _is_constant_cs(
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
-            return is_constant(cast(NDArray[Any], a.data))
+            return is_constant(a.data)
         return bool((a.data == 0).all())
     shape = (n_row, n_col) if axis == 1 else (n_col, n_row)
     match axis, a.format:
@@ -106,13 +110,15 @@ def _is_constant_cs(
             a = a.T.tocsr()
         case 1, "csc":
             a = a.T.tocsc()
+        case _:
+            pass
     return _is_constant_cs_major(a.data, a.indptr, shape)
 
 
 @numba.njit(cache=True)
 def _is_constant_cs_major(
-    data: NDArray[np.number[Any]],
-    indptr: NDArray[np.integer[Any]],
+    data: NDArray[np.number[NBitBase]],
+    indptr: NDArray[np.integer[NBitBase]],
     shape: tuple[int, int],
 ) -> NDArray[np.bool]:
     n = len(indptr) - 1
@@ -129,33 +135,26 @@ def _is_constant_cs_major(
 
 
 @_is_constant.register(types.DaskArray)
-def _is_constant_dask(
+def _is_constant_dask(  # pyright: ignore[reportUnusedFunction]
     a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> types.DaskArray:
     import dask.array as da
 
     if axis is not None:
-        return cast(
-            types.DaskArray,
-            da.map_blocks(  # type: ignore[no-untyped-call]
-                partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
-            ),
+        return da.map_blocks(
+            partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
         )
 
-    rv = cast(
-        types.DaskArray,
+    rv = (
         (a == a[0, 0].compute()).all()
         if isinstance(a._meta, np.ndarray)  # noqa: SLF001
-        else da.map_overlap(  # type: ignore[no-untyped-call]
+        else da.map_overlap(
             lambda a: np.array([[is_constant(a)]]),
             a,
             # use asymmetric overlaps to avoid unnecessary computation
             depth={d: (0, 1) for d in range(a.ndim)},
             trim=False,
             meta=np.array([], dtype=bool),
-        ).all(),
+        ).all()
     )
-    return cast(
-        types.DaskArray,
-        da.map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
-    )
+    return da.map_blocks(bool, rv, meta=np.array([], dtype=bool))

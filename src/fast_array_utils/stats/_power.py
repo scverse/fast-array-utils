@@ -20,17 +20,17 @@ if TYPE_CHECKING:
 
 def power(x: _Arr, n: int, /) -> _Arr:
     """Take array or matrix to a power."""
-    return _power(x, n)  # type: ignore[return-value]
+    return _power(x, n)
 
 
 @singledispatch
 def _power(x: Array, n: int, /) -> Array:
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSMatrix)
-    return x**n  # type: ignore[operator]
+    return x**n
 
 
-@_power.register(types.CSMatrix)  # type: ignore[call-overload,misc]
+@_power.register(types.CSMatrix)
 def _power_cs(x: types.CSMatrix, n: int, /) -> types.CSMatrix:
     return x.power(n)
 
@@ -39,4 +39,4 @@ def _power_cs(x: types.CSMatrix, n: int, /) -> types.CSMatrix:
 def _power_dask(x: types.DaskArray, n: int, /) -> types.DaskArray:
     import dask.array as da
 
-    return cast(types.DaskArray, da.map_blocks(power, x, n))  # type: ignore[no-untyped-call]
+    return cast(types.DaskArray, da.map_blocks(power, x, n))

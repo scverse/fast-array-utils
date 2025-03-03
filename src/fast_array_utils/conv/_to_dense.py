@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     Array = (
-        NDArray[Any]
+        NDArray[np.generic]
         | types.CSBase
         | types.CupyArray
         | types.CupySparseMatrix
@@ -32,7 +32,7 @@ __all__ = ["to_dense"]
 @overload
 def to_dense(
     x: (
-        NDArray[Any]
+        NDArray[np.generic]
         | types.CSBase
         | types.OutOfCoreDataset[Any]
         | types.H5Dataset
@@ -41,13 +41,13 @@ def to_dense(
     /,
     *,
     to_memory: bool = False,
-) -> NDArray[Any]: ...
+) -> NDArray[np.generic]: ...
 
 
 @overload
 def to_dense(x: types.DaskArray, /, *, to_memory: Literal[False] = False) -> types.DaskArray: ...
 @overload
-def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[Any]: ...
+def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[np.generic]: ...
 
 
 @overload
@@ -57,12 +57,12 @@ def to_dense(
 @overload
 def to_dense(
     x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[True]
-) -> NDArray[Any]: ...
+) -> NDArray[np.generic]: ...
 
 
 def to_dense(
     x: Array, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
+) -> NDArray[np.generic] | types.DaskArray | types.CupyArray:
     """Convert x to a dense array.
 
     Parameters
@@ -84,13 +84,13 @@ def to_dense(
 @singledispatch
 def _to_dense(
     x: Array, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
+) -> NDArray[np.generic] | types.DaskArray | types.CupyArray:
     del to_memory  # it already is
     return np.asarray(x)
 
 
-@_to_dense.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
+@_to_dense.register(types.CSBase)
+def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[np.generic]:
     from . import scipy
 
     del to_memory  # it already is
@@ -100,20 +100,20 @@ def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]
 @_to_dense.register(types.DaskArray)
 def _to_dense_dask(
     x: types.DaskArray, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray:
+) -> NDArray[np.generic] | types.DaskArray:
     if TYPE_CHECKING:
         from dask.array.core import map_blocks
     else:
         from dask.array import map_blocks
 
-    x = cast(types.DaskArray, map_blocks(to_dense, x))  # type: ignore[no-untyped-call]
-    return x.compute() if to_memory else x  # type: ignore[no-untyped-call]
+    x = cast(types.DaskArray, map_blocks(to_dense, x))
+    return x.compute() if to_memory else x
 
 
 @_to_dense.register(types.OutOfCoreDataset)
 def _to_dense_ooc(
-    x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]], /, *, to_memory: bool = False
-) -> NDArray[Any]:
+    x: types.OutOfCoreDataset[types.CSBase | NDArray[np.generic]], /, *, to_memory: bool = False
+) -> NDArray[np.generic]:
     if not to_memory:
         msg = "to_memory must be True if x is an OutOfCoreDataset"
         raise ValueError(msg)
@@ -121,9 +121,9 @@ def _to_dense_ooc(
     return to_dense(x.to_memory())
 
 
-@_to_dense.register(types.CupyArray | types.CupySparseMatrix)  # type: ignore[call-overload,misc]
+@_to_dense.register(types.CupyArray | types.CupySparseMatrix)
 def _to_dense_cupy(
     x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.CupyArray:
+) -> NDArray[np.generic] | types.CupyArray:
     x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x
     return x.get() if to_memory else x
