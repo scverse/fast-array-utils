@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 def mean(
     x: _ArrayLikeFloat_co | Array,
+    /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
