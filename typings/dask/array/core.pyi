@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
 from typing import Never, TypeAlias, override
@@ -29,6 +30,7 @@ class BlockView:
 
 class Array:
     shape: tuple[int, ...]
+    dtype: np.dtype[np.generic]
     _meta: object
 
     blocks: BlockView

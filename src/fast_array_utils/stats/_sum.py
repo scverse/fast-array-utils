@@ -124,8 +124,8 @@ def _sum_dask(  # pyright: ignore[reportUnusedFunction]
             | tuple[Literal[0, 1]]
             | Literal[0, 1, None]
         ) = None,
-        dtype: ToDType[np.float64 | np.float32] | None = None,
-        keepdims: bool = False,
+        dtype: ToDType[np.float64 | np.float32],
+        keepdims: bool,
     ) -> NDArray[np.generic]:
         del keepdims
         match axis:

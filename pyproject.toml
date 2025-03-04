@@ -137,6 +137,5 @@ run.omit = [ "src/testing/*", "tests/*" ]
 report.exclude_also = [ "if TYPE_CHECKING:", "@numba[.]njit", "[.]{3}" ]
 
 [tool.basedpyright]
-strict = [ "**" ]
-stubPath = "./stubs"
+typeCheckingMode = "all"
 reportPrivateUsage = "none"

@@ -9,51 +9,41 @@ from ._sum import sum as sum_
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeVar
+    from typing import Literal, TypeVar
 
-    from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
-    from numpy.typing import NDArray
+    from numpy.typing import NBitBase, NDArray
     from optype.numpy import ToDType
 
     from .. import types
 
     # all supported types except Dask and OutOfCoreDataset (TODO)
     NonDaskArray = (
-        NDArray[Any]
+        NDArray[np.number[NBitBase]]
         | types.CSBase
         | types.H5Dataset
         | types.ZarrArray
         | types.CupyArray
         | types.CupySparseMatrix
     )
-    Array = NonDaskArray | types.DaskArray
-    Sc = TypeVar("Sc", bound=np.number[Any])
+    Sc = TypeVar("Sc", bound=np.number[NBitBase])
 
 
 @overload
-def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: None = None
-) -> np.float64: ...
+def mean(x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: None = None) -> np.float64: ...
+@overload
+def mean(x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: ToDType[Sc]) -> Sc: ...
+@overload
+def mean(x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: None = None) -> NDArray[np.float64]: ...
+@overload
+def mean(x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Sc]) -> NDArray[Sc]: ...
 @overload
 def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: ToDType[Sc]
-) -> Sc: ...
-@overload
-def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: None = None
-) -> NDArray[np.float64]: ...
-@overload
-def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Sc]
-) -> NDArray[Sc]: ...
-@overload
-def mean(
-    x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
+    x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Sc] | None = None
 ) -> types.DaskArray: ...
 
 
 def mean(
-    x: ArrayLike | Array,
+    x: NonDaskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -70,10 +60,6 @@ def mean(
     --------
     :func:`numpy.mean`
     """
-    if not hasattr(x, "shape"):
-        raise NotImplementedError  # TODO(flying-sheep): infer shape  # noqa: TD003
-    if TYPE_CHECKING:
-        assert isinstance(x, Array)  # type:ignore[unused-ignore]
     total = sum_(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
     return total / n
