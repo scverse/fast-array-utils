@@ -35,7 +35,7 @@ _TP_MEM = (
 )
 _TP_DASK = tuple(
     ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)
-    for t in cast(tuple[ArrayType[MemArray, None], ...], _TP_MEM)
+    for t in cast("tuple[ArrayType[MemArray, None], ...]", _TP_MEM)
 )
 _TP_DISK = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]

@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pytest
-from numpy.typing import NDArray
 
 from fast_array_utils import stats, types
 from testing.fast_array_utils import Flags
@@ -13,8 +12,9 @@ from testing.fast_array_utils import Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Protocol
+    from typing import Any, Literal, Protocol
 
+    from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
     from fast_array_utils.stats._mean import Array
@@ -33,24 +33,21 @@ if TYPE_CHECKING:
             axis: Literal[0, 1, None] = None,
             dtype: DTypeOut | None = None,
         ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
-else:
-    DTypeIn = type
-    DTypeOut = type
 
 
 @pytest.fixture(scope="session", params=[0, 1, None])
 def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
-    return cast(Literal[0, 1, None], request.param)
+    return cast("Literal[0, 1, None]", request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool])
 def dtype_in(request: pytest.FixtureRequest) -> DTypeIn:
-    return cast(DTypeIn, request.param)
+    return cast("DTypeIn", request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, None])
 def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
-    return cast(DTypeOut | None, request.param)
+    return cast("DTypeOut | None", request.param)
 
 
 def test_sum(
@@ -152,7 +149,7 @@ def test_is_constant(
     x = array_type(x_data)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = cast(NDArray[np.bool] | bool, result.compute())
+        result = cast("NDArray[np.bool] | bool", result.compute())
     if isinstance(expected, list):
         np.testing.assert_array_equal(expected, result)
     else:

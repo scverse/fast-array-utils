@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pytest
@@ -12,6 +12,8 @@ from testing.fast_array_utils import Flags
 
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pytest_codspeed import BenchmarkFixture
 
     from fast_array_utils.types import CSBase
@@ -24,17 +26,17 @@ pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not insta
 
 @pytest.fixture(scope="session", params=["csr", "csc"])
 def sp_fmt(request: pytest.FixtureRequest) -> Literal["csr", "csc"]:
-    return cast(Literal["csr", "csc"], request.param)
+    return cast('Literal["csr", "csc"]', request.param)
 
 
 @pytest.fixture(scope="session", params=["array", "matrix"])
 def sp_container(request: pytest.FixtureRequest) -> Literal["array", "matrix"]:
-    return cast(Literal["array", "matrix"], request.param)
+    return cast('Literal["array", "matrix"]', request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64])
 def dtype(request: pytest.FixtureRequest) -> type[np.float32 | np.float64]:
-    return cast(type[np.float32 | np.float64], request.param)
+    return cast("type[np.float32 | np.float64]", request.param)
 
 
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask)

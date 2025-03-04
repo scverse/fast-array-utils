@@ -2,20 +2,19 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
-from numpy.typing import NDArray
 
 from .. import types
 from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from typing import Any, Literal
 
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
-    from numpy.typing import DTypeLike
+    from numpy.typing import DTypeLike, NDArray
 
     # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
     Array = (
@@ -83,7 +82,7 @@ def _sum(
         assert not isinstance(
             x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix
         )
-    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
+    return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
@@ -96,7 +95,7 @@ def _sum_cs(
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
         assert isinstance(x, ArrayLike)
-    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
+    return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register(types.DaskArray)
