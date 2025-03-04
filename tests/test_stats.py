@@ -175,7 +175,7 @@ def test_dask_constant_blocks(
 
 @pytest.mark.benchmark
 @pytest.mark.array_type(skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
-@pytest.mark.parametrize("func", [stats.sum, stats.mean, stats.is_constant])
+@pytest.mark.parametrize("func", [stats.sum, stats.mean, stats.mean_var, stats.is_constant])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])  # random only supports float
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,
