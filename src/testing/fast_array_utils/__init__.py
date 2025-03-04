@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._array_type import ArrayType, ConversionContext, Flags, random_mat
 
 
 if TYPE_CHECKING:
-    from ._array_type import Array, ToArray  # noqa: TC004
+    from ._array_type import Array, MemArray, ToArray  # noqa: TC004
 
 
 __all__ = [
@@ -33,7 +33,10 @@ _TP_MEM = (
         for (mod, flags) in [("scipy.sparse", Flags(0)), ("cupyx.scipy.sparse", Flags.Gpu)]
     ),
 )
-_TP_DASK = tuple(ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t) for t in _TP_MEM)
+_TP_DASK = tuple(
+    ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)
+    for t in cast(tuple[ArrayType[MemArray, None], ...], _TP_MEM)
+)
 _TP_DISK = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]
 )

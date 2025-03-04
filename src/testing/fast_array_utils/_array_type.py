@@ -19,21 +19,15 @@ if TYPE_CHECKING:
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
+    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
     Array = (
-        NDArray[Any]
-        | types.CSBase
-        | types.CupyArray
-        | types.CupySparseMatrix
-        | types.DaskArray
-        | types.OutOfCoreDataset[Any]
-        | types.H5Dataset
-        | types.ZarrArray
+        MemArray | types.DaskArray | types.OutOfCoreDataset[Any] | types.H5Dataset | types.ZarrArray
     )
 
     Arr = TypeVar("Arr", bound=Array, default=Array)
     Arr_co = TypeVar("Arr_co", bound=Array, covariant=True)
 
-    Inner = TypeVar("Inner", bound="ArrayType[Any, None] | None", default=Any)
+    Inner = TypeVar("Inner", bound="ArrayType[MemArray, None] | None", default=Any)
 
     class ToArray(Protocol, Generic[Arr_co]):
         """Convert to a supported array."""
@@ -184,7 +178,7 @@ class ArrayType(Generic[Arr, Inner]):
                 return cast(
                     Arr,
                     arr.map_blocks(
-                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),
+                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),  # type: ignore[attr-defined]
                         dtype=dtype,
                     ),
                 )
@@ -228,7 +222,7 @@ class ArrayType(Generic[Arr, Inner]):
         assert self.inner is not None
 
         arr = self.inner(x, dtype=dtype)
-        return cast(da.Array, da.from_array(arr, _half_chunk_size(arr.shape)))  # type: ignore[no-untyped-call]
+        return da.from_array(arr, _half_chunk_size(arr.shape))
 
     def _to_h5py_dataset(
         self, x: ArrayLike, /, *, dtype: DTypeLike | None = None

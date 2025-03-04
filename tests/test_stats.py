@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from fast_array_utils import stats, types
 from testing.fast_array_utils import Flags
@@ -14,7 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, Protocol
 
-    from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
     from fast_array_utils.stats._mean import Array
@@ -68,7 +68,7 @@ def test_sum(
     match axis, arr:
         case _, types.DaskArray():
             assert isinstance(sum_, types.DaskArray), type(sum_)
-            sum_ = sum_.compute()  # type: ignore[no-untyped-call]
+            sum_ = sum_.compute()  # type: ignore[assignment]
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
         case 0 | 1, _:
@@ -85,7 +85,8 @@ def test_sum(
     else:
         assert sum_.dtype == dtype_in
 
-    np.testing.assert_array_equal(sum_, np.sum(np_arr, axis=axis, dtype=dtype_arg))
+    expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
+    np.testing.assert_array_equal(sum_, expected)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(("axis", "expected"), [(None, 3.5), (0, [2.5, 3.5, 4.5]), (1, [2.0, 5.0])])
@@ -96,7 +97,7 @@ def test_mean(
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
 
     arr = array_type(np_arr)
-    result = stats.mean(arr, axis=axis)
+    result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
     if isinstance(result, types.DaskArray):
         result = result.compute()
     np.testing.assert_array_equal(result, expected)
@@ -121,8 +122,8 @@ def test_mean_var(
 
     arr = array_type(np_arr)
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
-    np.testing.assert_array_equal(mean, mean_expected)
-    np.testing.assert_array_almost_equal(var, var_expected)
+    np.testing.assert_array_equal(mean, mean_expected)  # type: ignore[arg-type]
+    np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
 
 # TODO(flying-sheep): enable for GPU  # noqa: TD003
@@ -151,7 +152,7 @@ def test_is_constant(
     x = array_type(x_data)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = result.compute()  # type: ignore[no-untyped-call]
+        result = cast(NDArray[np.bool] | bool, result.compute())
     if isinstance(expected, list):
         np.testing.assert_array_equal(expected, result)
     else:
@@ -170,7 +171,7 @@ def test_dask_constant_blocks(
 
     result = stats.is_constant(x, axis=None)
     dask_viz(result)
-    assert result.compute() is False  # type: ignore[no-untyped-call]
+    assert result.compute() is False
 
 
 @pytest.mark.benchmark

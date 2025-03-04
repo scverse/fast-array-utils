@@ -22,6 +22,6 @@ def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[o
             return
 
         path = cache.mkdir("dask-viz") / cast(pytest.Item, request.node).name
-        obj.visualize(str(path), engine="ipycytoscape")  # type: ignore[no-untyped-call]
+        obj.visualize(str(path), engine="ipycytoscape")
 
     return viz

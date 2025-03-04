@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import singledispatch
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from .. import types
 
@@ -37,6 +37,4 @@ def _power_cs(x: types.CSMatrix, n: int, /) -> types.CSMatrix:
 
 @_power.register(types.DaskArray)
 def _power_dask(x: types.DaskArray, n: int, /) -> types.DaskArray:
-    import dask.array as da
-
-    return cast(types.DaskArray, da.map_blocks(power, x, n))  # type: ignore[no-untyped-call]
+    return x.map_blocks(lambda c: power(c, n))  # type: ignore[type-var]

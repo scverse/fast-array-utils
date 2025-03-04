@@ -134,14 +134,11 @@ def _sum_dask(
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
         dtype = np.zeros(1, dtype=x.dtype).sum().dtype
 
-    return cast(
-        types.DaskArray,
-        da.reduction(  # type: ignore[no-untyped-call]
-            x,
-            sum_drop_keepdims,
-            partial(np.sum, dtype=dtype),
-            axis=axis,
-            dtype=dtype,
-            meta=np.array([], dtype=dtype),
-        ),
+    return da.reduction(
+        x,
+        sum_drop_keepdims,  # type: ignore[arg-type]
+        partial(np.sum, dtype=dtype),
+        axis=axis,
+        dtype=dtype,
+        meta=np.array([], dtype=dtype),
     )
