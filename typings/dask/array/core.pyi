@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Any, Literal, Never, TypeAlias, override
+from typing import Any, Literal, Never, TypeAlias
 
 import cupy
 import cupyx.scipy.sparse
 import numpy as np
 import scipy.sparse
 from numpy.typing import DTypeLike, NDArray
+from typing_extensions import override
 
 from ..utils import SerializableLock
 
