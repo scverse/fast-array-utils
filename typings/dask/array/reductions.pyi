@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from collections.abc import Mapping, Sequence
-from typing import Protocol, overload
+from typing import Any, Protocol, overload
 
-import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from .core import Array, _Array
@@ -15,7 +14,7 @@ class _Chunk(Protocol):
         x_chunk: _Array,
         /,
         *,
-        weights_chunk: NDArray[np.generic] | None = None,
+        weights_chunk: NDArray[Any] | None = None,
         axis: tuple[int, ...],
         keepdims: bool,
         **kwargs: object,

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Literal, Never, TypeAlias, override
+from typing import Any, Literal, Never, TypeAlias, override
 
 import cupy
 import cupyx.scipy.sparse
@@ -13,7 +13,7 @@ from ..utils import SerializableLock
 
 _Chunks: TypeAlias = tuple[int, ...] | tuple[tuple[int, ...], ...]
 _Array: TypeAlias = (
-    NDArray[np.generic]
+    NDArray[Any]
     | scipy.sparse.csr_array
     | scipy.sparse.csc_array
     | scipy.sparse.csr_matrix
@@ -33,7 +33,7 @@ class Array:
     # array methods and attrs
     ndim: int
     shape: tuple[int, ...]
-    dtype: np.dtype[np.generic]
+    dtype: np.dtype[Any]
     @override
     def __eq__(self, value: object, /) -> Array: ...  # type: ignore[override]
     def __getitem__(self, index: object) -> Array: ...

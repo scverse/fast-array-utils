@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: MPL-2.0
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 class ndarray:
-    dtype: np.dtype[np.generic]
+    dtype: np.dtype[Any]
     shape: tuple[int, ...]
-    def get(self) -> NDArray[np.generic]: ...
+    def get(self) -> NDArray[Any]: ...
     def __power__(self, other: int) -> Self: ...
-    def __array__(self) -> NDArray[np.generic]: ...
+    def __array__(self) -> NDArray[Any]: ...
 
 def asarray(
     a: ArrayLike,

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 import os
 from contextlib import closing
-from typing import IO, AnyStr, Literal
+from typing import IO, Any, AnyStr, Literal
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -10,7 +10,7 @@ class Empty: ...
 class HLObject: ...
 
 class Dataset(HLObject):
-    dtype: np.dtype[np.generic]
+    dtype: np.dtype[Any]
     shape: tuple[int, ...]
 
 class Group(HLObject): ...
@@ -28,7 +28,7 @@ class File(Group, closing[File]):  # not actually a subclass of closing
         self,
         name: str,
         shape: tuple[int, ...] | None = None,
-        dtype: np.dtype[np.generic] | None = None,
+        dtype: np.dtype[Any] | None = None,
         data: ArrayLike | Empty | None = None,
         **kwds: object,
     ) -> Dataset: ...
