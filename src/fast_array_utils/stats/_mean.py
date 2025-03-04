@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
-    from numpy.typing import NDArray
+    from numpy.typing import DTypeLike, NDArray
     from optype.numpy import ToDType
 
     from .. import types
@@ -27,25 +27,16 @@ if TYPE_CHECKING:
         | types.CupySparseMatrix
     )
     Array = NonDaskArray | types.DaskArray
-    Sc = TypeVar("Sc", bound=np.number[Any])
 
 
 @overload
 def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: None = None
-) -> np.float64: ...
+    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
+) -> np.number[Any]: ...
 @overload
 def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: ToDType[Sc]
-) -> Sc: ...
-@overload
-def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: None = None
-) -> NDArray[np.float64]: ...
-@overload
-def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Sc]
-) -> NDArray[Sc]: ...
+    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> NDArray[np.number[Any]]: ...
 @overload
 def mean(
     x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
@@ -57,8 +48,8 @@ def mean(
     /,
     *,
     axis: Literal[0, 1, None] = None,
-    dtype: ToDType[Sc] | None = None,
-) -> NDArray[Sc] | Sc | types.DaskArray:
+    dtype: DTypeLike | None = None,
+) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
     """Mean over both or one axis.
 
     Returns

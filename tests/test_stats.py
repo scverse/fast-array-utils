@@ -98,7 +98,7 @@ def test_mean(
     arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = result.compute()  # type: ignore[no-untyped-call]
+        result = result.compute()
     np.testing.assert_array_equal(result, expected)
 
 

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, no_type_check, overload
 
 import numba
 import numpy as np
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
+
 
 __all__ = ["mean_var"]
 
@@ -35,6 +36,7 @@ def mean_var(
 ) -> tuple[types.DaskArray, types.DaskArray]: ...
 
 
+@no_type_check  # mypy is extremely confused
 def mean_var(
     x: MemArray | types.DaskArray,
     /,
@@ -50,7 +52,7 @@ def mean_var(
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
         mean_ = mean(x, axis=axis, dtype=np.float64)
-        mean_sq = mean(power(x, x), axis=axis, dtype=np.float64)
+        mean_sq = mean(power(x, 2), axis=axis, dtype=np.float64)
         var = mean_sq - mean_**2
     if correction:  # R convention == 1 (unbiased estimator)
         n = np.prod(x.shape) if axis is None else x.shape[axis]

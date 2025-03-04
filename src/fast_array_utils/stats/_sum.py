@@ -2,54 +2,56 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .. import types
 from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeVar
+    from typing import Literal
 
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
-    from numpy.typing import NDArray
-    from optype.numpy import ToDType
+    from numpy.typing import DTypeLike
 
-    # all supported types except Dask and OutOfCoreDataset (TODO)
-    StdArray = (
-        NDArray[Any]
-        | types.CSBase
-        | types.H5Dataset
-        | types.ZarrArray
-        | types.CupyArray
-        | types.CupySparseMatrix
+    # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
+    Array = (
+        NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
     )
-    Sc = TypeVar("Sc", bound=np.number[Any])
 
 
-@overload
-def sum(x: ArrayLike | StdArray, /, *, axis: None = None, dtype: None = None) -> np.number[Any]: ...
-@overload
-def sum(x: ArrayLike | StdArray, /, *, axis: None = None, dtype: ToDType[Sc]) -> Sc: ...
-@overload
-def sum(x: ArrayLike | StdArray, /, *, axis: Literal[0, 1], dtype: None = None) -> NDArray[Any]: ...
-@overload
-def sum(x: ArrayLike | StdArray, /, *, axis: Literal[0, 1], dtype: ToDType[Sc]) -> NDArray[Any]: ...
 @overload
 def sum(
-    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: ToDType[Any] | None = None
+    x: ArrayLike | Array | types.CSBase,
+    /,
+    *,
+    axis: None = None,
+    dtype: DTypeLike | None = None,
+) -> np.number[Any]: ...
+@overload
+def sum(
+    x: ArrayLike | Array | types.CSBase,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
+) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray: ...
 
 
 def sum(
-    x: ArrayLike | StdArray | types.DaskArray,
+    x: ArrayLike | Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
-    dtype: ToDType[Sc] | None = None,
-) -> NDArray[Sc] | Sc | types.DaskArray:
+    dtype: DTypeLike | None = None,
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
     Returns
@@ -68,12 +70,12 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: ArrayLike | StdArray | types.DaskArray,
+    x: ArrayLike | Array | types.CSBase | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
-    dtype: ToDType[Sc] | None = None,
-) -> NDArray[Sc] | Sc | types.DaskArray:
+    dtype: DTypeLike | None = None,
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
         assert not isinstance(x, types.CSBase | types.DaskArray)
@@ -81,25 +83,25 @@ def _sum(
         assert not isinstance(
             x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix
         )
-    return np.sum(x, axis=axis, dtype=dtype)
+    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _sum_cs(
-    x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: ToDType[Sc] | None = None
-) -> NDArray[Sc] | Sc:
+    x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> NDArray[Any] | np.number[Any]:
     import scipy.sparse as sp
 
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
-        assert isinstance(x, ArrayLike)  # type:ignore[unused-ignore]
-    return np.sum(x, axis=axis, dtype=dtype)
+        assert isinstance(x, ArrayLike)
+    return cast(NDArray[Any] | np.number[Any], np.sum(x, axis=axis, dtype=dtype))
 
 
 @_sum.register(types.DaskArray)
 def _sum_dask(
-    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: ToDType[Any] | None = None
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
     import dask.array as da
 
@@ -112,7 +114,7 @@ def _sum_dask(
         /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
-        dtype: ToDType[Any] | None = None,
+        dtype: DTypeLike | None = None,
         keepdims: bool = False,
     ) -> NDArray[Any]:
         del keepdims
@@ -124,8 +126,8 @@ def _sum_dask(
             case tuple():  # pragma: no cover
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
-        rv_maybe_sc = sum(a, axis=axis, dtype=dtype)
-        rv = np.array(rv_maybe_sc, ndmin=1)  # make sure rv is at least 1D
+        rv = sum(a, axis=axis, dtype=dtype)
+        rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
         return rv.reshape((1, len(rv)))
 
     if dtype is None:
