@@ -122,7 +122,7 @@ def test_mean_var(
     arr = array_type(np_arr)
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
     np.testing.assert_array_equal(mean, mean_expected)
-    np.testing.assert_array_almost_equal(var, var_expected)
+    np.testing.assert_array_almost_equal_nulp(var, var_expected, nulp=8)
 
 
 # TODO(flying-sheep): enable for GPU  # noqa: TD003
