@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
@@ -8,6 +8,7 @@ class ndarray:
     dtype: np.dtype[Any]
     shape: tuple[int, ...]
     def get(self) -> NDArray[Any]: ...
+    def __power__(self, other: int) -> Self: ...
 
 def asarray(
     a: ArrayLike,
