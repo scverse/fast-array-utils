@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, no_type_check, overload
 
 import numpy as np
 
@@ -11,7 +11,6 @@ from ._sum import sum as sum_
 if TYPE_CHECKING:
     from typing import Any, Literal
 
-    from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
     from optype.numpy import ToDType
 
@@ -31,11 +30,11 @@ if TYPE_CHECKING:
 
 @overload
 def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
+    x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def mean(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[np.number[Any]]: ...
 @overload
 def mean(
@@ -43,8 +42,9 @@ def mean(
 ) -> types.DaskArray: ...
 
 
+@no_type_check  # mypy is very confused
 def mean(
-    x: ArrayLike | Array,
+    x: Array,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -61,10 +61,6 @@ def mean(
     --------
     :func:`numpy.mean`
     """
-    if not hasattr(x, "shape"):
-        raise NotImplementedError  # TODO(flying-sheep): infer shape  # noqa: TD003
-    if TYPE_CHECKING:
-        assert isinstance(x, Array)  # type:ignore[unused-ignore]
     total = sum_(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
     return total / n

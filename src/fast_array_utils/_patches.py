@@ -19,8 +19,8 @@ def patch_dask() -> None:  # pragma: no cover
         return  # No need to patch if dask or scipy is not installed
 
     # Avoid patch if already patched or upstream support has been added
-    if concatenate_lookup.dispatch(sparray) is not np.concatenate:  # type: ignore[no-untyped-call]
+    if concatenate_lookup.dispatch(sparray) is not np.concatenate:
         return
 
-    concatenate = concatenate_lookup.dispatch(spmatrix)  # type: ignore[no-untyped-call]
-    concatenate_lookup.register(sparray, concatenate)  # type: ignore[no-untyped-call]
+    concatenate = concatenate_lookup.dispatch(spmatrix)
+    concatenate_lookup.register(sparray, concatenate)

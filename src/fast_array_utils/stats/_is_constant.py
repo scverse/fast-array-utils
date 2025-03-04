@@ -135,27 +135,20 @@ def _is_constant_dask(
     import dask.array as da
 
     if axis is not None:
-        return cast(
-            types.DaskArray,
-            da.map_blocks(  # type: ignore[no-untyped-call]
-                partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
-            ),
+        return da.map_blocks(
+            partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
         )
 
-    rv = cast(
-        types.DaskArray,
+    rv = (
         (a == a[0, 0].compute()).all()
         if isinstance(a._meta, np.ndarray)  # noqa: SLF001
-        else da.map_overlap(  # type: ignore[no-untyped-call]
-            lambda a: np.array([[is_constant(a)]]),
+        else da.map_overlap(
+            lambda a: np.array([[is_constant(a)]]),  # type: ignore[arg-type]
             a,
             # use asymmetric overlaps to avoid unnecessary computation
             depth={d: (0, 1) for d in range(a.ndim)},
             trim=False,
             meta=np.array([], dtype=bool),
-        ).all(),
+        ).all()
     )
-    return cast(
-        types.DaskArray,
-        da.map_blocks(bool, rv, meta=np.array([], dtype=bool)),  # type: ignore[no-untyped-call]
-    )
+    return da.map_blocks(bool, rv, meta=np.array([], dtype=bool))

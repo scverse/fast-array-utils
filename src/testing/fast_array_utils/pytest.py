@@ -91,7 +91,7 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
     """
     from fast_array_utils.types import H5Dataset
 
-    at = cast(ArrayType, request.param)
+    at = cast("ArrayType", request.param)
     if at.cls is H5Dataset:
         ctx = request.getfixturevalue("conversion_context")
         at = dataclasses.replace(at, conversion_context=ctx)
@@ -111,7 +111,7 @@ def conversion_context(
     """
     import h5py
 
-    node = cast(pytest.Item, request.node)
+    node = cast("pytest.Item", request.node)
     tmp_path = tmp_path_factory.mktemp("backed_adata")
     tmp_path = tmp_path / f"test_{node.name}_{worker_id}.h5ad"
 

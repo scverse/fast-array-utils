@@ -21,7 +21,7 @@ def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[o
         if not isinstance(obj, DaskArray) or not find_spec("ipycytoscape"):
             return
 
-        path = cache.mkdir("dask-viz") / cast(pytest.Item, request.node).name
-        obj.visualize(str(path), engine="ipycytoscape")  # type: ignore[no-untyped-call]
+        path = cache.mkdir("dask-viz") / cast("pytest.Item", request.node).name
+        obj.visualize(str(path), engine="ipycytoscape")
 
     return viz

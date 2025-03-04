@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import singledispatch
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 
@@ -101,13 +101,10 @@ def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]
 def _to_dense_dask(
     x: types.DaskArray, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.DaskArray:
-    if TYPE_CHECKING:
-        from dask.array.core import map_blocks
-    else:
-        from dask.array import map_blocks
+    import dask.array as da
 
-    x = cast(types.DaskArray, map_blocks(to_dense, x))  # type: ignore[no-untyped-call]
-    return x.compute() if to_memory else x  # type: ignore[no-untyped-call]
+    x = da.map_blocks(to_dense, x)  # type: ignore[arg-type]
+    return x.compute() if to_memory else x  # type: ignore[return-value]
 
 
 @_to_dense.register(types.OutOfCoreDataset)

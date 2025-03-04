@@ -21,7 +21,7 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
     arr = array_type(np.arange(12).reshape(3, 4), dtype=dtype)
     assert isinstance(arr, array_type.cls)
     if isinstance(arr, types.DaskArray):
-        arr = arr.compute()  # type: ignore[no-untyped-call]
+        arr = arr.compute()
     elif isinstance(arr, types.CupyArray):
         arr = arr.get()
     assert arr.shape == (3, 4)

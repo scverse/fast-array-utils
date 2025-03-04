@@ -92,7 +92,6 @@ lint.ignore = [
 ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ] # No __init__.py in docs
 lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ] # Shadows builtins like `sum`
-lint.per-file-ignores."stubs/**/*.pyi" = [ "F403", "F405", "N801" ] # Stubs don’t follow name conventions
 lint.per-file-ignores."tests/**/*.py" = [
   "D100",    # tests need no module docstrings
   "D103",    # tests need no function docstrings
@@ -100,6 +99,7 @@ lint.per-file-ignores."tests/**/*.py" = [
   "PLR2004", # tests use magic values
   "S101",    # tests use `assert`
 ]
+lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # Stubs don’t follow name conventions
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 
@@ -141,8 +141,8 @@ strict = true
 # https://github.com/dask/dask/issues/8853
 implicit_reexport = true
 explicit_package_bases = true
-mypy_path = [ "$MYPY_CONFIG_FILE_DIR/stubs", "$MYPY_CONFIG_FILE_DIR/src" ]
+mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
 
 [tool.pyright]
-stubPath = "./stubs"
+stubPath = "./typings"
 reportPrivateUsage = false
