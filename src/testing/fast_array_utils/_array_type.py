@@ -6,13 +6,13 @@ from __future__ import annotations
 import enum
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Generic, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 import numpy as np
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Protocol, TypeVar
+    from typing import Any, Literal, Protocol
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
@@ -36,6 +36,9 @@ if TYPE_CHECKING:
 
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
+else:
+    Arr = TypeVar("Arr")
+    Inner = TypeVar("Inner")
 
 
 __all__ = ["ArrayType", "ConversionContext", "ToArray"]
