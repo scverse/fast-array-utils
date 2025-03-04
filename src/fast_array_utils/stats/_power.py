@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 def power(x: _Arr, n: int, /) -> _Arr:
     """Take array or matrix to a power."""
+    # This wrapper is necessary because TypeVars can’t be used in `singledispatch` functions
     return _power(x, n)  # type: ignore[return-value]
 
 
