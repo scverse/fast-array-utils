@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
-    # all supported types except CSBase, Dask and OutOfCoreDataset (TODO)
+    # all supported types except CSBase, Dask and CSDataset (TODO)
     Array = (
         NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
     )

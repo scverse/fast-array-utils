@@ -20,9 +20,9 @@ if TYPE_CHECKING:
         | types.CupyArray
         | types.CupySparseMatrix
         | types.DaskArray
-        | types.OutOfCoreDataset[Any]
         | types.H5Dataset
         | types.ZarrArray
+        | types.CSDataset
     )
 
 
@@ -31,13 +31,7 @@ __all__ = ["to_dense"]
 
 @overload
 def to_dense(
-    x: (
-        NDArray[Any]
-        | types.CSBase
-        | types.OutOfCoreDataset[Any]
-        | types.H5Dataset
-        | types.ZarrArray
-    ),
+    x: NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset,
     /,
     *,
     to_memory: bool = False,
@@ -107,12 +101,10 @@ def _to_dense_dask(
     return x.compute() if to_memory else x  # type: ignore[return-value]
 
 
-@_to_dense.register(types.OutOfCoreDataset)
-def _to_dense_ooc(
-    x: types.OutOfCoreDataset[types.CSBase | NDArray[Any]], /, *, to_memory: bool = False
-) -> NDArray[Any]:
+@_to_dense.register(types.CSDataset)
+def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[Any]:
     if not to_memory:
-        msg = "to_memory must be True if x is an OutOfCoreDataset"
+        msg = "to_memory must be True if x is an CS{R,C}Dataset"
         raise ValueError(msg)
     # TODO(flying-sheep): why is to_memory of type Any?  # noqa: TD003
     return to_dense(x.to_memory())

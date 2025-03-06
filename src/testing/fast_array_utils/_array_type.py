@@ -20,9 +20,7 @@ if TYPE_CHECKING:
     from fast_array_utils import types
 
     MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
-    Array = (
-        MemArray | types.DaskArray | types.OutOfCoreDataset[Any] | types.H5Dataset | types.ZarrArray
-    )
+    Array = MemArray | types.DaskArray | types.H5Dataset | types.ZarrArray | types.CSDataset
 
     Arr = TypeVar("Arr", bound=Array, default=Array)
     Arr_co = TypeVar("Arr_co", bound=Array, covariant=True)

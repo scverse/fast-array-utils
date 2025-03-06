@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, TypeVar
 
 
 __all__ = [
@@ -13,7 +13,6 @@ __all__ = [
     "CupySparseMatrix",
     "DaskArray",
     "H5Dataset",
-    "OutOfCoreDataset",
     "ZarrArray",
 ]
 
@@ -22,14 +21,10 @@ T_co = TypeVar("T_co", covariant=True)
 
 # scipy sparse
 if TYPE_CHECKING:
-    from typing import Any
-
-    import numpy as np
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 
     CSArray = csr_array | csc_array
     CSMatrix = csr_matrix | csc_matrix
-    CSBase = CSMatrix | CSArray
 else:
     try:  # cs?_array isn’t available in older scipy versions
         from scipy.sparse import csc_array, csr_array
@@ -44,8 +39,7 @@ else:
         CSMatrix = csr_matrix | csc_matrix
     except ImportError:  # pragma: no cover
         CSMatrix = type("CSMatrix", (), {})
-
-    CSBase = CSMatrix | CSArray
+CSBase = CSMatrix | CSArray
 
 
 if TYPE_CHECKING or find_spec("cupy"):
@@ -80,13 +74,9 @@ else:  # pragma: no cover
     ZarrArray = type("Array", (), {})
 
 
-@runtime_checkable
-class OutOfCoreDataset(Protocol, Generic[T_co]):
-    """An out-of-core dataset."""
-
-    shape: tuple[int, int]
-    dtype: np.dtype[Any]
-
-    def to_memory(self) -> T_co:
-        """Load data into memory."""
-        ...
+if TYPE_CHECKING or find_spec("anndata"):
+    from anndata.abc import CSCDataset, CSRDataset
+else:  # pragma: no cover
+    CSRDataset = type("CSRDataset", (), {})
+    CSCDataset = type("CSCDataset", (), {})
+CSDataset = CSRDataset | CSCDataset
