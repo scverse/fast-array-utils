@@ -92,7 +92,7 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
     from fast_array_utils.types import H5Dataset
 
     at = cast("ArrayType", request.param)
-    if at.cls is H5Dataset:
+    if at.cls is H5Dataset or (at.inner and at.inner.cls is H5Dataset):
         ctx = request.getfixturevalue("conversion_context")
         at = dataclasses.replace(at, conversion_context=ctx)
     return at

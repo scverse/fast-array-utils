@@ -37,9 +37,14 @@ _TP_DASK = tuple(
     ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)
     for t in cast("tuple[ArrayType[MemArray, None], ...]", _TP_MEM)
 )
-_TP_DISK = tuple(
+_TP_DISK_DENSE = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]
 )
+_TP_DISK_SPARSE = tuple(
+    ArrayType("anndata.abc", n, Flags.Any | Flags.Disk | Flags.Sparse, inner=t)
+    for t in _TP_DISK_DENSE
+    for n in ["CSRDataset", "CSCDataset"]
+)
 
-SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK)
+SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK_DENSE, *_TP_DISK_SPARSE)
 """All supported array types."""

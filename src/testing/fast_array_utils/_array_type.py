@@ -6,9 +6,11 @@ from __future__ import annotations
 import enum
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property
+from importlib.metadata import version
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 import numpy as np
+from packaging.version import Version
 
 
 if TYPE_CHECKING:
@@ -133,6 +135,10 @@ class ArrayType(Generic[Arr, Inner]):
                 import zarr
 
                 return cast("type[Arr]", zarr.Array)
+            case "anndata.abc", ("CSCDataset" | "CSRDataset") as cls_name, _:
+                import anndata.abc
+
+                return cast("type[Arr]", getattr(anndata.abc, cls_name))
             case _:
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
@@ -183,6 +189,8 @@ class ArrayType(Generic[Arr, Inner]):
                 raise NotImplementedError
             case "zarr", "Array", _:
                 raise NotImplementedError
+            case "anndata.abc", ("CSCDataset" | "CSRDataset"), _:
+                raise NotImplementedError
             case _:
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
@@ -203,6 +211,8 @@ class ArrayType(Generic[Arr, Inner]):
             fn = cast("ToArray[Arr]", self._to_h5py_dataset)
         elif self.cls is types.ZarrArray:
             fn = cast("ToArray[Arr]", self._to_zarr_array)
+        elif self.cls in {types.CSCDataset, types.CSRDataset}:
+            fn = cast("ToArray[Arr]", self._to_cs_dataset)
         elif self.cls is types.CupyArray:
             import cupy as cu
 
@@ -237,9 +247,41 @@ class ArrayType(Generic[Arr, Inner]):
         import zarr
 
         arr = np.asarray(x, dtype=dtype)
-        za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
+        if Version(version("zarr")) >= Version("3"):
+            za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
+        else:
+            za = zarr.create(shape=arr.shape, dtype=arr.dtype)
         za[...] = arr
         return za
+
+    def _to_cs_dataset(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
+        """Convert to a scipy sparse dataset."""
+        import anndata.io
+        from scipy.sparse import csc_array, csr_array
+
+        from fast_array_utils import types
+
+        assert self.inner is not None
+
+        if self.inner.cls is types.ZarrArray:
+            import zarr
+
+            grp = zarr.group()
+        elif self.inner.cls is types.H5Dataset:
+            if (ctx := self.conversion_context) is None:
+                msg = "`conversion_context` must be set for h5py"
+                raise RuntimeError(msg)
+            grp = ctx.hdf5_file
+        else:
+            raise NotImplementedError
+
+        x_sparse = (
+            csr_array(np.asarray(x, dtype=dtype))
+            if self.inner.cls is types.CSRDataset
+            else csc_array(np.asarray(x, dtype=dtype))
+        )
+        anndata.io.write_elem(grp, "/", x_sparse)
+        return anndata.io.sparse_dataset(grp)
 
 
 def random_mat(

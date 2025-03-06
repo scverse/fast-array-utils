@@ -36,6 +36,7 @@ optional-dependencies.sparse = [ "scipy>=1.8" ]
 optional-dependencies.test = [
   "anndata",
   "coverage[toml]",
+  "packaging",
   "pytest",
   "pytest-codspeed",
   "zarr<3",          # anndata needs this

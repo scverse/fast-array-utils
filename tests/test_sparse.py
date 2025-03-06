@@ -39,7 +39,7 @@ def dtype(request: pytest.FixtureRequest) -> type[np.float32 | np.float64]:
     return cast("type[np.float32 | np.float64]", request.param)
 
 
-@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask)
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk)
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense(
     array_type: ArrayType[CSBase, None],
@@ -54,7 +54,7 @@ def test_to_dense(
 
 
 @pytest.mark.benchmark
-@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask)
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk)
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense_benchmark(
     benchmark: BenchmarkFixture,
