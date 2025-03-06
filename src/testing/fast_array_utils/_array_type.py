@@ -277,7 +277,7 @@ class ArrayType(Generic[Arr, Inner]):
 
         x_sparse = (
             csr_array(np.asarray(x, dtype=dtype))
-            if self.inner.cls is types.CSRDataset
+            if self.cls is types.CSRDataset
             else csc_array(np.asarray(x, dtype=dtype))
         )
         anndata.io.write_elem(grp, "/", x_sparse)
