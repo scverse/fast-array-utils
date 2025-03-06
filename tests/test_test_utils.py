@@ -32,7 +32,11 @@ def test_array_types(array_type: ArrayType) -> None:
     assert array_type.flags & Flags.Any
     assert array_type.flags & ~Flags(0)
     assert not (array_type.flags & Flags(0))
-    assert ("sparse" in str(array_type)) == bool(array_type.flags & Flags.Sparse)
+    assert ("sparse" in str(array_type) or array_type.name in {"CSCDataset", "CSRDataset"}) == bool(
+        array_type.flags & Flags.Sparse
+    )
     assert ("cupy" in str(array_type)) == bool(array_type.flags & Flags.Gpu)
     assert ("dask" in str(array_type)) == bool(array_type.flags & Flags.Dask)
-    assert (array_type.mod in {"zarr", "h5py"}) == bool(array_type.flags & Flags.Disk)
+    assert any(
+        getattr(t, "mod", None) in {"zarr", "h5py"} for t in (array_type, array_type.inner)
+    ) == bool(array_type.flags & Flags.Disk)
