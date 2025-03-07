@@ -16,27 +16,24 @@ if TYPE_CHECKING:
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
-    # all supported types except CSBase, Dask and CSDataset (TODO)
+    # all supported types except Dask and CSDataset (TODO)
     Array = (
-        NDArray[Any] | types.H5Dataset | types.ZarrArray | types.CupyArray | types.CupySparseMatrix
+        NDArray[Any]
+        | types.CSBase
+        | types.H5Dataset
+        | types.ZarrArray
+        | types.CupyArray
+        | types.CupySparseMatrix
     )
 
 
 @overload
 def sum(
-    x: ArrayLike | Array | types.CSBase,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
+    x: ArrayLike | Array, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | Array | types.CSBase,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
+    x: ArrayLike | Array, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -45,7 +42,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | Array | types.CSBase | types.DaskArray,
+    x: ArrayLike | Array | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -69,7 +66,7 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: ArrayLike | Array | types.CSBase | types.DaskArray,
+    x: ArrayLike | Array | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
