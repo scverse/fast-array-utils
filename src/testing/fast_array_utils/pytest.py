@@ -16,7 +16,7 @@ from . import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterable
 
 
 __all__ = ["array_type", "conversion_context"]
@@ -28,8 +28,28 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
 
-def _resolve_sel(select: Flags = ~Flags(0), skip: Flags = Flags(0)) -> tuple[Flags, Flags]:
-    return select, skip
+def _selected(
+    array_type: ArrayType,
+    /,
+    select: Flags | ArrayType | Iterable[Flags | ArrayType] = ~Flags(0),
+    skip: Flags | ArrayType | Iterable[Flags | ArrayType] = Flags(0),
+) -> bool:
+    """Check if ``array_type`` matches.
+
+    Returns ``True`` if ``array_type`` matches (one of the conditions in) ``select``
+    and does not match (one of the conditions in) ``skip``.
+    """
+    if isinstance(select, Flags | ArrayType):
+        select = [select]
+    if isinstance(skip, Flags | ArrayType):
+        skip = [skip]
+
+    def matches(selector: Flags | ArrayType) -> bool:
+        if isinstance(selector, ArrayType):
+            return array_type == selector
+        return bool(array_type.flags & selector)
+
+    return any(map(matches, select)) and not any(map(matches, skip))
 
 
 def pytest_collection_modifyitems(
@@ -51,8 +71,7 @@ def pytest_collection_modifyitems(
         if not isinstance(at, ArrayType):
             msg = f"{msg} of type {ArrayType.__name__}, got {type(at).__name__}"
             raise TypeError(msg)
-        select, skip = _resolve_sel(*mark.args, **mark.kwargs)
-        if not (at.flags & select) or (at.flags & skip):
+        if not _selected(at, *mark.args, **mark.kwargs):
             del items[i]
 
 
