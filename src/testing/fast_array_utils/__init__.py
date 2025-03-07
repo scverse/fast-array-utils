@@ -9,7 +9,12 @@ from ._array_type import ArrayType, ConversionContext, Flags, random_mat
 
 
 if TYPE_CHECKING:
-    from ._array_type import Array, MemArray, ToArray  # noqa: TC004
+    from ._array_type import (
+        Array,  # noqa: TC004
+        InnerArrayDask,
+        InnerArrayDisk,
+        ToArray,  # noqa: TC004
+    )
 
 
 __all__ = [
@@ -34,12 +39,17 @@ _TP_MEM = (
     ),
 )
 _TP_DASK = tuple(
-    ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)
-    for t in cast("tuple[ArrayType[MemArray, None], ...]", _TP_MEM)
+    ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)  # type: ignore[type-var]
+    for t in cast("tuple[ArrayType[InnerArrayDask, None], ...]", _TP_MEM)
 )
-_TP_DISK = tuple(
+_TP_DISK_DENSE = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]
 )
+_TP_DISK_SPARSE = tuple(
+    ArrayType("anndata.abc", n, Flags.Any | Flags.Disk | Flags.Sparse, inner=t)  # type: ignore[type-var]
+    for t in cast("tuple[ArrayType[InnerArrayDisk, None], ...]", _TP_DISK_DENSE)
+    for n in ["CSRDataset", "CSCDataset"]
+)
 
-SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK)
+SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK_DENSE, *_TP_DISK_SPARSE)
 """All supported array types."""

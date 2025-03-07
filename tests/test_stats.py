@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from fast_array_utils import stats, types
-from testing.fast_array_utils import Flags
+from testing.fast_array_utils import SUPPORTED_TYPES, Flags
 
 
 if TYPE_CHECKING:
@@ -35,6 +35,10 @@ if TYPE_CHECKING:
         ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
 
 
+# can’t select these using a category filter
+ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
+
+
 @pytest.fixture(scope="session", params=[0, 1, None])
 def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
     return cast("Literal[0, 1, None]", request.param)
@@ -50,6 +54,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
     return cast("DTypeOut | None", request.param)
 
 
+@pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
     array_type: ArrayType[Array],
     dtype_in: DTypeIn,
@@ -86,6 +91,7 @@ def test_sum(
     np.testing.assert_array_equal(sum_, expected)  # type: ignore[arg-type]
 
 
+@pytest.mark.array_type(skip=ATS_SPARSE_DS)
 @pytest.mark.parametrize(("axis", "expected"), [(None, 3.5), (0, [2.5, 3.5, 4.5]), (1, [2.0, 5.0])])
 def test_mean(
     array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]

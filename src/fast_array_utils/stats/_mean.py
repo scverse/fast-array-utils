@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from .. import types
 
-    # all supported types except Dask and OutOfCoreDataset (TODO)
+    # all supported types except Dask and CSDataset (TODO)
     NonDaskArray = (
         NDArray[Any]
         | types.CSBase

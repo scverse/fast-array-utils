@@ -18,7 +18,12 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
 def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]])
-    arr = to_dense(x, to_memory=to_memory)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/14764
+    if not to_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
+        with pytest.raises(ValueError, match="to_memory must be True if x is an CS{R,C}Dataset"):
+            to_dense(x, to_memory=to_memory)
+        return
+
+    arr = to_dense(x, to_memory=to_memory)
     match (to_memory, x):
         case False, types.DaskArray():
             assert isinstance(arr, types.DaskArray)

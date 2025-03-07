@@ -1,12 +1,20 @@
 {
-    "python.testing.pytestArgs": ["-vv", "--color=yes"],
-    "python.testing.pytestEnabled": true,
+    "[toml][json][jsonc][python]": {
+        "editor.formatOnSave": true,
+    },
+    "[toml]": {
+        "editor.defaultFormatter": "tamasfe.even-better-toml",
+    },
+    "[json][jsonc]": {
+        "editor.defaultFormatter": "biomejs.biome",
+    },
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
             "source.fixAll": "explicit",
             "source.organizeImports": "explicit",
         },
     },
+    "python.testing.pytestArgs": ["-vv", "--color=yes"],
+    "python.testing.pytestEnabled": true,
 }
