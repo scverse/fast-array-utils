@@ -22,10 +22,3 @@
 
 .. automodule:: fast_array_utils.stats
    :members:
-
-
-``fast_array_utils.types``
---------------------------
-
-.. automodule:: fast_array_utils.types
-   :members: OutOfCoreDataset

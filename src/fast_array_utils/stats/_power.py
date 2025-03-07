@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    # All supported array types except for disk ones and OutOfCoreDataset
+    # All supported array types except for disk ones and CSDataset
     Array = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix | types.DaskArray
 
     _Arr = TypeVar("_Arr", bound=Array)

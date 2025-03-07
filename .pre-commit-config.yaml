@@ -33,5 +33,6 @@ repos:
           - dask
           - zarr
           - h5py
+          - anndata
 ci:
   skip: [mypy]  # too big
