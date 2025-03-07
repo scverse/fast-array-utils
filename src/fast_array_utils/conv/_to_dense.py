@@ -10,12 +10,14 @@ from .. import types
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal
+    from typing import Any, Literal, TypeAlias
 
     from numpy.typing import NDArray
 
-    MemDiskArray = NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
-    Array = MemDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+    MemDiskArray: TypeAlias = (
+        NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
+    )
+    Array: TypeAlias = MemDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
 
 
 __all__ = ["to_dense"]
@@ -84,7 +86,7 @@ def _to_dense_dask(
 ) -> NDArray[Any] | types.DaskArray:
     import dask.array as da
 
-    x = da.map_blocks(to_dense, x)  # type: ignore[arg-type]
+    x = da.map_blocks(to_dense, x)
     return x.compute() if to_memory else x  # type: ignore[return-value]
 
 

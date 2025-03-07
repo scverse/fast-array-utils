@@ -21,19 +21,18 @@ repos:
     rev: v1.9.4
     hooks:
       - id: biome-format
-  # Disable this broken thing for now: https://github.com/python/mypy/issues/18758
-  #- repo: https://github.com/pre-commit/mirrors-mypy
-  #  rev: v1.15.0
-  #  hooks:
-  #    - id: mypy
-  #      additional_dependencies:
-  #        - pytest
-  #        - numba
-  #        - numpy
-  #        - scipy-stubs
-  #        - dask
-  #        - zarr
-  #        - h5py
-  #        - anndata
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pytest
+          - numba
+          - numpy
+          - scipy-stubs
+          - dask
+          - zarr
+          - h5py
+          - anndata
 ci:
   skip: [mypy]  # too big

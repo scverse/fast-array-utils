@@ -14,20 +14,22 @@ from packaging.version import Version
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Protocol
+    from typing import Any, Literal, Protocol, TypeAlias
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     from fast_array_utils import types
 
-    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
-    Array = MemArray | types.DaskArray | types.H5Dataset | types.ZarrArray | types.CSDataset
+    InnerArrayDask = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
+    InnerArrayDisk = types.H5Dataset | types.ZarrArray
+    InnerArray = InnerArrayDask | InnerArrayDisk
+    Array: TypeAlias = InnerArray | types.DaskArray | types.CSDataset
 
     Arr = TypeVar("Arr", bound=Array, default=Array)
     Arr_co = TypeVar("Arr_co", bound=Array, covariant=True)
 
-    Inner = TypeVar("Inner", bound="ArrayType[MemArray, None] | None", default=Any)
+    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default=Any)
 
     class ToArray(Protocol, Generic[Arr_co]):
         """Convert to a supported array."""
@@ -227,6 +229,8 @@ class ArrayType(Generic[Arr, Inner]):
         import dask.array as da
 
         assert self.inner is not None
+        if TYPE_CHECKING:
+            assert isinstance(self.inner, ArrayType[InnerArrayDask, None])  # type: ignore[misc]
 
         arr = self.inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))
@@ -263,6 +267,7 @@ class ArrayType(Generic[Arr, Inner]):
 
         assert self.inner is not None
 
+        grp: types.H5Group | types.ZarrGroup
         if self.inner.cls is types.ZarrArray:
             import zarr
 

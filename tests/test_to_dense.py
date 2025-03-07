@@ -23,7 +23,7 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
             to_dense(x, to_memory=to_memory)
         return
 
-    arr = to_dense(x, to_memory=to_memory)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/14764
+    arr = to_dense(x, to_memory=to_memory)
     match (to_memory, x):
         case False, types.DaskArray():
             assert isinstance(arr, types.DaskArray)

@@ -64,14 +64,18 @@ else:  # pragma: no cover
 
 if TYPE_CHECKING or find_spec("h5py"):
     from h5py import Dataset as H5Dataset
+    from h5py import Group as H5Group
 else:  # pragma: no cover
     H5Dataset = type("Dataset", (), {})
+    H5Group = type("Group", (), {})
 
 
 if TYPE_CHECKING or find_spec("zarr"):
     from zarr import Array as ZarrArray
+    from zarr import Group as ZarrGroup
 else:  # pragma: no cover
     ZarrArray = type("Array", (), {})
+    ZarrGroup = type("Group", (), {})
 
 
 if TYPE_CHECKING or find_spec("anndata"):
