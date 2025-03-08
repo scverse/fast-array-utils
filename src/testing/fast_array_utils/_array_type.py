@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from fast_array_utils import types
 
-    InnerArrayDask = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
+    InnerArrayDask = NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix
     InnerArrayDisk = types.H5Dataset | types.ZarrArray
     InnerArray = InnerArrayDask | InnerArrayDisk
     Array: TypeAlias = InnerArray | types.DaskArray | types.CSDataset
@@ -219,6 +219,10 @@ class ArrayType(Generic[Arr, Inner]):
             import cupy as cu
 
             fn = cast("ToArray[Arr]", cu.asarray)
+        elif self.cls in {types.CupyCSCMatrix, types.CupyCSRMatrix}:
+            import cupy as cu
+
+            fn = cast("ToArray[Arr]", lambda x, dtype=None: self.cls(cu.asarray(x, dtype=dtype)))  # type: ignore[call-overload,call-arg,arg-type]
         else:
             fn = cast("ToArray[Arr]", self.cls)
 

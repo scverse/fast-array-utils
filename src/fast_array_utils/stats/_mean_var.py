@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
+    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix
 
 
 __all__ = ["mean_var"]
