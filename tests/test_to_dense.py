@@ -28,7 +28,7 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
         case False, types.DaskArray():
             assert isinstance(arr, types.DaskArray)
             assert isinstance(arr._meta, np.ndarray)  # noqa: SLF001
-        case False, types.CupyArray() | types.CupySparseMatrix():
+        case False, types.CupyArray() | types.CupyCSCMatrix() | types.CupyCSRMatrix():
             assert isinstance(arr, types.CupyArray)
         case _:
             assert isinstance(arr, np.ndarray)

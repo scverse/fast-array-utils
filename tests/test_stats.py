@@ -113,7 +113,7 @@ def test_mean(
 )
 def test_mean_var(
     array_type: ArrayType[
-        NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+        NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix | types.DaskArray
     ],
     axis: Literal[0, 1, None],
     mean_expected: float | list[float],

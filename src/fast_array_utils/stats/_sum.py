@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         | types.H5Dataset
         | types.ZarrArray
         | types.CupyArray
-        | types.CupySparseMatrix
+        | types.CupyCSMatrix
     )
 
 
@@ -77,7 +77,7 @@ def _sum(
         assert not isinstance(x, types.CSBase | types.DaskArray)
         # np.sum supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(
-            x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix
+            x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupyCSMatrix
         )
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 

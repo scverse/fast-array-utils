@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     MemDiskArray: TypeAlias = (
         NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
     )
-    Array: TypeAlias = MemDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+    Array: TypeAlias = MemDiskArray | types.CupyArray | types.CupyCSMatrix | types.DaskArray
 
 
 __all__ = ["to_dense"]
@@ -35,11 +35,11 @@ def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[Any]
 
 @overload
 def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[False] = False
+    x: types.CupyArray | types.CupyCSMatrix, /, *, to_memory: Literal[False] = False
 ) -> types.CupyArray: ...
 @overload
 def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[True]
+    x: types.CupyArray | types.CupyCSMatrix, /, *, to_memory: Literal[True]
 ) -> NDArray[Any]: ...
 
 
@@ -99,9 +99,9 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[
     return to_dense(cast("types.CSBase", x.to_memory()))
 
 
-@_to_dense.register(types.CupyArray | types.CupySparseMatrix)  # type: ignore[call-overload,misc]
+@_to_dense.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
 def _to_dense_cupy(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: bool = False
+    x: types.CupyArray | types.CupyCSMatrix, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.CupyArray:
-    x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x
+    x = x.toarray() if isinstance(x, types.CupyCSMatrix) else x
     return x.get() if to_memory else x

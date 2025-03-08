@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         | types.H5Dataset
         | types.ZarrArray
         | types.CupyArray
-        | types.CupySparseMatrix
+        | types.CupyCSMatrix
     )
     Array = NonDaskArray | types.DaskArray
 
