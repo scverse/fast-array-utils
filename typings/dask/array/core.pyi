@@ -20,7 +20,8 @@ _Array: TypeAlias = (
     | scipy.sparse.csr_matrix
     | scipy.sparse.csc_matrix
     | cupy.ndarray
-    | cupyx.scipy.sparse.spmatrix
+    | cupyx.scipy.sparse.csr_matrix
+    | cupyx.scipy.sparse.csc_matrix
 )
 
 class BlockView:

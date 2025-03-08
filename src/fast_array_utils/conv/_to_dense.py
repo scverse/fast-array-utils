@@ -84,9 +84,7 @@ def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]
 def _to_dense_dask(
     x: types.DaskArray, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.DaskArray:
-    import dask.array as da
-
-    x = da.map_blocks(to_dense, x)
+    x = x.map_blocks(lambda x: to_dense(x, to_memory=to_memory))
     return x.compute() if to_memory else x  # type: ignore[return-value]
 
 
