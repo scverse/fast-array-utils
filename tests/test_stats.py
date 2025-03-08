@@ -103,6 +103,8 @@ def test_mean(
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
     if isinstance(result, types.DaskArray):
         result = result.compute()
+    if isinstance(result, types.CupyArray | types.CupyCSMatrix):
+        result = result.get()
     np.testing.assert_array_equal(result, expected)
 
 
@@ -156,6 +158,8 @@ def test_is_constant(
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
         result = cast("NDArray[np.bool] | bool", result.compute())
+    if isinstance(result, types.CupyArray | types.CupyCSMatrix):
+        result = result.get()
     if isinstance(expected, list):
         np.testing.assert_array_equal(expected, result)
     else:
