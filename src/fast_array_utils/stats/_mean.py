@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, no_type_check, overload
 
 import numpy as np
 
-from ._sum import sum as sum_
+from ._sum import sum_
 
 
 if TYPE_CHECKING:
@@ -15,17 +15,7 @@ if TYPE_CHECKING:
     from optype.numpy import ToDType
 
     from .. import types
-
-    # all supported types except Dask and CSDataset (TODO)
-    NonDaskArray = (
-        NDArray[Any]
-        | types.CSBase
-        | types.H5Dataset
-        | types.ZarrArray
-        | types.CupyArray
-        | types.CupySparseMatrix
-    )
-    Array = NonDaskArray | types.DaskArray
+    from . import NonDaskArray
 
 
 @overload
@@ -44,7 +34,7 @@ def mean(
 
 @no_type_check  # mypy is very confused
 def mean(
-    x: Array,
+    x: NonDaskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,

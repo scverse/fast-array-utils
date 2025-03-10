@@ -9,16 +9,26 @@ from .._validation import validate_axis
 from ._is_constant import is_constant_
 from ._mean import mean
 from ._mean_var import mean_var
-from ._sum import sum
+from ._sum import sum_
 
 
 if TYPE_CHECKING:
     from typing import Any, Literal
 
     import numpy as np
-    from numpy.typing import NDArray
+    from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     from .. import types
+
+    # all supported types except Dask and CSDataset (TODO)
+    NonDaskArray = (
+        NDArray[Any]
+        | types.CSBase
+        | types.H5Dataset
+        | types.ZarrArray
+        | types.CupyArray
+        | types.CupySparseMatrix
+    )
 
 
 __all__ = ["is_constant", "mean", "mean_var", "sum"]
@@ -65,3 +75,40 @@ def is_constant(
     """
     validate_axis(axis)
     return is_constant_(a, axis=axis)
+
+
+@overload
+def sum(
+    x: ArrayLike | NonDaskArray, /, *, axis: None = None, dtype: DTypeLike | None = None
+) -> np.number[Any]: ...
+@overload
+def sum(
+    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
+) -> types.DaskArray: ...
+
+
+def sum(
+    x: ArrayLike | NonDaskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    dtype: DTypeLike | None = None,
+) -> NDArray[Any] | np.number[Any] | types.DaskArray:
+    """Sum over both or one axis.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
+    Otherwise, the sum over the given axis is returned as a 1D array.
+
+    See Also
+    --------
+    :func:`numpy.sum`
+
+    """
+    validate_axis(axis)
+    return sum_(x, axis=axis, dtype=dtype)
