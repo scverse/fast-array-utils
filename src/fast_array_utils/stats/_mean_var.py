@@ -7,7 +7,6 @@ import numba
 import numpy as np
 
 from .. import types
-from ._mean import mean
 from ._power import power
 
 
@@ -48,6 +47,8 @@ def mean_var(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
+    from . import mean
+
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:

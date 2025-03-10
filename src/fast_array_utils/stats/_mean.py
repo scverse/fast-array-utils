@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, no_type_check, overload
+from typing import TYPE_CHECKING, no_type_check
 
 import numpy as np
 
@@ -12,45 +12,19 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from numpy.typing import DTypeLike, NDArray
-    from optype.numpy import ToDType
 
     from .. import types
     from . import NonDaskArray
 
 
-@overload
-def mean(
-    x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
-) -> np.number[Any]: ...
-@overload
-def mean(
-    x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
-) -> NDArray[np.number[Any]]: ...
-@overload
-def mean(
-    x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
-) -> types.DaskArray: ...
-
-
 @no_type_check  # mypy is very confused
-def mean(
+def mean_(
     x: NonDaskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
-    """Mean over both or one axis.
-
-    Returns
-    -------
-    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
-    Otherwise, the sum over the given axis is returned as a 1D array.
-
-    See Also
-    --------
-    :func:`numpy.mean`
-    """
     total = sum_(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
     return total / n

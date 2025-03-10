@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, overload
 
 from .._validation import validate_axis
 from ._is_constant import is_constant_
-from ._mean import mean
+from ._mean import mean_
 from ._mean_var import mean_var
 from ._sum import sum_
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     import numpy as np
     from numpy.typing import ArrayLike, DTypeLike, NDArray
+    from optype.numpy import ToDType
 
     from .. import types
 
@@ -75,6 +76,42 @@ def is_constant(
     """
     validate_axis(axis)
     return is_constant_(a, axis=axis)
+
+
+@overload
+def mean(
+    x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
+) -> np.number[Any]: ...
+@overload
+def mean(
+    x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> NDArray[np.number[Any]]: ...
+@overload
+def mean(
+    x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
+) -> types.DaskArray: ...
+
+
+def mean(
+    x: NonDaskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    dtype: DTypeLike | None = None,
+) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
+    """Mean over both or one axis.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
+    Otherwise, the sum over the given axis is returned as a 1D array.
+
+    See Also
+    --------
+    :func:`numpy.mean`
+    """
+    validate_axis(axis)
+    return mean_(x, axis=axis, dtype=dtype)
 
 
 @overload
