@@ -5,27 +5,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
+from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 from ._to_dense import to_dense_
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal
 
     from numpy.typing import NDArray
 
     from .. import types
-
-    CpuOrDiskArray: TypeAlias = (
-        NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
-    )
-    Array: TypeAlias = CpuOrDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
 
 
 __all__ = ["to_dense"]
 
 
 @overload
-def to_dense(x: CpuOrDiskArray, /, *, to_memory: bool = False) -> NDArray[Any]: ...
+def to_dense(
+    x: CpuArray | DiskArray | types.CSDataset, /, *, to_memory: bool = False
+) -> NDArray[Any]: ...
 
 
 @overload
@@ -45,7 +43,10 @@ def to_dense(
 
 
 def to_dense(
-    x: Array, /, *, to_memory: bool = False
+    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray,
+    /,
+    *,
+    to_memory: bool = False,
 ) -> NDArray[Any] | types.DaskArray | types.CupyArray:
     """Convert x to a dense array.
 

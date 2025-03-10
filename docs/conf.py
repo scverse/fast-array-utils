@@ -6,6 +6,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from docutils.nodes import Element, reference
+    from sphinx.addnodes import pending_xref
+    from sphinx.application import Sphinx
+    from sphinx.environment import BuildEnvironment
 
 
 HERE = Path(__file__).parent
@@ -57,7 +65,7 @@ intersphinx_mapping = dict(
 )
 # Try overriding type paths
 qualname_overrides = autodoc_type_aliases = {
-    "np.bool": ("py:data", "numpy.bool"),
+    "np.bool": "numpy.bool",
     "np.dtype": "numpy.dtype",
     "np.number": "numpy.number",
     "np.integer": "numpy.integer",
@@ -72,6 +80,7 @@ qualname_overrides = autodoc_type_aliases = {
         k: v
         for k_plain, v in {
             "CSBase": "scipy.sparse.spmatrix",
+            "CSDataset": "anndata.abc.CSRDataset",
             "CupyArray": "cupy.ndarray",
             "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
             "DaskArray": "dask.array.Array",
@@ -80,6 +89,7 @@ qualname_overrides = autodoc_type_aliases = {
         }.items()
         for k in (k_plain, f"types.{k_plain}")
     },
+    **{t: f"fast_array_utils.typing.{t}" for t in ("CpuArray", "GpuArray", "DiskArray")},
 }
 # If that doesn’t work, ignore them
 nitpick_ignore = {
@@ -106,3 +116,26 @@ html_theme_options = dict(
     source_branch="main",
     source_directory="docs/",
 )
+
+
+def resolve_type_aliases(
+    app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: Element
+) -> reference | None:
+    """Resolve :class: references to our type aliases as :attr: instead."""
+    if (
+        node["refdomain"] == "py"
+        and node["reftype"] == "class"
+        and (t := autodoc_type_aliases.get(node["reftarget"]))
+    ):
+        rvs = env.get_domain("py").resolve_any_xref(
+            env, node["refdoc"], app.builder, t, node, contnode
+        )
+        for _role, refnode in rvs:
+            return refnode
+        return None
+
+    return None
+
+
+def setup(app: Sphinx) -> None:  # noqa: D103
+    app.connect("missing-reference", resolve_type_aliases)

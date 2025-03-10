@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING, TypeVar
 
 
 __all__ = [
+    "CSArray",
     "CSBase",
+    "CSBase",
+    "CSDataset",
+    "CSMatrix",
     "CupyArray",
     "CupySparseMatrix",
     "DaskArray",
