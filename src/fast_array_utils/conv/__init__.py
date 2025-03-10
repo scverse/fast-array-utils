@@ -15,17 +15,17 @@ if TYPE_CHECKING:
 
     from .. import types
 
-    MemDiskArray: TypeAlias = (
+    CpuOrDiskArray: TypeAlias = (
         NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
     )
-    Array: TypeAlias = MemDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+    Array: TypeAlias = CpuOrDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
 
 
 __all__ = ["to_dense"]
 
 
 @overload
-def to_dense(x: MemDiskArray, /, *, to_memory: bool = False) -> NDArray[Any]: ...
+def to_dense(x: CpuOrDiskArray, /, *, to_memory: bool = False) -> NDArray[Any]: ...
 
 
 @overload

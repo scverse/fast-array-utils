@@ -13,7 +13,9 @@ __all__ = [
     "CupySparseMatrix",
     "DaskArray",
     "H5Dataset",
+    "H5Group",
     "ZarrArray",
+    "ZarrGroup",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
