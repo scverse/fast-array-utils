@@ -15,12 +15,16 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    from . import MemArray
+    from ..typing import CpuArray, GpuArray
 
 
 @no_type_check  # mypy is extremely confused
 def mean_var_(
-    x: MemArray | types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
+    x: CpuArray | GpuArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    correction: int = 0,
 ) -> (
     tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[np.float64, np.float64]

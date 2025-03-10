@@ -45,6 +45,7 @@ else:
 CSMatrix = csc_matrix | csr_matrix
 CSArray = csc_array | csr_array
 CSBase = CSMatrix | CSArray
+"""A sparse compressed matrix or array."""
 
 
 if TYPE_CHECKING or find_spec("cupy"):
@@ -93,3 +94,4 @@ else:  # pragma: no cover
     CSCDataset = type("CSCDataset", (), {})
     CSRDataset.__module__ = CSCDataset.__module__ = "anndata.abc"
 CSDataset = CSRDataset | CSCDataset
+"""Anndata sparse out-of-core matrices."""

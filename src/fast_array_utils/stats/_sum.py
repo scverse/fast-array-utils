@@ -15,12 +15,12 @@ if TYPE_CHECKING:
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
-    from . import NonDaskArray
+    from ..typing import CpuArray, DiskArray, GpuArray
 
 
 @singledispatch
 def sum_(
-    x: ArrayLike | NonDaskArray | types.DaskArray,
+    x: ArrayLike | CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -45,7 +45,7 @@ def _sum_cs(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
-        assert isinstance(x, ArrayLike)
+        assert isinstance(x, ArrayLike)  # pyright: ignore[reportArgumentType]
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
@@ -89,7 +89,7 @@ def _sum_dask(
     return da.reduction(
         x,
         sum_drop_keepdims,  # type: ignore[arg-type]
-        partial(np.sum, dtype=dtype),
+        partial(np.sum, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,
         meta=np.array([], dtype=dtype),

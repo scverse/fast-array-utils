@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
 
+__all__ = ["CpuArray", "DiskArray", "GpuArray"]
+
+
 CpuArray: TypeAlias = NDArray[Any] | types.CSBase
 """Arrays and matrices stored in CPU memory."""
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, overload
 
 from .._validation import validate_axis
+from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 from ._is_constant import is_constant_
 from ._mean import mean_
 from ._mean_var import mean_var_
@@ -21,10 +22,6 @@ if TYPE_CHECKING:
 
     from .. import types
 
-    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
-    # all supported types except Dask and CSDataset (TODO)
-    NonDaskArray = MemArray | types.H5Dataset | types.ZarrArray
-
 
 __all__ = ["is_constant", "mean", "mean_var", "sum"]
 
@@ -32,13 +29,13 @@ __all__ = ["is_constant", "mean", "mean_var", "sum"]
 @overload
 def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 @overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
+def is_constant(a: CpuArray, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
+def is_constant(a: CpuArray, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
 
 
 def is_constant(
-    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
+    a: CpuArray | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool] | types.DaskArray:
     """Check whether values in array are constant.
 
@@ -72,13 +69,19 @@ def is_constant(
     return is_constant_(a, axis=axis)
 
 
+# TODO(flying-sheep): support CSDataset (TODO)
+# https://github.com/scverse/fast-array-utils/issues/52
 @overload
 def mean(
-    x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
+    x: CpuArray | GpuArray | DiskArray,
+    /,
+    *,
+    axis: Literal[None] = None,
+    dtype: DTypeLike | None = None,
 ) -> np.number[Any]: ...
 @overload
 def mean(
-    x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: CpuArray | GpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[np.number[Any]]: ...
 @overload
 def mean(
@@ -87,7 +90,7 @@ def mean(
 
 
 def mean(
-    x: NonDaskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -110,11 +113,11 @@ def mean(
 
 @overload
 def mean_var(
-    x: MemArray, /, *, axis: Literal[None] = None, correction: int = 0
+    x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
 @overload
 def mean_var(
-    x: MemArray, /, *, axis: Literal[0, 1], correction: int = 0
+    x: CpuArray | GpuArray, /, *, axis: Literal[0, 1], correction: int = 0
 ) -> tuple[np.float64, np.float64]: ...
 @overload
 def mean_var(
@@ -123,7 +126,11 @@ def mean_var(
 
 
 def mean_var(
-    x: MemArray | types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
+    x: CpuArray | GpuArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    correction: int = 0,
 ) -> (
     tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[np.float64, np.float64]
@@ -157,13 +164,23 @@ def mean_var(
     return mean_var_(x, axis=axis, correction=correction)
 
 
+# TODO(flying-sheep): support CSDataset (TODO)
+# https://github.com/scverse/fast-array-utils/issues/52
 @overload
 def sum(
-    x: ArrayLike | NonDaskArray, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: ArrayLike | CpuArray | GpuArray | DiskArray,
+    /,
+    *,
+    axis: None = None,
+    dtype: DTypeLike | None = None,
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: ArrayLike | CpuArray | GpuArray | DiskArray,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -172,7 +189,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | NonDaskArray | types.DaskArray,
+    x: ArrayLike | CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,

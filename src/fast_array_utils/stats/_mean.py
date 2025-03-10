@@ -14,12 +14,12 @@ if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
     from .. import types
-    from . import NonDaskArray
+    from ..typing import CpuArray, DiskArray, GpuArray
 
 
 @no_type_check  # mypy is very confused
 def mean_(
-    x: NonDaskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,

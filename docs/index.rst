@@ -10,6 +10,12 @@
 .. automodule:: fast_array_utils
    :members:
 
+``fast_array_utils.types``
+--------------------------
+
+.. automodule:: fast_array_utils.types
+   :members: CSBase, CSDataset
+
 ``fast_array_utils.typing``
 ---------------------------
 
