@@ -54,7 +54,7 @@ def test_to_dense(
 
 
 @pytest.mark.benchmark
-@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk)
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense_benchmark(
     benchmark: BenchmarkFixture,

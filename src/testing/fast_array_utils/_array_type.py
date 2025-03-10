@@ -173,9 +173,15 @@ class ArrayType(Generic[Arr, Inner]):
                     ),
                 )
             case "cupy", "ndarray", None:
-                raise NotImplementedError
+                return self(gen.random(shape, dtype=dtype or np.float64))
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
-                raise NotImplementedError
+                import cupy as cu
+
+                fmt = cast('Literal["csr", "csc"]', cls_name[:3])
+                m = random_mat(shape, density=density, format=fmt, container="matrix", dtype=dtype)
+                d, i, p = tuple(cu.asarray(p) for p in (m.data, m.indices, m.indptr))
+                cls = cast("type[types.CupyCSMatrix]", self.cls)
+                return cast("Arr", cls((d, i, p), shape=shape))
             case "dask.array", "Array", _:
                 import dask.array as da
 

@@ -144,8 +144,7 @@ def test_mean_var(
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
 
-# TODO(flying-sheep): enable for GPU  # noqa: TD003
-@pytest.mark.array_type(skip=Flags.Disk | Flags.Gpu)
+@pytest.mark.array_type(skip=Flags.Disk)
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -167,7 +166,7 @@ def test_is_constant(
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    x = array_type(x_data)
+    x = array_type(x_data, dtype=np.float64)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
         result = cast("NDArray[np.bool] | bool", result.compute())
@@ -184,7 +183,7 @@ def test_dask_constant_blocks(
     dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
 ) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
-    x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
+    x_np = np.repeat(np.repeat(np.arange(4, dtype=np.float64).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)
     assert x.blocks.shape == (2, 2)
     assert all(stats.is_constant(block).compute() for block in x.blocks.ravel())

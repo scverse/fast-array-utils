@@ -20,16 +20,23 @@ if TYPE_CHECKING:
 
 
 @overload
-def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
-@overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: None = None) -> bool: ...
+def is_constant(
+    a: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None
+) -> bool: ...
 @overload
 def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
+@overload
+def is_constant(a: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
+@overload
+def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 
 
 def is_constant(
-    a: NDArray[Any] | types.CSBase | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool] | types.DaskArray:
+    a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
     """Check whether values in array are constant.
 
     Params
@@ -69,10 +76,10 @@ def _is_constant(
     raise NotImplementedError
 
 
-@_is_constant.register(np.ndarray)
+@_is_constant.register(np.ndarray | types.CupyArray)  # type: ignore[call-overload,misc]
 def _is_constant_ndarray(
-    a: NDArray[Any], /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool]:
+    a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None
+) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -83,7 +90,7 @@ def _is_constant_ndarray(
             return _is_constant_rows(a)
 
 
-def _is_constant_rows(a: NDArray[Any]) -> NDArray[np.bool]:
+def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | types.CupyArray:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
     return cast(NDArray[np.bool], (a == b).all(axis=1))
 
