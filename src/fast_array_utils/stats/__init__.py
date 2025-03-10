@@ -108,7 +108,7 @@ def mean(
     :func:`numpy.mean`
     """
     validate_axis(axis)
-    return mean_(x, axis=axis, dtype=dtype)
+    return mean_(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]  # literally the same type, wtf mypy
 
 
 @overload
@@ -161,7 +161,7 @@ def mean_var(
     :func:`numpy.mean`
     :func:`numpy.var`
     """
-    return mean_var_(x, axis=axis, correction=correction)
+    return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
 
 
 # TODO(flying-sheep): support CSDataset (TODO)
@@ -208,4 +208,4 @@ def sum(
 
     """
     validate_axis(axis)
-    return sum_(x, axis=axis, dtype=dtype)
+    return sum_(x, axis=axis, dtype=dtype)  # type: ignore[arg-type]  # literally the same type, wtf mypy

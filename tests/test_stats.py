@@ -12,13 +12,15 @@ from testing.fast_array_utils import SUPPORTED_TYPES, Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, Protocol
+    from typing import Any, Literal, Protocol, TypeAlias
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from fast_array_utils.stats._mean import Array
+    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
+
+    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]

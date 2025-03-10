@@ -11,12 +11,16 @@ from fast_array_utils.conv import to_dense
 
 
 if TYPE_CHECKING:
-    from fast_array_utils.conv._to_dense import Array
+    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
 
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
-def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
+def test_to_dense(
+    array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray],
+    *,
+    to_memory: bool,
+) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]])
     if not to_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
         with pytest.raises(ValueError, match="to_memory must be True if x is an CS{R,C}Dataset"):

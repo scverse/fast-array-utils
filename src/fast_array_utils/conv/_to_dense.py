@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 
 from .. import types
+from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -14,14 +15,12 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    from . import Array
-
 
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: Array, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray, /, *, to_memory: bool = False
+) -> NDArray[Any] | types.CupyArray | types.DaskArray:
     del to_memory  # it already is
     return np.asarray(x)
 
