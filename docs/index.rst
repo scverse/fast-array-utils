@@ -10,6 +10,12 @@
 .. automodule:: fast_array_utils
    :members:
 
+``fast_array_utils.typing``
+---------------------------
+
+.. automodule:: fast_array_utils.typing
+   :members:
+
 ``fast_array_utils.conv``
 -------------------------
 
