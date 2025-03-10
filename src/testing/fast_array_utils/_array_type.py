@@ -17,13 +17,12 @@ if TYPE_CHECKING:
     from typing import Any, Literal, Protocol, TypeAlias
 
     import h5py
-    from numpy.typing import ArrayLike, DTypeLike, NDArray
+    from numpy.typing import ArrayLike, DTypeLike
 
     from fast_array_utils import types
+    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
 
-    InnerArrayDask = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
-    InnerArrayDisk = types.H5Dataset | types.ZarrArray
-    InnerArray = InnerArrayDask | InnerArrayDisk
+    InnerArray = CpuArray | GpuArray | DiskArray
     Array: TypeAlias = InnerArray | types.DaskArray | types.CSDataset
 
     Arr = TypeVar("Arr", bound=Array, default=Array)
@@ -230,7 +229,7 @@ class ArrayType(Generic[Arr, Inner]):
 
         assert self.inner is not None
         if TYPE_CHECKING:
-            assert isinstance(self.inner, ArrayType[InnerArrayDask, None])  # type: ignore[misc]
+            assert isinstance(self.inner, ArrayType[CpuArray | GpuArray, None])  # type: ignore[misc]
 
         arr = self.inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))

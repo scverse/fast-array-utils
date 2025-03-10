@@ -2,77 +2,30 @@
 from __future__ import annotations
 
 from functools import singledispatch
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
 from .. import types
+from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeAlias
+    from typing import Any
 
     from numpy.typing import NDArray
-
-    MemDiskArray: TypeAlias = (
-        NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray | types.CSDataset
-    )
-    Array: TypeAlias = MemDiskArray | types.CupyArray | types.CupySparseMatrix | types.DaskArray
-
-
-__all__ = ["to_dense"]
-
-
-@overload
-def to_dense(x: MemDiskArray, /, *, to_memory: bool = False) -> NDArray[Any]: ...
-
-
-@overload
-def to_dense(x: types.DaskArray, /, *, to_memory: Literal[False] = False) -> types.DaskArray: ...
-@overload
-def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[Any]: ...
-
-
-@overload
-def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[False] = False
-) -> types.CupyArray: ...
-@overload
-def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[True]
-) -> NDArray[Any]: ...
-
-
-def to_dense(
-    x: Array, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
-    """Convert x to a dense array.
-
-    Parameters
-    ----------
-    x
-        Input object to be converted.
-    to_memory
-        Also load data into memory (resulting in a :class:`numpy.ndarray`).
-
-    Returns
-    -------
-    Dense form of ``x``
-
-    """
-    return _to_dense(x, to_memory=to_memory)
 
 
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
-def _to_dense(
-    x: Array, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
+def to_dense_(
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray, /, *, to_memory: bool = False
+) -> NDArray[Any] | types.CupyArray | types.DaskArray:
     del to_memory  # it already is
     return np.asarray(x)
 
 
-@_to_dense.register(types.CSBase)  # type: ignore[call-overload,misc]
+@to_dense_.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
     from . import scipy
 
@@ -80,18 +33,22 @@ def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]
     return scipy.to_dense(x)
 
 
-@_to_dense.register(types.DaskArray)
+@to_dense_.register(types.DaskArray)
 def _to_dense_dask(
     x: types.DaskArray, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.DaskArray:
     import dask.array as da
 
+    from . import to_dense
+
     x = da.map_blocks(to_dense, x)
     return x.compute() if to_memory else x  # type: ignore[return-value]
 
 
-@_to_dense.register(types.CSDataset)
+@to_dense_.register(types.CSDataset)
 def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[Any]:
+    from . import to_dense
+
     if not to_memory:
         msg = "to_memory must be True if x is an CS{R,C}Dataset"
         raise ValueError(msg)
@@ -99,9 +56,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[
     return to_dense(cast("types.CSBase", x.to_memory()))
 
 
-@_to_dense.register(types.CupyArray | types.CupySparseMatrix)  # type: ignore[call-overload,misc]
-def _to_dense_cupy(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.CupyArray:
+@to_dense_.register(GpuArray)  # type: ignore[call-overload,misc]
+def _to_dense_cupy(x: GpuArray, /, *, to_memory: bool = False) -> NDArray[Any] | types.CupyArray:
     x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x
     return x.get() if to_memory else x

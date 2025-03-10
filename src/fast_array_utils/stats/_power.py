@@ -8,12 +8,12 @@ from .. import types
 
 
 if TYPE_CHECKING:
-    from typing import Any, TypeVar
+    from typing import TypeVar
 
-    from numpy.typing import NDArray
+    from fast_array_utils.typing import CpuArray, GpuArray
 
     # All supported array types except for disk ones and CSDataset
-    Array = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix | types.DaskArray
+    Array = CpuArray | GpuArray | types.DaskArray
 
     _Arr = TypeVar("_Arr", bound=Array)
 

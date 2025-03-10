@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, no_type_check, overload
+from typing import TYPE_CHECKING, no_type_check
 
 import numba
 import numpy as np
 
 from .. import types
-from ._mean import mean
 from ._power import power
 
 
@@ -16,29 +15,12 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
-
-
-__all__ = ["mean_var"]
-
-
-@overload
-def mean_var(
-    x: MemArray, /, *, axis: Literal[None] = None, correction: int = 0
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
-@overload
-def mean_var(
-    x: MemArray, /, *, axis: Literal[0, 1], correction: int = 0
-) -> tuple[np.float64, np.float64]: ...
-@overload
-def mean_var(
-    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
-) -> tuple[types.DaskArray, types.DaskArray]: ...
+    from ..typing import CpuArray, GpuArray
 
 
 @no_type_check  # mypy is extremely confused
-def mean_var(
-    x: MemArray | types.DaskArray,
+def mean_var_(
+    x: CpuArray | GpuArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -48,6 +30,8 @@ def mean_var(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
+    from . import mean
+
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
