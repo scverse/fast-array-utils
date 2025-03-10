@@ -62,6 +62,8 @@ def test_sum(
     axis: Literal[0, 1, None],
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
+    if (array_type.flags & Flags.Gpu) and np_arr.dtype.kind != "f":
+        pytest.skip("GPU arrays only support floats")
     arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
@@ -73,6 +75,9 @@ def test_sum(
             sum_ = sum_.compute()  # type: ignore[assignment]
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
+        case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix():
+            assert isinstance(sum_, types.CupyArray), type(sum_)
+            sum_ = sum_.get()
         case 0 | 1, _:
             assert isinstance(sum_, np.ndarray), type(sum_)
         case _:
