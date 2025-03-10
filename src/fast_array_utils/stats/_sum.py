@@ -62,7 +62,7 @@ def _sum_dask(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | types.CSBase,
+        a: CpuArray,
         /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,

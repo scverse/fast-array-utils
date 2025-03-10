@@ -33,13 +33,9 @@ def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[Any]
 
 
 @overload
-def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[False] = False
-) -> types.CupyArray: ...
+def to_dense(x: GpuArray, /, *, to_memory: Literal[False] = False) -> types.CupyArray: ...
 @overload
-def to_dense(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: Literal[True]
-) -> NDArray[Any]: ...
+def to_dense(x: GpuArray, /, *, to_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 def to_dense(

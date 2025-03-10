@@ -56,9 +56,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[
     return to_dense(cast("types.CSBase", x.to_memory()))
 
 
-@to_dense_.register(types.CupyArray | types.CupySparseMatrix)  # type: ignore[call-overload,misc]
-def _to_dense_cupy(
-    x: types.CupyArray | types.CupySparseMatrix, /, *, to_memory: bool = False
-) -> NDArray[Any] | types.CupyArray:
+@to_dense_.register(GpuArray)  # type: ignore[call-overload,misc]
+def _to_dense_cupy(x: GpuArray, /, *, to_memory: bool = False) -> NDArray[Any] | types.CupyArray:
     x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x
     return x.get() if to_memory else x

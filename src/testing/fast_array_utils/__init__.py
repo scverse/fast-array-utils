@@ -9,12 +9,9 @@ from ._array_type import ArrayType, ConversionContext, Flags, random_mat
 
 
 if TYPE_CHECKING:
-    from ._array_type import (
-        Array,  # noqa: TC004
-        InnerArrayDask,
-        InnerArrayDisk,
-        ToArray,  # noqa: TC004
-    )
+    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
+
+    from ._array_type import Array, ToArray  # noqa: TC004
 
 
 __all__ = [
@@ -40,14 +37,14 @@ _TP_MEM = (
 )
 _TP_DASK = tuple(
     ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)  # type: ignore[type-var]
-    for t in cast("tuple[ArrayType[InnerArrayDask, None], ...]", _TP_MEM)
+    for t in cast("tuple[ArrayType[CpuArray | GpuArray, None], ...]", _TP_MEM)
 )
 _TP_DISK_DENSE = tuple(
     ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")]
 )
 _TP_DISK_SPARSE = tuple(
     ArrayType("anndata.abc", n, Flags.Any | Flags.Disk | Flags.Sparse, inner=t)  # type: ignore[type-var]
-    for t in cast("tuple[ArrayType[InnerArrayDisk, None], ...]", _TP_DISK_DENSE)
+    for t in cast("tuple[ArrayType[DiskArray, None], ...]", _TP_DISK_DENSE)
     for n in ["CSRDataset", "CSCDataset"]
 )
 
