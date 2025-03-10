@@ -16,7 +16,8 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix
+    CpuArray = NDArray[Any] | types.CSBase
+    GpuArray = types.CupyArray | types.CupyCSMatrix
 
 
 __all__ = ["mean_var"]
@@ -24,12 +25,16 @@ __all__ = ["mean_var"]
 
 @overload
 def mean_var(
-    x: MemArray, /, *, axis: Literal[None] = None, correction: int = 0
+    x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0
+) -> tuple[np.float64, np.float64]: ...
+@overload
+def mean_var(
+    x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
 @overload
 def mean_var(
-    x: MemArray, /, *, axis: Literal[0, 1], correction: int = 0
-) -> tuple[np.float64, np.float64]: ...
+    x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0
+) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
 def mean_var(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
@@ -38,13 +43,14 @@ def mean_var(
 
 @no_type_check  # mypy is extremely confused
 def mean_var(
-    x: MemArray | types.DaskArray,
+    x: CpuArray | GpuArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     correction: int = 0,
 ) -> (
     tuple[NDArray[np.float64], NDArray[np.float64]]
+    | tuple[types.CupyArray, types.CupyArray]
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):

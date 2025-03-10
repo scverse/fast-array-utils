@@ -17,25 +17,30 @@ if TYPE_CHECKING:
     from .. import types
 
     # all supported types except Dask and CSDataset (TODO)
-    NonDaskArray = (
-        NDArray[Any]
-        | types.CSBase
-        | types.H5Dataset
-        | types.ZarrArray
-        | types.CupyArray
-        | types.CupyCSMatrix
-    )
-    Array = NonDaskArray | types.DaskArray
+    CpuArray = NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray
+    Array = CpuArray | types.CupyArray | types.CupyCSMatrix | types.DaskArray
 
 
 @overload
 def mean(
-    x: NonDaskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None
+    x: CpuArray | types.CupyArray | types.CupyCSMatrix,
+    /,
+    *,
+    axis: Literal[None] = None,
+    dtype: DTypeLike | None = None,
 ) -> np.number[Any]: ...
 @overload
 def mean(
-    x: NonDaskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: CpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[np.number[Any]]: ...
+@overload
+def mean(
+    x: types.CupyArray | types.CupyCSMatrix,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
+) -> types.CupyArray: ...
 @overload
 def mean(
     x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None

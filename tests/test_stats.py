@@ -104,6 +104,8 @@ def test_mean(
     array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    if (array_type.flags & Flags.Gpu) and np_arr.dtype.kind != "f":
+        pytest.skip("GPU arrays only support floats")
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
 
     arr = array_type(np_arr)
@@ -128,12 +130,16 @@ def test_mean_var(
     mean_expected: float | list[float],
     var_expected: float | list[float],
 ) -> None:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)
     np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)
 
     arr = array_type(np_arr)
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
+    if isinstance(mean, types.DaskArray) and isinstance(var, types.DaskArray):
+        mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
+    if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
+        mean, var = mean.get(), var.get()
     np.testing.assert_array_equal(mean, mean_expected)  # type: ignore[arg-type]
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
