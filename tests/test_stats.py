@@ -73,6 +73,8 @@ def test_sum(
         case _, types.DaskArray():
             assert isinstance(sum_, types.DaskArray), type(sum_)
             sum_ = sum_.compute()  # type: ignore[assignment]
+            if isinstance(sum_, types.CupyArray):
+                sum_ = sum_.get()
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
         case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix():

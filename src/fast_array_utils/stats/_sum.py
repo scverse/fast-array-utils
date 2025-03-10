@@ -123,13 +123,13 @@ def _sum_dask(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | types.CSBase,
+        a: NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix,
         /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
         dtype: DTypeLike | None = None,
         keepdims: bool = False,
-    ) -> NDArray[Any]:
+    ) -> NDArray[Any] | types.CupyArray:
         del keepdims
         match axis:
             case (0 | 1 as n,):
@@ -140,8 +140,8 @@ def _sum_dask(
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
         rv = sum(a, axis=axis, dtype=dtype)
-        rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
-        return rv.reshape((1, len(rv)))
+        # make sure rv is 2D
+        return np.reshape(rv, (1, 1 if rv.shape == () else len(rv)))  # type: ignore[arg-type]
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
