@@ -28,6 +28,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
+    "scanpydoc.definition_list_typed_field",
     "scanpydoc.elegant_typehints",
     "sphinx_autofixture",
 ]
@@ -45,8 +48,16 @@ autodoc_default_options = {
 }
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
+napoleon_use_param = True
 todo_include_todos = False
+
+typehints_defaults = "braces"
+
+pygments_style = "default"
+pygments_dark_style = "native"
+
 intersphinx_mapping = dict(
+    anndata=("https://anndata.readthedocs.io/en/stable/", None),
     cupy=("https://docs.cupy.dev/en/stable/", None),
     dask=("https://docs.dask.org/en/stable/", None),
     h5py=("https://docs.h5py.org/en/stable/", None),
@@ -56,46 +67,46 @@ intersphinx_mapping = dict(
     zarr=("https://zarr.readthedocs.io/en/stable/", None),
 )
 # Try overriding type paths
-qualname_overrides = autodoc_type_aliases = {
-    "np.bool": ("py:data", "numpy.bool"),
-    "np.dtype": "numpy.dtype",
-    "np.number": "numpy.number",
-    "np.integer": "numpy.integer",
-    "np.floating": "numpy.floating",
-    "np.random.Generator": "numpy.random.Generator",
-    "ArrayLike": "numpy.typing.ArrayLike",
-    "DTypeLike": "numpy.typing.DTypeLike",
-    "NDArray": "numpy.typing.NDArray",
-    "_pytest.fixtures.FixtureRequest": "pytest.FixtureRequest",
-    **{
-        k: v
-        for k_plain, v in {
-            "CSBase": "scipy.sparse.spmatrix",
-            "CupyArray": "cupy.ndarray",
-            "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
-            "DaskArray": "dask.array.Array",
-            "H5Dataset": "h5py.Dataset",
-            "ZarrArray": "zarr.Array",
-        }.items()
-        for k in (k_plain, f"types.{k_plain}")
-    },
-}
+# qualname_overrides = autodoc_type_aliases = {
+#    "np.bool": ("py:data", "numpy.bool"),
+#    "np.dtype": "numpy.dtype",
+#    "np.number": "numpy.number",
+#    "np.integer": "numpy.integer",
+#    "np.floating": "numpy.floating",
+#    "np.random.Generator": "numpy.random.Generator",
+#    "ArrayLike": "numpy.typing.ArrayLike",
+#    "DTypeLike": "numpy.typing.DTypeLike",
+#    "NDArray": "numpy.typing.NDArray",
+#    "_pytest.fixtures.FixtureRequest": "pytest.FixtureRequest",
+#    **{
+#        k: v
+#        for k_plain, v in {
+#            "CSBase": "scipy.sparse.spmatrix",
+#            "CupyArray": "cupy.ndarray",
+#            "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+#            "DaskArray": "dask.array.Array",
+#            "H5Dataset": "h5py.Dataset",
+#            "ZarrArray": "zarr.Array",
+#        }.items()
+#        for k in (k_plain, f"types.{k_plain}")
+#    },
+# }
 # If that doesn’t work, ignore them
-nitpick_ignore = {
-    ("py:class", "fast_array_utils.types.T_co"),
-    ("py:class", "Arr"),
-    ("py:class", "testing.fast_array_utils._array_type.Arr"),
-    ("py:class", "testing.fast_array_utils._array_type.Inner"),
-    ("py:class", "_DTypeLikeFloat32"),
-    ("py:class", "_DTypeLikeFloat64"),
-    # sphinx bugs, should be covered by `autodoc_type_aliases` above
-    ("py:class", "Array"),
-    ("py:class", "ArrayLike"),
-    ("py:class", "DTypeLike"),
-    ("py:class", "NDArray"),
-    ("py:class", "np.bool"),
-    ("py:class", "_pytest.fixtures.FixtureRequest"),
-}
+# nitpick_ignore = {
+#    ("py:class", "fast_array_utils.types.T_co"),
+#    ("py:class", "Arr"),
+#    ("py:class", "testing.fast_array_utils._array_type.Arr"),
+#    ("py:class", "testing.fast_array_utils._array_type.Inner"),
+#    ("py:class", "_DTypeLikeFloat32"),
+#    ("py:class", "_DTypeLikeFloat64"),
+# sphinx bugs, should be covered by `autodoc_type_aliases` above
+#    ("py:class", "Array"),
+#    ("py:class", "ArrayLike"),
+#    ("py:class", "DTypeLike"),
+#    ("py:class", "NDArray"),
+#    ("py:class", "np.bool"),
+#    ("py:class", "_pytest.fixtures.FixtureRequest"),
+# }
 
 # Options for HTML output
 html_theme = "furo"

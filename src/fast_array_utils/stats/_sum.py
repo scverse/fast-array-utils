@@ -50,6 +50,15 @@ def sum(
 ) -> NDArray[Any] | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
+    Parameters
+    ----------
+    x
+        Array to sum.
+    axis
+        Axis along which to reduce.
+    dtype
+        Type to cast the result to.
+
     Returns
     -------
     If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
