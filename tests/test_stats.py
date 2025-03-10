@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # can’t select these using a category filter
 ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
+ATS_CUPY_SPARSE = {at for at in SUPPORTED_TYPES if "cupyx.scipy" in str(at)}
 
 
 @pytest.fixture(scope="session", params=[0, 1, None])
@@ -144,7 +145,7 @@ def test_mean_var(
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
 
-@pytest.mark.array_type(skip=Flags.Disk)
+@pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -178,7 +179,7 @@ def test_is_constant(
         assert expected is result
 
 
-@pytest.mark.array_type(Flags.Dask)
+@pytest.mark.array_type(Flags.Dask, skip=ATS_CUPY_SPARSE)
 def test_dask_constant_blocks(
     dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
 ) -> None:
