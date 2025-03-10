@@ -32,12 +32,12 @@ def is_constant(
 ) -> bool | NDArray[np.bool] | types.DaskArray:
     """Check whether values in array are constant.
 
-    Params
-    ------
+    Parameters
+    ----------
     a
         Array to check
     axis
-        Axis to reduce over.
+        Axis along which to reduce.
 
     Returns
     -------

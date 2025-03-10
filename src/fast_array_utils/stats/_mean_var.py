@@ -48,13 +48,25 @@ def mean_var(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
+    """Calculate mean and variance of an array.
+
+    Parameters
+    ----------
+    x
+        Input array.
+    axis
+        Axis along which to reduce.
+    correction
+        Degrees of freedom correction.
+        The R convention is to set this to 1 (unbiased estimator).
+    """
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
         mean_ = mean(x, axis=axis, dtype=np.float64)
         mean_sq = mean(power(x, 2), axis=axis, dtype=np.float64)
         var = mean_sq - mean_**2
-    if correction:  # R convention == 1 (unbiased estimator)
+    if correction:
         n = np.prod(x.shape) if axis is None else x.shape[axis]
         if n != 1:
             var *= n / (n - correction)

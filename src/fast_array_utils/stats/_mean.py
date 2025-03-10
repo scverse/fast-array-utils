@@ -52,6 +52,15 @@ def mean(
 ) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
     """Mean over both or one axis.
 
+    Parameters
+    ----------
+    x
+        Input array.
+    axis
+        Axis along which to reduce.
+    dtype
+        Type to cast the result to.
+
     Returns
     -------
     If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
