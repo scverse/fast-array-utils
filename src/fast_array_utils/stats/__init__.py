@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, overload
 from .._validation import validate_axis
 from ._is_constant import is_constant_
 from ._mean import mean_
-from ._mean_var import mean_var
+from ._mean_var import mean_var_
 from ._sum import sum_
 
 
@@ -21,15 +21,9 @@ if TYPE_CHECKING:
 
     from .. import types
 
+    MemArray = NDArray[Any] | types.CSBase | types.CupyArray | types.CupySparseMatrix
     # all supported types except Dask and CSDataset (TODO)
-    NonDaskArray = (
-        NDArray[Any]
-        | types.CSBase
-        | types.H5Dataset
-        | types.ZarrArray
-        | types.CupyArray
-        | types.CupySparseMatrix
-    )
+    NonDaskArray = MemArray | types.H5Dataset | types.ZarrArray
 
 
 __all__ = ["is_constant", "mean", "mean_var", "sum"]
@@ -112,6 +106,55 @@ def mean(
     """
     validate_axis(axis)
     return mean_(x, axis=axis, dtype=dtype)
+
+
+@overload
+def mean_var(
+    x: MemArray, /, *, axis: Literal[None] = None, correction: int = 0
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
+@overload
+def mean_var(
+    x: MemArray, /, *, axis: Literal[0, 1], correction: int = 0
+) -> tuple[np.float64, np.float64]: ...
+@overload
+def mean_var(
+    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
+) -> tuple[types.DaskArray, types.DaskArray]: ...
+
+
+def mean_var(
+    x: MemArray | types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
+) -> (
+    tuple[NDArray[np.float64], NDArray[np.float64]]
+    | tuple[np.float64, np.float64]
+    | tuple[types.DaskArray, types.DaskArray]
+):
+    """Mean and variance over both or one axis.
+
+    Parameters
+    ----------
+    x
+        Array to compute mean and variance for.
+    axis
+        Axis to reduce over.
+    correction
+        Degrees of freedom correction.
+
+    Returns
+    -------
+    mean
+        See below:
+    var
+        If ``axis`` is :data:`None`,
+        the mean and variance over all elements are returned as scalars.
+        Otherwise, the means and variances over the given axis are returned as 1D arrays.
+
+    See Also
+    --------
+    :func:`numpy.mean`
+    :func:`numpy.var`
+    """
+    return mean_var_(x, axis=axis, correction=correction)
 
 
 @overload
