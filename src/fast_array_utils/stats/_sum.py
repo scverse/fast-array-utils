@@ -16,25 +16,37 @@ if TYPE_CHECKING:
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
-    # all supported types except Dask and CSDataset (TODO)
-    Array = (
-        NDArray[Any]
-        | types.CSBase
-        | types.H5Dataset
-        | types.ZarrArray
-        | types.CupyArray
-        | types.CupySparseMatrix
-    )
-
 
 @overload
 def sum(
-    x: ArrayLike | Array, /, *, axis: None = None, dtype: DTypeLike | None = None
+    x: ArrayLike
+    | NDArray[Any]
+    | types.CSBase
+    | types.H5Dataset
+    | types.ZarrArray
+    | types.CupyArray
+    | types.CupyCSMatrix,
+    /,
+    *,
+    axis: None = None,
+    dtype: DTypeLike | None = None,
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | Array, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: ArrayLike | NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
 ) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: types.CupyArray | types.CupyCSMatrix,
+    /,
+    *,
+    axis: Literal[0, 1],
+    dtype: DTypeLike | None = None,
+) -> types.CupyArray: ...
 @overload
 def sum(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
@@ -42,12 +54,17 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | Array | types.DaskArray,
+    x: ArrayLike
+    | NDArray[Any]
+    | types.CSBase
+    | types.H5Dataset
+    | types.ZarrArray
+    | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.DaskArray:
+) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
     """Sum over both or one axis.
 
     Returns
@@ -66,20 +83,37 @@ def sum(
 
 @singledispatch
 def _sum(
-    x: ArrayLike | Array | types.DaskArray,
+    x: ArrayLike
+    | NDArray[Any]
+    | types.CSBase
+    | types.H5Dataset
+    | types.ZarrArray
+    | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.DaskArray:
+) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
-        assert not isinstance(x, types.CSBase | types.DaskArray)
-        # np.sum supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(
-            x, types.ZarrArray | types.H5Dataset | types.CupyArray | types.CupySparseMatrix
+            x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix
         )
+        # np.sum supports these, but doesn’t know it. (TODO: test cupy)
+        assert not isinstance(x, types.ZarrArray | types.H5Dataset)
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
+
+
+@_sum.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
+def _sum_cupy(
+    x: types.CupyArray | types.CupyCSMatrix,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    dtype: DTypeLike | None = None,
+) -> types.CupyArray | np.number[Any]:
+    arr = cast("types.CupyArray", np.sum(x, axis=axis, dtype=dtype))
+    return cast("np.number[Any]", arr.get()[()]) if axis is None else arr.squeeze()
 
 
 @_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
@@ -106,13 +140,13 @@ def _sum_dask(
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | types.CSBase,
+        a: NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix,
         /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
         dtype: DTypeLike | None = None,
         keepdims: bool = False,
-    ) -> NDArray[Any]:
+    ) -> NDArray[Any] | types.CupyArray:
         del keepdims
         match axis:
             case (0 | 1 as n,):
@@ -123,8 +157,8 @@ def _sum_dask(
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
         rv = sum(a, axis=axis, dtype=dtype)
-        rv = np.array(rv, ndmin=1)  # make sure rv is at least 1D
-        return rv.reshape((1, len(rv)))
+        # make sure rv is 2D
+        return np.reshape(rv, (1, 1 if rv.shape == () else len(rv)))  # type: ignore[arg-type]
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)

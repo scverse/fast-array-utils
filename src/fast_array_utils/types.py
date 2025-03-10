@@ -10,10 +10,14 @@ from typing import TYPE_CHECKING, TypeVar
 __all__ = [
     "CSBase",
     "CupyArray",
-    "CupySparseMatrix",
+    "CupyCSCMatrix",
+    "CupyCSMatrix",
+    "CupyCSRMatrix",
     "DaskArray",
     "H5Dataset",
+    "H5Group",
     "ZarrArray",
+    "ZarrGroup",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -49,9 +53,12 @@ else:  # pragma: no cover
 
 
 if TYPE_CHECKING or find_spec("cupyx"):
-    from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
+    from cupyx.scipy.sparse import csc_matrix as CupyCSCMatrix
+    from cupyx.scipy.sparse import csr_matrix as CupyCSRMatrix
 else:  # pragma: no cover
-    CupySparseMatrix = type("spmatrix", (), {})
+    CupyCSCMatrix = type("csc_matrix", (), {})
+    CupyCSRMatrix = type("csr_matrix", (), {})
+CupyCSMatrix = CupyCSRMatrix | CupyCSCMatrix
 
 
 if TYPE_CHECKING:  # https://github.com/dask/dask/issues/8853
