@@ -63,8 +63,11 @@ def test_sum(
     axis: Literal[0, 1, None],
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
-    if (array_type.flags & Flags.Gpu) and np_arr.dtype.kind != "f":
-        pytest.skip("GPU arrays only support floats")
+    if (
+        any(issubclass(cls, types.CupyCSMatrix) for cls in array_type.classes)
+        and np_arr.dtype.kind != "f"
+    ):
+        pytest.skip("CuPy sparse matrices only support floats")
     arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
@@ -105,8 +108,11 @@ def test_mean(
     array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]])
-    if (array_type.flags & Flags.Gpu) and np_arr.dtype.kind != "f":
-        pytest.skip("GPU arrays only support floats")
+    if (
+        any(issubclass(cls, types.CupyCSMatrix) for cls in array_type.classes)
+        and np_arr.dtype.kind != "f"
+    ):
+        pytest.skip("CuPy sparse matrices only support floats")
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
 
     arr = array_type(np_arr)

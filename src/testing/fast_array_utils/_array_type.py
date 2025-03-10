@@ -145,6 +145,11 @@ class ArrayType(Generic[Arr, Inner]):
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
 
+    @cached_property
+    def classes(self) -> tuple[type[Array], ...]:
+        """Array classes for :func:`isinstance` checks (including the inner one for dask)."""
+        return (self.cls, *(() if self.inner is None else self.inner.classes))
+
     def random(
         self,
         shape: tuple[int, int],
