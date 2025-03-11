@@ -14,7 +14,9 @@ __all__ = [
     "CSDataset",
     "CSMatrix",
     "CupyArray",
-    "CupySparseMatrix",
+    "CupyCSCMatrix",
+    "CupyCSMatrix",
+    "CupyCSRMatrix",
     "DaskArray",
     "H5Dataset",
     "H5Group",
@@ -48,18 +50,17 @@ CSBase = CSMatrix | CSArray
 """A sparse compressed matrix or array."""
 
 
-if TYPE_CHECKING or find_spec("cupy"):
+if TYPE_CHECKING or find_spec("cupy"):  # cupy always comes with cupyx
     from cupy import ndarray as CupyArray
+    from cupyx.scipy.sparse import csc_matrix as CupyCSCMatrix
+    from cupyx.scipy.sparse import csr_matrix as CupyCSRMatrix
 else:  # pragma: no cover
     CupyArray = type("ndarray", (), {})
     CupyArray.__module__ = "cupy"
-
-
-if TYPE_CHECKING or find_spec("cupyx"):
-    from cupyx.scipy.sparse import spmatrix as CupySparseMatrix
-else:  # pragma: no cover
-    CupySparseMatrix = type("spmatrix", (), {})
-    CupySparseMatrix.__module__ = "cupyx.scipy.sparse"
+    CupyCSCMatrix = type("csc_matrix", (), {})
+    CupyCSRMatrix = type("csr_matrix", (), {})
+    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = "cupyx.scipy.sparse"
+CupyCSMatrix = CupyCSRMatrix | CupyCSCMatrix
 
 
 if TYPE_CHECKING or find_spec("dask"):

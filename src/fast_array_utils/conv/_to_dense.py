@@ -37,11 +37,9 @@ def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]
 def _to_dense_dask(
     x: types.DaskArray, /, *, to_memory: bool = False
 ) -> NDArray[Any] | types.DaskArray:
-    import dask.array as da
-
     from . import to_dense
 
-    x = da.map_blocks(to_dense, x)
+    x = x.map_blocks(lambda x: to_dense(x, to_memory=to_memory))
     return x.compute() if to_memory else x  # type: ignore[return-value]
 
 
@@ -56,7 +54,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[
     return to_dense(cast("types.CSBase", x.to_memory()))
 
 
-@to_dense_.register(GpuArray)  # type: ignore[call-overload,misc]
+@to_dense_.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
 def _to_dense_cupy(x: GpuArray, /, *, to_memory: bool = False) -> NDArray[Any] | types.CupyArray:
-    x = x.toarray() if isinstance(x, types.CupySparseMatrix) else x
+    x = x.toarray() if isinstance(x, types.CupyCSMatrix) else x
     return x.get() if to_memory else x

@@ -1,6 +1,6 @@
 # https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python
+name: CI
 
 on:
   push:
@@ -13,11 +13,11 @@ env:
 
 jobs:
   test:
+    name: Min Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.13"]
-        extras: [min, full]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,7 +27,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
-      - run: uv pip install --system -e .[test${{ matrix.extras == 'full' && ',full' || '' }}]
+      - run: uv pip install --system -e .[test]
       - run: |
           coverage run -m pytest -m "not benchmark"
           coverage report
@@ -36,10 +36,12 @@ jobs:
           rm test-data/.coverage
       - uses: codecov/codecov-action@v5
         with:
+          name: Min Tests
           fail_ci_if_error: true
           files: test-data/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
   bench:
+    name: CPU Benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +58,7 @@ jobs:
           run: pytest -m benchmark --codspeed
           token: ${{ secrets.CODSPEED_TOKEN }}
   check:
+    name: Static Checks
     runs-on: ubuntu-latest
     strategy:
       matrix:

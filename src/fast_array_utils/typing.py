@@ -20,7 +20,7 @@ __all__ = ["CpuArray", "DiskArray", "GpuArray"]
 CpuArray: TypeAlias = NDArray[Any] | types.CSBase
 """Arrays and matrices stored in CPU memory."""
 
-GpuArray: TypeAlias = types.CupyArray | types.CupySparseMatrix
+GpuArray: TypeAlias = types.CupyArray | types.CupyCSMatrix
 """Arrays and matrices stored in GPU memory."""
 
 # TODO(flying-sheep): types.CSDataset  # noqa: TD003

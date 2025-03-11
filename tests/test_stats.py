@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # can’t select these using a category filter
 ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
+ATS_CUPY_SPARSE = {at for at in SUPPORTED_TYPES if "cupyx.scipy" in str(at)}
 
 
 @pytest.fixture(scope="session", params=[0, 1, None])
@@ -62,6 +63,8 @@ def test_sum(
     axis: Literal[0, 1, None],
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
+    if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
+        pytest.skip("CuPy sparse matrices only support floats")
     arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
@@ -71,8 +74,13 @@ def test_sum(
         case _, types.DaskArray():
             assert isinstance(sum_, types.DaskArray), type(sum_)
             sum_ = sum_.compute()  # type: ignore[assignment]
+            if isinstance(sum_, types.CupyArray):
+                sum_ = sum_.get()
         case None, _:
             assert isinstance(sum_, np.floating | np.integer), type(sum_)
+        case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix():
+            assert isinstance(sum_, types.CupyArray), type(sum_)
+            sum_ = sum_.get()
         case 0 | 1, _:
             assert isinstance(sum_, np.ndarray), type(sum_)
         case _:
@@ -97,12 +105,16 @@ def test_mean(
     array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]
 ) -> None:
     np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
+        pytest.skip("CuPy sparse matrices only support floats")
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
 
     arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
     if isinstance(result, types.DaskArray):
         result = result.compute()
+    if isinstance(result, types.CupyArray | types.CupyCSMatrix):
+        result = result.get()
     np.testing.assert_array_equal(result, expected)
 
 
@@ -117,18 +129,21 @@ def test_mean_var(
     mean_expected: float | list[float],
     var_expected: float | list[float],
 ) -> None:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]])
+    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)
     np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)
 
     arr = array_type(np_arr)
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
+    if isinstance(mean, types.DaskArray) and isinstance(var, types.DaskArray):
+        mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
+    if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
+        mean, var = mean.get(), var.get()
     np.testing.assert_array_equal(mean, mean_expected)  # type: ignore[arg-type]
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
 
-# TODO(flying-sheep): enable for GPU  # noqa: TD003
-@pytest.mark.array_type(skip=Flags.Disk | Flags.Gpu)
+@pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
 @pytest.mark.parametrize(
     ("axis", "expected"),
     [
@@ -150,22 +165,24 @@ def test_is_constant(
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    x = array_type(x_data)
+    x = array_type(x_data, dtype=np.float64)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
         result = cast("NDArray[np.bool] | bool", result.compute())
+    if isinstance(result, types.CupyArray | types.CupyCSMatrix):
+        result = result.get()
     if isinstance(expected, list):
         np.testing.assert_array_equal(expected, result)
     else:
         assert expected is result
 
 
-@pytest.mark.array_type(Flags.Dask)
+@pytest.mark.array_type(Flags.Dask, skip=ATS_CUPY_SPARSE)
 def test_dask_constant_blocks(
     dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
 ) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
-    x_np = np.repeat(np.repeat(np.arange(4).reshape(2, 2), 2, axis=0), 2, axis=1)
+    x_np = np.repeat(np.repeat(np.arange(4, dtype=np.float64).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)
     assert x.blocks.shape == (2, 2)
     assert all(stats.is_constant(block).compute() for block in x.blocks.ravel())

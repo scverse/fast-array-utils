@@ -1,0 +1,71 @@
+name: GPU-CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types:
+      - labeled
+      - opened
+      - synchronize
+
+env:
+  PYTEST_ADDOPTS: "-v --color=yes"
+  FORCE_COLOR: "1"
+  UV_HTTP_TIMEOUT: 120
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check Label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: flying-sheep/check@v1
+        with:
+          success: ${{ github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-gpu-ci') }}
+  test:
+    name: All Tests
+    needs: check
+    runs-on: "cirun-aws-gpu--${{ github.run_id }}"
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check NVIDIA SMI
+        run: nvidia-smi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: hynek/setup-cached-uv@v2
+        with:
+          cache-dependency-path: pyproject.toml
+      - name: Install package
+        run: uv pip install --system -e .[test,full] cupy-cuda12x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
+      - name: List installed packages
+        run: uv pip list
+      - name: Run tests
+        run: |
+          coverage run -m pytest -m "not benchmark"
+          coverage report
+          # https://github.com/codecov/codecov-cli/issues/648
+          coverage xml
+          rm test-data/.coverage
+      - uses: codecov/codecov-action@v5
+        with:
+          name: GPU Tests
+          fail_ci_if_error: true
+          files: test-data/coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Remove “run-gpu-ci” Label
+        if: always()
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: run-gpu-ci
+          github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     import numpy as np
-    from numpy.typing import ArrayLike, DTypeLike, NDArray
+    from numpy.typing import DTypeLike, NDArray
     from optype.numpy import ToDType
 
     from .. import types
@@ -27,16 +27,23 @@ __all__ = ["is_constant", "mean", "mean_var", "sum"]
 
 
 @overload
+def is_constant(
+    a: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None
+) -> bool: ...
+@overload
+def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
+@overload
+def is_constant(a: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
+@overload
 def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
-@overload
-def is_constant(a: CpuArray, /, *, axis: None = None) -> bool: ...
-@overload
-def is_constant(a: CpuArray, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
 
 
 def is_constant(
-    a: CpuArray | types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool] | types.DaskArray:
+    a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
     """Check whether values in array are constant.
 
     Params
@@ -82,8 +89,12 @@ def mean(
 ) -> np.number[Any]: ...
 @overload
 def mean(
-    x: CpuArray | GpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[np.number[Any]]: ...
+@overload
+def mean(
+    x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> types.CupyArray: ...
 @overload
 def mean(
     x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
@@ -96,7 +107,7 @@ def mean(
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
+) -> NDArray[np.number[Any]] | types.CupyArray | np.number[Any] | types.DaskArray:
     """Mean over both or one axis.
 
     Returns
@@ -115,11 +126,15 @@ def mean(
 @overload
 def mean_var(
     x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0
+) -> tuple[np.float64, np.float64]: ...
+@overload
+def mean_var(
+    x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
 @overload
 def mean_var(
-    x: CpuArray | GpuArray, /, *, axis: Literal[0, 1], correction: int = 0
-) -> tuple[np.float64, np.float64]: ...
+    x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0
+) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
 def mean_var(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
@@ -133,8 +148,9 @@ def mean_var(
     axis: Literal[0, 1, None] = None,
     correction: int = 0,
 ) -> (
-    tuple[NDArray[np.float64], NDArray[np.float64]]
-    | tuple[np.float64, np.float64]
+    tuple[np.float64, np.float64]
+    | tuple[NDArray[np.float64], NDArray[np.float64]]
+    | tuple[types.CupyArray, types.CupyArray]
     | tuple[types.DaskArray, types.DaskArray]
 ):
     """Mean and variance over both or one axis.
@@ -169,20 +185,16 @@ def mean_var(
 # https://github.com/scverse/fast-array-utils/issues/52
 @overload
 def sum(
-    x: ArrayLike | CpuArray | GpuArray | DiskArray,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
+    x: CpuArray | GpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | CpuArray | GpuArray | DiskArray,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
+    x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
+@overload
+def sum(
+    x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+) -> types.CupyArray: ...
 @overload
 def sum(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
@@ -190,12 +202,12 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.DaskArray:
+) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
     """Sum over both or one axis.
 
     Returns
@@ -209,4 +221,4 @@ def sum(
 
     """
     validate_axis(axis)
-    return sum_(x, axis=axis, dtype=dtype)  # type: ignore[arg-type]  # literally the same type, wtf mypy
+    return sum_(x, axis=axis, dtype=dtype)
