@@ -50,17 +50,13 @@ CSBase = CSMatrix | CSArray
 """A sparse compressed matrix or array."""
 
 
-if TYPE_CHECKING or find_spec("cupy"):
+if TYPE_CHECKING or find_spec("cupy"):  # cupy always comes with cupyx
     from cupy import ndarray as CupyArray
-else:  # pragma: no cover
-    CupyArray = type("ndarray", (), {})
-    CupyArray.__module__ = "cupy"
-
-
-if TYPE_CHECKING or find_spec("cupyx"):
     from cupyx.scipy.sparse import csc_matrix as CupyCSCMatrix
     from cupyx.scipy.sparse import csr_matrix as CupyCSRMatrix
 else:  # pragma: no cover
+    CupyArray = type("ndarray", (), {})
+    CupyArray.__module__ = "cupy"
     CupyCSCMatrix = type("csc_matrix", (), {})
     CupyCSRMatrix = type("csr_matrix", (), {})
     CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = "cupyx.scipy.sparse"
