@@ -11,10 +11,12 @@ from fast_array_utils.conv import to_dense
 
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
-    Array = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
+    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
 
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])

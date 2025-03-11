@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     import numpy as np
-    from numpy.typing import ArrayLike, DTypeLike, NDArray
+    from numpy.typing import DTypeLike, NDArray
     from optype.numpy import ToDType
 
     from .. import types
@@ -185,15 +185,11 @@ def mean_var(
 # https://github.com/scverse/fast-array-utils/issues/52
 @overload
 def sum(
-    x: ArrayLike | CpuArray | GpuArray | DiskArray,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
+    x: CpuArray | GpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None
 ) -> np.number[Any]: ...
 @overload
 def sum(
-    x: ArrayLike | CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
+    x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
 ) -> NDArray[Any]: ...
 @overload
 def sum(
@@ -206,7 +202,7 @@ def sum(
 
 
 def sum(
-    x: ArrayLike | CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -225,4 +221,4 @@ def sum(
 
     """
     validate_axis(axis)
-    return sum_(x, axis=axis, dtype=dtype)  # type: ignore[arg-type]  # literally the same type, wtf mypy
+    return sum_(x, axis=axis, dtype=dtype)
