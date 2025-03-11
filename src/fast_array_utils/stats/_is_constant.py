@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, cast
 
 import numba
 import numpy as np
 from numpy.typing import NDArray
 
 from .. import types
-from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
@@ -19,58 +18,8 @@ if TYPE_CHECKING:
     C = TypeVar("C", bound=Callable[..., Any])
 
 
-@overload
-def is_constant(
-    a: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None
-) -> bool: ...
-@overload
-def is_constant(a: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
-@overload
-def is_constant(a: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
-@overload
-def is_constant(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
-
-
-def is_constant(
-    a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
-    """Check whether values in array are constant.
-
-    Params
-    ------
-    a
-        Array to check
-    axis
-        Axis to reduce over.
-
-    Returns
-    -------
-    If ``axis`` is :data:`None`, return if all values were constant.
-    Else returns a boolean array with :data:`True` representing constant columns/rows.
-
-    Example
-    -------
-    >>> a = np.array([[0, 1], [0, 0]])
-    >>> a
-    array([[0, 1],
-           [0, 0]])
-    >>> is_constant(a)
-    False
-    >>> is_constant(a, axis=0)
-    array([ True, False])
-    >>> is_constant(a, axis=1)
-    array([False,  True])
-
-    """
-    validate_axis(axis)
-    return _is_constant(a, axis=axis)
-
-
 @singledispatch
-def _is_constant(
+def is_constant_(
     a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
     /,
     *,
@@ -79,7 +28,7 @@ def _is_constant(
     raise NotImplementedError
 
 
-@_is_constant.register(np.ndarray | types.CupyArray)  # type: ignore[call-overload,misc]
+@is_constant_.register(np.ndarray | types.CupyArray)  # type: ignore[call-overload,misc]
 def _is_constant_ndarray(
     a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool] | types.CupyArray:
@@ -98,10 +47,12 @@ def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | t
     return cast(NDArray[np.bool], (a == b).all(axis=1))
 
 
-@_is_constant.register(types.CSBase)  # type: ignore[call-overload,misc]
+@is_constant_.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _is_constant_cs(
     a: types.CSBase, /, *, axis: Literal[0, 1, None] = None
 ) -> bool | NDArray[np.bool]:
+    from . import is_constant
+
     if len(a.shape) == 1:  # pragma: no cover
         msg = "array must have 2 dimensions"
         raise ValueError(msg)
@@ -138,11 +89,13 @@ def _is_constant_cs_major(
     return result
 
 
-@_is_constant.register(types.DaskArray)
+@is_constant_.register(types.DaskArray)
 def _is_constant_dask(
     a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None
 ) -> types.DaskArray:
     import dask.array as da
+
+    from . import is_constant
 
     if axis is not None:
         return da.map_blocks(

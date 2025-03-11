@@ -6,6 +6,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from docutils.nodes import TextElement, reference
+    from sphinx.addnodes import pending_xref
+    from sphinx.application import Sphinx
+    from sphinx.environment import BuildEnvironment
 
 
 HERE = Path(__file__).parent
@@ -47,6 +55,7 @@ napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 todo_include_todos = False
 intersphinx_mapping = dict(
+    anndata=("https://anndata.readthedocs.io/en/stable/", None),
     cupy=("https://docs.cupy.dev/en/stable/", None),
     dask=("https://docs.dask.org/en/stable/", None),
     h5py=("https://docs.h5py.org/en/stable/", None),
@@ -55,47 +64,14 @@ intersphinx_mapping = dict(
     scipy=("https://docs.scipy.org/doc/scipy/", None),
     zarr=("https://zarr.readthedocs.io/en/stable/", None),
 )
-# Try overriding type paths
-qualname_overrides = autodoc_type_aliases = {
-    "np.bool": ("py:data", "numpy.bool"),
-    "np.dtype": "numpy.dtype",
-    "np.number": "numpy.number",
-    "np.integer": "numpy.integer",
-    "np.floating": "numpy.floating",
-    "np.random.Generator": "numpy.random.Generator",
-    "ArrayLike": "numpy.typing.ArrayLike",
-    "DTypeLike": "numpy.typing.DTypeLike",
-    "NDArray": "numpy.typing.NDArray",
-    "_pytest.fixtures.FixtureRequest": "pytest.FixtureRequest",
-    **{
-        k: v
-        for k_plain, v in {
-            "CSBase": "scipy.sparse.spmatrix",
-            "CupyArray": "cupy.ndarray",
-            "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
-            "DaskArray": "dask.array.Array",
-            "H5Dataset": "h5py.Dataset",
-            "ZarrArray": "zarr.Array",
-        }.items()
-        for k in (k_plain, f"types.{k_plain}")
-    },
-}
-# If that doesn’t work, ignore them
-nitpick_ignore = {
-    ("py:class", "fast_array_utils.types.T_co"),
+nitpick_ignore = [
     ("py:class", "Arr"),
+    ("py:class", "ToDType"),
     ("py:class", "testing.fast_array_utils._array_type.Arr"),
     ("py:class", "testing.fast_array_utils._array_type.Inner"),
     ("py:class", "_DTypeLikeFloat32"),
     ("py:class", "_DTypeLikeFloat64"),
-    # sphinx bugs, should be covered by `autodoc_type_aliases` above
-    ("py:class", "Array"),
-    ("py:class", "ArrayLike"),
-    ("py:class", "DTypeLike"),
-    ("py:class", "NDArray"),
-    ("py:class", "np.bool"),
-    ("py:class", "_pytest.fixtures.FixtureRequest"),
-}
+]
 
 # Options for HTML output
 html_theme = "furo"
@@ -104,3 +80,62 @@ html_theme_options = dict(
     source_branch="main",
     source_directory="docs/",
 )
+
+_np_nocls = {"float64": "attr"}
+_optional_types = {
+    "CupyArray": "cupy.ndarray",
+    "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+    "DaskArray": "dask.array.Array",
+    "H5Dataset": "h5py.Dataset",
+    "ZarrArray": "zarr.Array",
+}
+
+
+def find_type_alias(name: str) -> tuple[str, str] | tuple[None, None]:
+    """Find a type alias."""
+    import numpy.typing as npt
+
+    from fast_array_utils import types, typing
+
+    if name in typing.__all__:
+        return "data", f"fast_array_utils.typing.{name}"
+    if name.startswith("types.") and name[6:] in types.__all__:
+        if path := _optional_types.get(name[6:]):
+            return "class", path
+        return "data", f"fast_array_utils.{name}"
+    if name.startswith("np."):
+        return _np_nocls.get(name[3:], "class"), f"numpy.{name[3:]}"
+    if name in npt.__all__:
+        return "data", f"numpy.typing.{name}"
+    return None, None
+
+
+def resolve_type_aliases(
+    app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: TextElement
+) -> reference | None:
+    """Resolve :class: references to our type aliases as :attr: instead."""
+    if (node["refdomain"], node["reftype"]) != ("py", "class"):
+        return None
+    typ, target = find_type_alias(node["reftarget"])
+    if typ is None or target is None:
+        return None
+    if target.startswith("fast_array_utils."):
+        ref = env.get_domain("py").resolve_xref(
+            env, node["refdoc"], app.builder, typ, target, node, contnode
+        )
+    else:
+        from sphinx.ext.intersphinx import resolve_reference_any_inventory
+
+        node["reftype"] = typ
+        node["reftarget"] = target
+        ref = resolve_reference_any_inventory(
+            env=env, honor_disabled_refs=False, node=node, contnode=contnode
+        )
+    if ref is None:
+        msg = f"Could not resolve {typ} {target} (from {node['reftarget']})"
+        raise AssertionError(msg)
+    return ref
+
+
+def setup(app: Sphinx) -> None:  # noqa: D103
+    app.connect("missing-reference", resolve_type_aliases, priority=800)

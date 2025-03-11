@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
 from .. import types
-from .._validation import validate_axis
 
 
 if TYPE_CHECKING:
@@ -16,79 +15,12 @@ if TYPE_CHECKING:
     from numpy._typing._array_like import _ArrayLikeFloat_co as ArrayLike
     from numpy.typing import DTypeLike, NDArray
 
-
-@overload
-def sum(
-    x: ArrayLike
-    | NDArray[Any]
-    | types.CSBase
-    | types.H5Dataset
-    | types.ZarrArray
-    | types.CupyArray
-    | types.CupyCSMatrix,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
-) -> np.number[Any]: ...
-@overload
-def sum(
-    x: ArrayLike | NDArray[Any] | types.CSBase | types.H5Dataset | types.ZarrArray,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
-) -> NDArray[Any]: ...
-@overload
-def sum(
-    x: types.CupyArray | types.CupyCSMatrix,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
-) -> types.CupyArray: ...
-@overload
-def sum(
-    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
-) -> types.DaskArray: ...
-
-
-def sum(
-    x: ArrayLike
-    | NDArray[Any]
-    | types.CSBase
-    | types.H5Dataset
-    | types.ZarrArray
-    | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    """Sum over both or one axis.
-
-    Returns
-    -------
-    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
-    Otherwise, the sum over the given axis is returned as a 1D array.
-
-    See Also
-    --------
-    :func:`numpy.sum`
-
-    """
-    validate_axis(axis)
-    return _sum(x, axis=axis, dtype=dtype)
+    from ..typing import CpuArray, DiskArray, GpuArray
 
 
 @singledispatch
-def _sum(
-    x: ArrayLike
-    | NDArray[Any]
-    | types.CSBase
-    | types.H5Dataset
-    | types.ZarrArray
-    | types.DaskArray,
+def sum_(
+    x: ArrayLike | CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
     axis: Literal[0, 1, None] = None,
@@ -104,19 +36,15 @@ def _sum(
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
-@_sum.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
+@sum_.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
 def _sum_cupy(
-    x: types.CupyArray | types.CupyCSMatrix,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | None = None,
+    x: GpuArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.CupyArray | np.number[Any]:
     arr = cast("types.CupyArray", np.sum(x, axis=axis, dtype=dtype))
     return cast("np.number[Any]", arr.get()[()]) if axis is None else arr.squeeze()
 
 
-@_sum.register(types.CSBase)  # type: ignore[call-overload,misc]
+@sum_.register(types.CSBase)  # type: ignore[call-overload,misc]
 def _sum_cs(
     x: types.CSBase, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> NDArray[Any] | np.number[Any]:
@@ -125,22 +53,24 @@ def _sum_cs(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
     if TYPE_CHECKING:
-        assert isinstance(x, ArrayLike)
+        assert isinstance(x, ArrayLike)  # pyright: ignore[reportArgumentType]
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
-@_sum.register(types.DaskArray)
+@sum_.register(types.DaskArray)
 def _sum_dask(
     x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None
 ) -> types.DaskArray:
     import dask.array as da
+
+    from . import sum
 
     if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum does not support numpy matrices"
         raise TypeError(msg)
 
     def sum_drop_keepdims(
-        a: NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix,
+        a: CpuArray,
         /,
         *,
         axis: tuple[Literal[0], Literal[1]] | Literal[0, 1, None] = None,
@@ -167,7 +97,7 @@ def _sum_dask(
     return da.reduction(
         x,
         sum_drop_keepdims,  # type: ignore[arg-type]
-        partial(np.sum, dtype=dtype),
+        partial(np.sum, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,
         meta=np.array([], dtype=dtype),

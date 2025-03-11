@@ -12,23 +12,23 @@ from testing.fast_array_utils import SUPPORTED_TYPES, Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, Protocol
+    from typing import Any, Literal, Protocol, TypeAlias
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from fast_array_utils.stats._mean import Array
+    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
+
+    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
     DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
-    Benchmarkable = NDArray[Any] | types.CSBase
-
     class BenchFun(Protocol):  # noqa: D101
         def __call__(  # noqa: D102
             self,
-            arr: Benchmarkable,
+            arr: CpuArray,
             *,
             axis: Literal[0, 1, None] = None,
             dtype: DTypeOut | None = None,
@@ -124,9 +124,7 @@ def test_mean(
     [(None, 3.5, 3.5), (0, [2.5, 3.5, 4.5], [4.5, 4.5, 4.5]), (1, [2.0, 5.0], [1.0, 1.0])],
 )
 def test_mean_var(
-    array_type: ArrayType[
-        NDArray[Any] | types.CSBase | types.CupyArray | types.CupyCSMatrix | types.DaskArray
-    ],
+    array_type: ArrayType[CpuArray | GpuArray | types.DaskArray],
     axis: Literal[0, 1, None],
     mean_expected: float | list[float],
     var_expected: float | list[float],
@@ -155,7 +153,7 @@ def test_mean_var(
     ],
 )
 def test_is_constant(
-    array_type: ArrayType[NDArray[Any] | types.CSBase | types.DaskArray],
+    array_type: ArrayType[CpuArray | types.DaskArray],
     axis: Literal[0, 1, None],
     expected: bool | list[bool],
 ) -> None:
@@ -201,7 +199,7 @@ def test_dask_constant_blocks(
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,
     func: BenchFun,
-    array_type: ArrayType[Benchmarkable, None],
+    array_type: ArrayType[CpuArray, None],
     axis: Literal[0, 1, None],
     dtype: type[np.float32 | np.float64],
 ) -> None:

@@ -6,7 +6,7 @@ repos:
       - id: trailing-whitespace
       - id: no-commit-to-branch
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.9
+    rev: v0.9.10
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -34,5 +34,7 @@ repos:
           - zarr
           - h5py
           - anndata
+          - types-docutils
+          - sphinx
 ci:
   skip: [mypy]  # too big
