@@ -186,7 +186,7 @@ class ArrayType(Generic[Arr, Inner]):
 
                 arr = da.zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
                 return cast(
-                    Arr,
+                    "Arr",
                     arr.map_blocks(
                         lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),  # type: ignore[attr-defined]
                         dtype=dtype,
