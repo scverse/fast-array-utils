@@ -137,7 +137,7 @@ class ArrayType(Generic[Arr, Inner]):
 
                 return cast("type[Arr]", zarr.Array)
             case "anndata.abc", ("CSCDataset" | "CSRDataset") as cls_name, _:
-                import anndata.abc
+                import anndata.abc  # type: ignore[import-untyped]
 
                 return cast("type[Arr]", getattr(anndata.abc, cls_name))
             case _:
@@ -269,7 +269,7 @@ class ArrayType(Generic[Arr, Inner]):
 
     def _to_cs_dataset(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
         """Convert to a scipy sparse dataset."""
-        import anndata.io
+        import anndata.io  # type: ignore[import-untyped]
         from scipy.sparse import csc_array, csr_array
 
         from fast_array_utils import types

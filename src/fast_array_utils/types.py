@@ -89,7 +89,7 @@ else:  # pragma: no cover
 
 
 if TYPE_CHECKING or find_spec("anndata"):
-    from anndata.abc import CSCDataset, CSRDataset
+    from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
 else:  # pragma: no cover
     CSRDataset = type("CSRDataset", (), {})
     CSCDataset = type("CSCDataset", (), {})

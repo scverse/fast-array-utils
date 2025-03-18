@@ -8,12 +8,12 @@ from .. import types
 
 
 if TYPE_CHECKING:
-    from typing import TypeVar
+    from typing import TypeAlias, TypeVar
 
     from fast_array_utils.typing import CpuArray, GpuArray
 
     # All supported array types except for disk ones and CSDataset
-    Array = CpuArray | GpuArray | types.DaskArray
+    Array: TypeAlias = CpuArray | GpuArray | types.DaskArray
 
     _Arr = TypeVar("_Arr", bound=Array)
 
