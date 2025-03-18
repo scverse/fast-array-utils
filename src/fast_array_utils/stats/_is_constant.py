@@ -2,18 +2,19 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import numba
 import numpy as np
-from numpy.typing import NDArray
 
 from .. import types
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Literal, TypeVar
+    from typing import Any, Literal, TypeVar
+
+    from numpy.typing import NDArray
 
     C = TypeVar("C", bound=Callable[..., Any])
 
@@ -44,7 +45,7 @@ def _is_constant_ndarray(
 
 def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | types.CupyArray:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
-    return cast(NDArray[np.bool], (a == b).all(axis=1))
+    return cast("NDArray[np.bool]", (a == b).all(axis=1))
 
 
 @is_constant_.register(types.CSBase)  # type: ignore[call-overload,misc]
@@ -59,7 +60,7 @@ def _is_constant_cs(
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
-            return is_constant(cast(NDArray[Any], a.data))
+            return is_constant(cast("NDArray[Any]", a.data))
         return bool((a.data == 0).all())
     shape = (n_row, n_col) if axis == 1 else (n_col, n_row)
     match axis, a.format:
@@ -109,7 +110,7 @@ def _is_constant_dask(
             lambda a: np.array([[is_constant(a)]]),  # type: ignore[arg-type]
             a,
             # use asymmetric overlaps to avoid unnecessary computation
-            depth={d: (0, 1) for d in range(a.ndim)},
+            depth=dict.fromkeys(range(a.ndim), (0, 1)),
             trim=False,
             meta=np.array([], dtype=bool),
         ).all()
