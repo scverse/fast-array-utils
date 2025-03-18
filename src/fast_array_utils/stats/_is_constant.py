@@ -2,18 +2,19 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import numba
 import numpy as np
-from numpy.typing import NDArray
 
 from .. import types
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Literal, TypeVar
+    from typing import Any, Literal, TypeVar
+
+    from numpy.typing import NDArray
 
     C = TypeVar("C", bound=Callable[..., Any])
 
