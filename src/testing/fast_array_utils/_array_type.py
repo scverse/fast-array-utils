@@ -349,7 +349,17 @@ class ArrayType(Generic[Arr, Inner]):
     ) -> types.CupyArray:
         import cupy as cu
 
-        return cu.asarray(x, dtype=np.dtype(dtype))
+        from fast_array_utils import types
+        from fast_array_utils.conv import to_dense
+
+        if isinstance(x, types.DaskArray):
+            x = x.compute()  # this could now be a cupy array already
+        if isinstance(x, types.CupySpMatrix):
+            x = x.toarray()
+        if isinstance(x, types.CSDataset | types.CSBase):
+            x = to_dense(x, to_memory=True)
+
+        return cu.asarray(x, dtype=None if dtype is None else np.dtype(dtype))
 
     def _to_cupy_sparse(
         self,
