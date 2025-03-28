@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-__all__ = ["SUPPORTED_TYPE_PARAMS", "array_type", "conversion_context"]
+__all__ = ["SUPPORTED_TYPE_PARAMS", "array_type"]
 
 
 def pytest_configure(config: pytest.Config) -> None:

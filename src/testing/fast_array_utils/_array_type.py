@@ -243,7 +243,7 @@ class ArrayType(Generic[Arr, Inner]):
         from fast_array_utils.conv import to_dense
 
         x = to_dense(x, to_memory=True)
-        return x if dtype == None else x.astype(dtype)
+        return x if dtype is None else x.astype(dtype)
 
     def _to_dask_array(
         self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
