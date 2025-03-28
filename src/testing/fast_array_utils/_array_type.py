@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Generic, TypeVar, cast
 import numpy as np
 from packaging.version import Version
 
-from fast_array_utils.types import CSBase
-
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Protocol, TypeAlias
@@ -23,6 +21,7 @@ if TYPE_CHECKING:
     from scipy.sparse import spmatrix
 
     from fast_array_utils import types
+    from fast_array_utils.types import CSBase
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
 
     InnerArray = CpuArray | GpuArray | DiskArray
@@ -228,13 +227,9 @@ class ArrayType(Generic[Arr, Inner]):
         elif self.cls in {types.CSCDataset, types.CSRDataset}:
             fn = cast("ToArray[Arr]", self._to_cs_dataset)
         elif self.cls is types.CupyArray:
-            import cupy as cu
-
-            fn = cast("ToArray[Arr]", cu.asarray)
+            fn = cast("ToArray[Arr]", self._to_cupy_array)
         elif self.cls in {types.CupyCSCMatrix, types.CupyCSRMatrix}:
-            import cupy as cu
-
-            fn = cast("ToArray[Arr]", lambda x, dtype=None: self.cls(cu.asarray(x, dtype=dtype)))  # type: ignore[call-overload,call-arg,arg-type]
+            fn = cast("ToArray[Arr]", self._to_cupy_sparse)
         else:
             fn = cast("ToArray[Arr]", self.cls)
 
@@ -327,7 +322,7 @@ class ArrayType(Generic[Arr, Inner]):
 
     def _to_scipy_sparse(
         self,
-        x: ArrayLike | Array | spmatrix,
+        x: ArrayLike | Array | spmatrix | types.CupySpMatrix,
         /,
         *,
         dtype: DTypeLike | None = None,
@@ -348,6 +343,29 @@ class ArrayType(Generic[Arr, Inner]):
 
         cls = cast("types.CSBase", cls or self.cls)
         return cls(x, dtype=dtype)  # type: ignore[arg-type]
+
+    def _to_cupy_array(
+        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+    ) -> types.CupyArray:
+        import cupy as cu
+
+        return cu.asarray(x, dtype=np.dtype(dtype))
+
+    def _to_cupy_sparse(
+        self,
+        x: ArrayLike | Array | spmatrix | types.CupySpMatrix,
+        /,
+        *,
+        dtype: DTypeLike | None = None,
+    ) -> types.CupyCSMatrix:
+        from scipy.sparse import spmatrix
+
+        from fast_array_utils import types
+
+        if not isinstance(x, spmatrix | types.CupyArray | types.CupySpMatrix):
+            x = self._to_cupy_array(x, dtype=dtype)
+
+        return self.cls(x)  # type: ignore[call-overload,call-arg,arg-type]
 
 
 def random_mat(
