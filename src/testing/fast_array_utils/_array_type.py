@@ -261,7 +261,7 @@ class ArrayType(Generic[Arr, Inner]):
             if isinstance(x._meta, self.inner.cls):  # noqa: SLF001
                 return x
             return x.map_blocks(
-                self.inner, dtype=dtype, meta=self.inner([1], dtype=dtype or x.dtype)
+                self.inner, dtype=dtype, meta=self.inner([[1]], dtype=dtype or x.dtype)
             )
 
         arr = self.inner(x, dtype=dtype)
