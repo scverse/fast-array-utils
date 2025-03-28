@@ -267,7 +267,10 @@ class ArrayType(Generic[Arr, Inner]):
         if (ctx := self.conversion_context) is None:
             msg = "`conversion_context` must be set for h5py"
             raise RuntimeError(msg)
-        arr = np.asarray(x, dtype=dtype)
+
+        from fast_array_utils.conv import to_dense
+
+        arr = to_dense(x, to_memory=True).astype(dtype)
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @staticmethod
@@ -277,7 +280,9 @@ class ArrayType(Generic[Arr, Inner]):
         """Convert to a zarr array."""
         import zarr
 
-        arr = np.asarray(x, dtype=dtype)
+        from fast_array_utils.conv import to_dense
+
+        arr = to_dense(x, to_memory=True).astype(dtype)
         if Version(version("zarr")) >= Version("3"):
             za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
         else:
