@@ -341,7 +341,7 @@ class ArrayType(Generic[Arr, Inner]):
         elif not isinstance(x, spmatrix | np.ndarray):
             x = to_dense(x, to_memory=True)
 
-        cls = cast("types.CSBase", cls or self.cls)
+        cls = cast("type[types.CSBase]", cls or self.cls)
         return cls(x, dtype=dtype)  # type: ignore[arg-type]
 
     def _to_cupy_array(
@@ -375,7 +375,7 @@ class ArrayType(Generic[Arr, Inner]):
         if not isinstance(x, spmatrix | types.CupyArray | types.CupySpMatrix):
             x = self._to_cupy_array(x, dtype=dtype)
 
-        return self.cls(x)  # type: ignore[call-overload,call-arg,arg-type]
+        return self.cls(x)  # type: ignore[call-overload,call-arg,arg-type, return-value]
 
 
 def random_mat(
