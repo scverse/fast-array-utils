@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Generic, TypeVar, cast
 import numpy as np
 from packaging.version import Version
 
+from fast_array_utils.types import CSBase
+
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Protocol, TypeAlias
@@ -318,16 +320,18 @@ class ArrayType(Generic[Arr, Inner]):
         else:
             raise NotImplementedError
 
-        x_sparse = (
-            csr_array(np.asarray(x, dtype=dtype))
-            if self.cls is types.CSRDataset
-            else csc_array(np.asarray(x, dtype=dtype))
-        )
+        cls = csr_array if self.cls is types.CSRDataset else csc_array
+        x_sparse = self._to_scipy_sparse(x, dtype=dtype, cls=cls)
         anndata.io.write_elem(grp, "/", x_sparse)
         return anndata.io.sparse_dataset(grp)
 
     def _to_scipy_sparse(
-        self, x: ArrayLike | Array | spmatrix, /, *, dtype: DTypeLike | None = None
+        self,
+        x: ArrayLike | Array | spmatrix,
+        /,
+        *,
+        dtype: DTypeLike | None = None,
+        cls: type[CSBase] | None = None,
     ) -> types.CSBase:
         """Convert to a scipy sparse matrix/array."""
         from scipy.sparse import spmatrix
@@ -342,9 +346,8 @@ class ArrayType(Generic[Arr, Inner]):
         elif not isinstance(x, spmatrix | np.ndarray):
             x = to_dense(x, to_memory=True)
 
-        if TYPE_CHECKING:
-            assert issubclass(self.cls, types.CSBase)
-        return self.cls(x, dtype=dtype)  # type: ignore[arg-type]
+        cls = cast("types.CSBase", cls or self.cls)
+        return cls(x, dtype=dtype)  # type: ignore[arg-type]
 
 
 def random_mat(
