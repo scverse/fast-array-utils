@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import KW_ONLY, dataclass, field
-from functools import cached_property, partial
+from functools import cached_property
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal, Protocol, TypeAlias
 
     import h5py
-    from numpy.typing import ArrayLike, DTypeLike
+    from numpy.typing import ArrayLike, DTypeLike, NDArray
     from scipy.sparse import spmatrix
 
     from fast_array_utils import types
@@ -212,7 +212,7 @@ class ArrayType(Generic[Arr, Inner]):
 
         fn: ToArray[Arr]
         if self.cls is np.ndarray:
-            fn = cast("ToArray[Arr]", np.asarray)
+            fn = cast("ToArray[Arr]", self._to_numpy_array)
         elif self.cls in {types.csr_matrix, types.csc_matrix, types.csr_array, types.csc_array}:
             fn = cast("ToArray[Arr]", self._to_scipy_sparse)
         elif self.cls is types.DaskArray:
@@ -235,6 +235,16 @@ class ArrayType(Generic[Arr, Inner]):
 
         return fn(x, dtype=dtype)
 
+    @staticmethod
+    def _to_numpy_array(
+        x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+    ) -> NDArray[np.number[Any]]:
+        """Convert to a numpy array."""
+        from fast_array_utils.conv import to_dense
+
+        x = to_dense(x, to_memory=True)
+        return x if dtype == None else x.astype(dtype)
+
     def _to_dask_array(
         self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> types.DaskArray:
@@ -251,7 +261,7 @@ class ArrayType(Generic[Arr, Inner]):
             if isinstance(x._meta, self.inner.cls):  # noqa: SLF001
                 return x
             return x.map_blocks(
-                partial(self.inner, dtype=dtype), dtype=dtype, meta=self.inner([1], dtype=dtype)
+                self.inner, dtype=dtype, meta=self.inner([1], dtype=dtype or x.dtype)
             )
 
         arr = self.inner(x, dtype=dtype)
@@ -265,11 +275,7 @@ class ArrayType(Generic[Arr, Inner]):
             msg = "`conversion_context` must be set for h5py"
             raise RuntimeError(msg)
 
-        from fast_array_utils.conv import to_dense
-
-        arr = to_dense(x, to_memory=True)
-        if dtype is not None:
-            arr = arr.astype(dtype)
+        arr = self._to_numpy_array(x, dtype=dtype)
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @staticmethod
@@ -279,11 +285,7 @@ class ArrayType(Generic[Arr, Inner]):
         """Convert to a zarr array."""
         import zarr
 
-        from fast_array_utils.conv import to_dense
-
-        arr = to_dense(x, to_memory=True)
-        if dtype is not None:
-            arr = arr.astype(dtype)
+        arr = ArrayType._to_numpy_array(x, dtype=dtype)
         if Version(version("zarr")) >= Version("3"):
             za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
         else:
