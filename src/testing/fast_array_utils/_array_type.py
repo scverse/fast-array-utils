@@ -270,7 +270,9 @@ class ArrayType(Generic[Arr, Inner]):
 
         from fast_array_utils.conv import to_dense
 
-        arr = to_dense(x, to_memory=True).astype(dtype)
+        arr = to_dense(x, to_memory=True)
+        if dtype is not None:
+            arr = arr.astype(dtype)
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @staticmethod
@@ -282,7 +284,9 @@ class ArrayType(Generic[Arr, Inner]):
 
         from fast_array_utils.conv import to_dense
 
-        arr = to_dense(x, to_memory=True).astype(dtype)
+        arr = to_dense(x, to_memory=True)
+        if dtype is not None:
+            arr = arr.astype(dtype)
         if Version(version("zarr")) >= Version("3"):
             za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
         else:

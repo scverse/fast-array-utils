@@ -10,16 +10,20 @@ import dataclasses
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
+import h5py
 import pytest
 
-from . import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
+from testing.fast_array_utils._array_type import ConversionContext
+
+from . import SUPPORTED_TYPES, ArrayType, Flags
 
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
+    from pathlib import Path
 
 
-__all__ = ["array_type", "conversion_context"]
+__all__ = ["SUPPORTED_TYPE_PARAMS", "array_type", "conversion_context"]
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -84,10 +88,13 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
     return pytest.mark.skipif(skip, reason=f"{dist} not installed")
 
 
-@pytest.fixture(
-    params=[pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES],
-)
-def array_type(request: pytest.FixtureRequest) -> ArrayType:
+SUPPORTED_TYPE_PARAMS = [
+    pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES
+]
+
+
+@pytest.fixture(params=SUPPORTED_TYPE_PARAMS)
+def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[ArrayType, None, None]:
     """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`.
 
     Use :class:`testing.fast_array_utils.Flags` to select or skip array types
@@ -111,28 +118,11 @@ def array_type(request: pytest.FixtureRequest) -> ArrayType:
     from fast_array_utils.types import H5Dataset
 
     at = cast("ArrayType", request.param)
+    f: h5py.File | None = None
     if at.cls is H5Dataset or (at.inner and at.inner.cls is H5Dataset):
-        ctx = request.getfixturevalue("conversion_context")
+        f = h5py.File(tmp_path / f"{request.fixturename}.h5", "w")
+        ctx = ConversionContext(hdf5_file=f)
         at = dataclasses.replace(at, conversion_context=ctx)
-    return at
-
-
-@pytest.fixture
-# worker_id for xdist since we don't want to override open files
-def conversion_context(
-    request: pytest.FixtureRequest,
-    tmp_path_factory: pytest.TempPathFactory,
-    worker_id: str = "serial",
-) -> Generator[ConversionContext, None, None]:
-    """Fixture providing a :class:`~testing.fast_array_utils.ConversionContext`.
-
-    Makes sure h5py works even when running tests in parallel.
-    """
-    import h5py
-
-    node = cast("pytest.Item", request.node)
-    tmp_path = tmp_path_factory.mktemp("backed_adata")
-    tmp_path = tmp_path / f"test_{node.name}_{worker_id}.h5ad"
-
-    with h5py.File(tmp_path, "x") as f:
-        yield ConversionContext(hdf5_file=f)
+    yield at
+    if f:
+        f.close()
