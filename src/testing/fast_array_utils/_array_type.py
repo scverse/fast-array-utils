@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import KW_ONLY, dataclass, field
-from functools import cached_property
+from functools import cached_property, partial
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike
+    from scipy.sparse import spmatrix
 
     from fast_array_utils import types
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
@@ -33,7 +34,9 @@ if TYPE_CHECKING:
     class ToArray(Protocol, Generic[Arr_co]):
         """Convert to a supported array."""
 
-        def __call__(self, data: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Arr_co: ...
+        def __call__(
+            self, data: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+        ) -> Arr_co: ...
 
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
@@ -202,13 +205,15 @@ class ArrayType(Generic[Arr, Inner]):
                 msg = f"Unknown array class: {self}"
                 raise ValueError(msg)
 
-    def __call__(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> Arr:
+    def __call__(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> Arr:
         """Convert to this array type."""
         from fast_array_utils import types
 
         fn: ToArray[Arr]
         if self.cls is np.ndarray:
             fn = cast("ToArray[Arr]", np.asarray)
+        elif self.cls in {types.csr_matrix, types.csc_matrix, types.csr_array, types.csc_array}:
+            fn = cast("ToArray[Arr]", self._to_scipy_sparse)
         elif self.cls is types.DaskArray:
             if self.inner is None:
                 msg = "Cannot convert to dask array without inner array type"
@@ -233,19 +238,30 @@ class ArrayType(Generic[Arr, Inner]):
 
         return fn(x, dtype=dtype)
 
-    def _to_dask_array(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
+    def _to_dask_array(
+        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+    ) -> types.DaskArray:
         """Convert to a dask array."""
         import dask.array as da
+
+        from fast_array_utils import types
 
         assert self.inner is not None
         if TYPE_CHECKING:
             assert isinstance(self.inner, ArrayType[CpuArray | GpuArray, None])  # type: ignore[misc]
 
+        if isinstance(x, types.DaskArray):
+            if isinstance(x._meta, self.inner.cls):  # noqa: SLF001
+                return x
+            return x.map_blocks(
+                partial(self.inner, dtype=dtype), dtype=dtype, meta=self.inner([1], dtype=dtype)
+            )
+
         arr = self.inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))
 
     def _to_h5py_dataset(
-        self, x: ArrayLike, /, *, dtype: DTypeLike | None = None
+        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> types.H5Dataset:
         """Convert to a h5py dataset."""
         if (ctx := self.conversion_context) is None:
@@ -255,7 +271,9 @@ class ArrayType(Generic[Arr, Inner]):
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @staticmethod
-    def _to_zarr_array(x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
+    def _to_zarr_array(
+        x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+    ) -> types.ZarrArray:
         """Convert to a zarr array."""
         import zarr
 
@@ -267,7 +285,9 @@ class ArrayType(Generic[Arr, Inner]):
         za[...] = arr
         return za
 
-    def _to_cs_dataset(self, x: ArrayLike, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
+    def _to_cs_dataset(
+        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+    ) -> types.CSDataset:
         """Convert to a scipy sparse dataset."""
         import anndata.io  # type: ignore[import-untyped]
         from scipy.sparse import csc_array, csr_array
@@ -296,6 +316,26 @@ class ArrayType(Generic[Arr, Inner]):
         )
         anndata.io.write_elem(grp, "/", x_sparse)
         return anndata.io.sparse_dataset(grp)
+
+    def _to_scipy_sparse(
+        self, x: ArrayLike | Array | spmatrix, /, *, dtype: DTypeLike | None = None
+    ) -> types.CSBase:
+        """Convert to a scipy sparse matrix/array."""
+        from scipy.sparse import spmatrix
+
+        from fast_array_utils import types
+        from fast_array_utils.conv import to_dense
+
+        if isinstance(x, types.DaskArray):
+            x = x.compute()
+        if isinstance(x, types.CupySpMatrix):
+            x = x.get()  # can be a coo_matrix due to dask concatenation
+        elif not isinstance(x, spmatrix | np.ndarray):
+            x = to_dense(x, to_memory=True)
+
+        if TYPE_CHECKING:
+            assert issubclass(self.cls, types.CSBase)
+        return self.cls(x, dtype=dtype)  # type: ignore[arg-type]
 
 
 def random_mat(
