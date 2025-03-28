@@ -8,12 +8,16 @@ import pytest
 
 from fast_array_utils import types
 from testing.fast_array_utils import Flags
+from testing.fast_array_utils.pytest import array_type
 
 
 if TYPE_CHECKING:
     from numpy.typing import DTypeLike
 
     from testing.fast_array_utils import ArrayType
+
+
+other_array_type = array_type
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -26,6 +30,18 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
         arr = arr.get()
     assert arr.shape == (3, 4)
     assert arr.dtype == dtype
+
+
+def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
+    src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
+    arr = other_array_type(src_arr)
+    assert isinstance(arr, other_array_type.cls)
+    if isinstance(arr, types.DaskArray):
+        arr = arr.compute()
+    elif isinstance(arr, types.CupyArray):
+        arr = arr.get()
+    assert arr.shape == (3, 4)
+    assert arr.dtype == np.float32
 
 
 def test_array_types(array_type: ArrayType) -> None:

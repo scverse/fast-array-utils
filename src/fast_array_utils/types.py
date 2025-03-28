@@ -17,6 +17,7 @@ __all__ = [
     "CupyCSCMatrix",
     "CupyCSMatrix",
     "CupyCSRMatrix",
+    "CupySpMatrix",
     "DaskArray",
     "H5Dataset",
     "H5Group",
@@ -54,12 +55,16 @@ if TYPE_CHECKING or find_spec("cupy"):  # cupy always comes with cupyx
     from cupy import ndarray as CupyArray
     from cupyx.scipy.sparse import csc_matrix as CupyCSCMatrix
     from cupyx.scipy.sparse import csr_matrix as CupyCSRMatrix
+    from cupyx.scipy.sparse import spmatrix as CupySpMatrix
 else:  # pragma: no cover
     CupyArray = type("ndarray", (), {})
     CupyArray.__module__ = "cupy"
     CupyCSCMatrix = type("csc_matrix", (), {})
     CupyCSRMatrix = type("csr_matrix", (), {})
-    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = "cupyx.scipy.sparse"
+    CupySpMatrix = type("spmatrix", (), {})
+    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = CupySpMatrix.__module__ = (
+        "cupyx.scipy.sparse"
+    )
 CupyCSMatrix = CupyCSRMatrix | CupyCSCMatrix
 
 
