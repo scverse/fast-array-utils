@@ -60,6 +60,24 @@ jobs:
         with:
           run: pytest -m benchmark --codspeed
           token: ${{ secrets.CODSPEED_TOKEN }}
+  import:
+    name: Import Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: pyproject.toml
+      - run: uv pip install --system -e .
+      - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'
+      - run: uv pip install --system -e .[testing]
+      - run: python -c 'import testing.fast_array_utils as tfau; print(tfau.ArrayType("numpy", "ndarray"))'
   check:
     name: Static Checks
     runs-on: ubuntu-latest

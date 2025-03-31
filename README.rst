@@ -14,3 +14,15 @@
 
 fast-array-utils
 ================
+
+To use ``fast_array_utils.stats`` or ``fast_array_tils.conv``:
+
+.. code:: bash
+
+   [uv] pip install fast-array-utils[accel]
+
+To use ``testing.fast_array_utils``:
+
+.. code:: bash
+
+   [uv] pip install fast-array-utils[testing]

@@ -7,10 +7,6 @@ from typing import TYPE_CHECKING, overload
 
 from .._validation import validate_axis
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
-from ._is_constant import is_constant_
-from ._mean import mean_
-from ._mean_var import mean_var_
-from ._sum import sum_
 
 
 if TYPE_CHECKING:
@@ -73,6 +69,8 @@ def is_constant(
     array([False,  True])
 
     """
+    from ._is_constant import is_constant_
+
     validate_axis(axis)
     return is_constant_(a, axis=axis)
 
@@ -119,6 +117,8 @@ def mean(
     --------
     :func:`numpy.mean`
     """
+    from ._mean import mean_
+
     validate_axis(axis)
     return mean_(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]  # literally the same type, wtf mypy
 
@@ -178,6 +178,8 @@ def mean_var(
     :func:`numpy.mean`
     :func:`numpy.var`
     """
+    from ._mean_var import mean_var_
+
     return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
 
 
@@ -220,5 +222,7 @@ def sum(
     :func:`numpy.sum`
 
     """
+    from ._sum import sum_
+
     validate_axis(axis)
     return sum_(x, axis=axis, dtype=dtype)
