@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
-    from scipy.sparse import spmatrix
 
     from fast_array_utils import types
     from fast_array_utils.types import CSBase
@@ -115,7 +114,7 @@ class ArrayType(Generic[Arr, Inner]):
             case "numpy", "ndarray", None:
                 return cast("type[Arr]", np.ndarray)
             case "scipy.sparse", (
-                "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
+                "csr_array" | "csc_array" | "coo_array" | "csr_matrix" | "csc_matrix" | "coo_matrix"
             ) as cls_name, None:
                 import scipy.sparse
 
@@ -124,7 +123,9 @@ class ArrayType(Generic[Arr, Inner]):
                 import cupy as cp
 
                 return cast("type[Arr]", cp.ndarray)
-            case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
+            case "cupyx.scipy.sparse", (
+                "csr_matrix" | "csc_matrix" | "coo_matrix"
+            ) as cls_name, None:
                 import cupyx.scipy.sparse as cu_sparse
 
                 return cast("type[Arr]", getattr(cu_sparse, cls_name))
@@ -213,7 +214,7 @@ class ArrayType(Generic[Arr, Inner]):
         fn: ToArray[Arr]
         if self.cls is np.ndarray:
             fn = cast("ToArray[Arr]", self._to_numpy_array)
-        elif self.cls in {types.csr_matrix, types.csc_matrix, types.csr_array, types.csc_array}:
+        elif issubclass(self.cls, (types.spmatrix, types.sparray)):
             fn = cast("ToArray[Arr]", self._to_scipy_sparse)
         elif self.cls is types.DaskArray:
             if self.inner is None:
@@ -228,7 +229,7 @@ class ArrayType(Generic[Arr, Inner]):
             fn = cast("ToArray[Arr]", self._to_cs_dataset)
         elif self.cls is types.CupyArray:
             fn = cast("ToArray[Arr]", self._to_cupy_array)
-        elif self.cls in {types.CupyCSCMatrix, types.CupyCSRMatrix}:
+        elif issubclass(self.cls, types.CupySpMatrix):
             fn = cast("ToArray[Arr]", self._to_cupy_sparse)
         else:
             fn = cast("ToArray[Arr]", self.cls)
@@ -324,15 +325,13 @@ class ArrayType(Generic[Arr, Inner]):
 
     def _to_scipy_sparse(
         self,
-        x: ArrayLike | Array | spmatrix | types.CupySpMatrix,
+        x: ArrayLike | Array | types.spmatrix | types.sparray | types.CupySpMatrix,
         /,
         *,
         dtype: DTypeLike | None = None,
         cls: type[CSBase] | None = None,
     ) -> types.CSBase:
         """Convert to a scipy sparse matrix/array."""
-        from scipy.sparse import spmatrix
-
         from fast_array_utils import types
         from fast_array_utils.conv import to_dense
 
@@ -340,7 +339,7 @@ class ArrayType(Generic[Arr, Inner]):
             x = x.compute()
         if isinstance(x, types.CupySpMatrix):
             x = x.get()  # can be a coo_matrix due to dask concatenation
-        elif not isinstance(x, spmatrix | np.ndarray):
+        elif not isinstance(x, types.spmatrix | types.sparray | np.ndarray):
             x = to_dense(x, to_memory=True)
 
         cls = cast("type[types.CSBase]", cls or self.cls)
@@ -365,16 +364,14 @@ class ArrayType(Generic[Arr, Inner]):
 
     def _to_cupy_sparse(
         self,
-        x: ArrayLike | Array | spmatrix | types.CupySpMatrix,
+        x: ArrayLike | Array | types.spmatrix | types.sparray | types.CupySpMatrix,
         /,
         *,
         dtype: DTypeLike | None = None,
     ) -> types.CupyCSMatrix:
-        from scipy.sparse import spmatrix
-
         from fast_array_utils import types
 
-        if not isinstance(x, spmatrix | types.CupyArray | types.CupySpMatrix):
+        if not isinstance(x, types.spmatrix | types.sparray | types.CupyArray | types.CupySpMatrix):
             x = self._to_cupy_array(x, dtype=dtype)
 
         return self.cls(x)  # type: ignore[call-overload,call-arg,arg-type, return-value]

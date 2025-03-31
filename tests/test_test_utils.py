@@ -7,14 +7,14 @@ import numpy as np
 import pytest
 
 from fast_array_utils import types
-from testing.fast_array_utils import Flags
+from testing.fast_array_utils import ArrayType, Flags
 from testing.fast_array_utils.pytest import array_type
 
 
 if TYPE_CHECKING:
-    from numpy.typing import DTypeLike
+    from typing import Any
 
-    from testing.fast_array_utils import ArrayType
+    from numpy.typing import DTypeLike, NDArray
 
 
 other_array_type = array_type
@@ -40,6 +40,26 @@ def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
         arr = arr.compute()
     elif isinstance(arr, types.CupyArray):
         arr = arr.get()
+    assert arr.shape == (3, 4)
+    assert arr.dtype == np.float32
+
+
+@pytest.mark.parametrize(
+    ("mod", "name"),
+    [
+        ("scipy.sparse", "coo_matrix"),
+        ("scipy.sparse", "coo_array"),
+        ("cupyx.scipy.sparse", "coo_matrix"),
+    ],
+)
+@pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
+def test_conv_extra(
+    array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase], mod: str, name: str
+) -> None:
+    src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
+    arr = ArrayType(mod, name)(src_arr)
+    assert type(arr).__module__.startswith(mod)
+    assert type(arr).__name__ == name
     assert arr.shape == (3, 4)
     assert arr.dtype == np.float32
 

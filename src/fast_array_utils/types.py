@@ -6,6 +6,8 @@ from __future__ import annotations
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, TypeVar
 
+from scipy.sparse import sparray, spmatrix
+
 
 __all__ = [
     "CSArray",
@@ -33,18 +35,20 @@ if TYPE_CHECKING:
     from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
 else:
     try:  # cs?_array isn’t available in older scipy versions
-        from scipy.sparse import csc_array, csr_array
+        from scipy.sparse import csc_array, csr_array, sparray
     except ImportError:  # pragma: no cover
         csc_array = type("csc_array", (), {})
         csr_array = type("csr_array", (), {})
-        csc_array.__module__ = csr_array.__module__ = "scipy.sparse"
+        sparray = type("sparray", (), {})
+        csc_array.__module__ = csr_array.__module__ = sparray.__module__ = "scipy.sparse"
 
     try:  # cs?_matrix is available when scipy is installed
-        from scipy.sparse import csc_matrix, csr_matrix
+        from scipy.sparse import csc_matrix, csr_matrix, spmatrix
     except ImportError:  # pragma: no cover
         csc_matrix = type("csc_matrix", (), {})
         csr_matrix = type("csr_matrix", (), {})
-        csc_matrix.__module__ = csr_matrix.__module__ = "scipy.sparse"
+        spmatrix = type("spmatrix", (), {})
+        csc_matrix.__module__ = csr_matrix.__module__ = spmatrix.__module__ = "scipy.sparse"
 CSMatrix = csc_matrix | csr_matrix
 CSArray = csc_array | csr_array
 CSBase = CSMatrix | CSArray
