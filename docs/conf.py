@@ -85,7 +85,9 @@ html_theme_options = dict(
 _np_nocls = {"float64": "attr"}
 _optional_types = {
     "CupyArray": "cupy.ndarray",
-    "CupySparseMatrix": "cupyx.scipy.sparse.spmatrix",
+    "CupySpMatrix": "cupyx.scipy.sparse.spmatrix",
+    "sparray": "scipy.sparse.sparray",
+    "spmatrix": "scipy.sparse.spmatrix",
     "DaskArray": "dask.array.Array",
     "H5Dataset": "h5py.Dataset",
     "ZarrArray": "zarr.Array",
@@ -100,7 +102,7 @@ def find_type_alias(name: str) -> tuple[str, str] | tuple[None, None]:
 
     if name in typing.__all__:
         return "data", f"fast_array_utils.typing.{name}"
-    if name.startswith("types.") and name[6:] in types.__all__:
+    if name.startswith("types.") and name[6:] in {*types.__all__, *_optional_types}:
         if path := _optional_types.get(name[6:]):
             return "class", path
         return "data", f"fast_array_utils.{name}"

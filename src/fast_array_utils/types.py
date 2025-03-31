@@ -6,12 +6,9 @@ from __future__ import annotations
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, TypeVar
 
-from scipy.sparse import sparray, spmatrix
-
 
 __all__ = [
     "CSArray",
-    "CSBase",
     "CSBase",
     "CSDataset",
     "CSMatrix",
@@ -32,7 +29,7 @@ T_co = TypeVar("T_co", covariant=True)
 
 # scipy sparse
 if TYPE_CHECKING:
-    from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
+    from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix, sparray, spmatrix
 else:
     try:  # cs?_array isn’t available in older scipy versions
         from scipy.sparse import csc_array, csr_array, sparray
