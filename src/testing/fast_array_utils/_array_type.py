@@ -279,14 +279,14 @@ class ArrayType(Generic[Arr, Inner]):
         arr = self._to_numpy_array(x, dtype=dtype)
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
-    @staticmethod
+    @classmethod
     def _to_zarr_array(
-        x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
+        cls, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> types.ZarrArray:
         """Convert to a zarr array."""
         import zarr
 
-        arr = ArrayType._to_numpy_array(x, dtype=dtype)
+        arr = cls._to_numpy_array(x, dtype=dtype)
         if Version(version("zarr")) >= Version("3"):
             za = zarr.create_array({}, shape=arr.shape, dtype=arr.dtype)
         else:
