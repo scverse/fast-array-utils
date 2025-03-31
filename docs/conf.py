@@ -66,6 +66,7 @@ intersphinx_mapping = dict(
 )
 nitpick_ignore = [
     ("py:class", "Arr"),
+    ("py:class", "Array"),
     ("py:class", "ToDType"),
     ("py:class", "testing.fast_array_utils._array_type.Arr"),
     ("py:class", "testing.fast_array_utils._array_type.Inner"),

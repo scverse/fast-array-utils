@@ -10,10 +10,7 @@ import dataclasses
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
-import h5py
 import pytest
-
-from testing.fast_array_utils._array_type import ConversionContext
 
 from . import SUPPORTED_TYPES, ArrayType, Flags
 
@@ -21,6 +18,8 @@ from . import SUPPORTED_TYPES, ArrayType, Flags
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
     from pathlib import Path
+
+    import h5py
 
 
 __all__ = ["SUPPORTED_TYPE_PARAMS", "array_type"]
@@ -120,6 +119,10 @@ def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[Arra
     at = cast("ArrayType", request.param)
     f: h5py.File | None = None
     if at.cls is H5Dataset or (at.inner and at.inner.cls is H5Dataset):
+        import h5py
+
+        from testing.fast_array_utils._array_type import ConversionContext
+
         f = h5py.File(tmp_path / f"{request.fixturename}.h5", "w")
         ctx = ConversionContext(hdf5_file=f)
         at = dataclasses.replace(at, conversion_context=ctx)
