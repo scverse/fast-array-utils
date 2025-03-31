@@ -11,15 +11,16 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from numpy.typing import NDArray
+    from scipy.sparse import coo_array, coo_matrix
 
-    from ...types import CSBase
+    from ... import types
 
 
 __all__ = ["to_dense"]
 
 
-def to_dense(x: CSBase, order: Literal["C", "F"] = "C") -> NDArray[Any]:
-    """Convert a compressed sparse matrix to a dense matrix.
+def to_dense(x: types.spmatrix | types.sparray, order: Literal["C", "F"] = "C") -> NDArray[Any]:
+    """Convert a sparse matrix to a dense matrix.
 
     Parameters
     ----------
@@ -33,6 +34,9 @@ def to_dense(x: CSBase, order: Literal["C", "F"] = "C") -> NDArray[Any]:
     Dense matrix form of ``x``
 
     """
+    if TYPE_CHECKING:
+        assert isinstance(x, types.CSBase | coo_matrix | coo_array)
+
     out = np.zeros(x.shape, dtype=x.dtype, order=order)
     if x.format == "csr":
         _to_dense_csr_numba(x.indptr, x.indices, x.data, out)

@@ -19,14 +19,23 @@ if TYPE_CHECKING:
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray, /, *, to_memory: bool = False
+    x: CpuArray
+    | GpuArray
+    | DiskArray
+    | types.DaskArray
+    | types.sparray
+    | types.spmatrix
+    | types.CupySpMatrix,
+    /,
+    *,
+    to_memory: bool = False,
 ) -> NDArray[Any] | types.CupyArray | types.DaskArray:
     del to_memory  # it already is
     return np.asarray(x)
 
 
-@to_dense_.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _to_dense_cs(x: types.CSBase, /, *, to_memory: bool = False) -> NDArray[Any]:
+@to_dense_.register(types.spmatrix | types.sparray)  # type: ignore[call-overload,misc]
+def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, to_memory: bool = False) -> NDArray[Any]:
     from . import scipy
 
     del to_memory  # it already is
@@ -54,7 +63,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_memory: bool = False) -> NDArray[
     return to_dense(cast("types.CSBase", x.to_memory()))
 
 
-@to_dense_.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
+@to_dense_.register(types.CupyArray | types.CupySpMatrix)  # type: ignore[call-overload,misc]
 def _to_dense_cupy(x: GpuArray, /, *, to_memory: bool = False) -> NDArray[Any] | types.CupyArray:
-    x = x.toarray() if isinstance(x, types.CupyCSMatrix) else x
+    x = x.toarray() if isinstance(x, types.CupySpMatrix) else x
     return x.get() if to_memory else x

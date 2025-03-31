@@ -14,7 +14,9 @@ from testing.fast_array_utils.pytest import array_type
 if TYPE_CHECKING:
     from typing import Any
 
+    from cupyx.scipy.sparse import coo_matrix as CupyCooMatrix
     from numpy.typing import DTypeLike, NDArray
+    from scipy.sparse import coo_array, coo_matrix
 
 
 other_array_type = array_type
@@ -44,22 +46,15 @@ def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
     assert arr.dtype == np.float32
 
 
-@pytest.mark.parametrize(
-    ("mod", "name"),
-    [
-        ("scipy.sparse", "coo_matrix"),
-        ("scipy.sparse", "coo_array"),
-        ("cupyx.scipy.sparse", "coo_matrix"),
-    ],
-)
 @pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 def test_conv_extra(
-    array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase], mod: str, name: str
+    array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase],
+    coo_matrix_type: ArrayType[coo_matrix | coo_array | CupyCooMatrix],
 ) -> None:
     src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
-    arr = ArrayType(mod, name)(src_arr)
-    assert type(arr).__module__.startswith(mod)
-    assert type(arr).__name__ == name
+    arr = coo_matrix_type(src_arr)
+    assert type(arr).__module__.startswith(coo_matrix_type.mod)
+    assert type(arr).__name__ == coo_matrix_type.name
     assert arr.shape == (3, 4)
     assert arr.dtype == np.float32
 
