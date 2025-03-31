@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING, Generic, TypeVar, cast
 import numpy as np
 from packaging.version import Version
 
+from fast_array_utils import types
+from fast_array_utils.conv import to_dense
+
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Protocol, TypeAlias
@@ -19,7 +22,6 @@ if TYPE_CHECKING:
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
-    from fast_array_utils import types
     from fast_array_utils.types import CSBase
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
 
@@ -209,8 +211,6 @@ class ArrayType(Generic[Arr, Inner]):
 
     def __call__(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> Arr:
         """Convert to this array type."""
-        from fast_array_utils import types
-
         fn: ToArray[Arr]
         if self.cls is np.ndarray:
             fn = cast("ToArray[Arr]", self._to_numpy_array)
@@ -241,8 +241,6 @@ class ArrayType(Generic[Arr, Inner]):
         x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> NDArray[np.number[Any]]:
         """Convert to a numpy array."""
-        from fast_array_utils.conv import to_dense
-
         x = to_dense(x, to_memory=True)
         return x if dtype is None else x.astype(dtype)
 
@@ -251,8 +249,6 @@ class ArrayType(Generic[Arr, Inner]):
     ) -> types.DaskArray:
         """Convert to a dask array."""
         import dask.array as da
-
-        from fast_array_utils import types
 
         assert self.inner is not None
         if TYPE_CHECKING:
@@ -301,8 +297,6 @@ class ArrayType(Generic[Arr, Inner]):
         import anndata.io  # type: ignore[import-untyped]
         from scipy.sparse import csc_array, csr_array
 
-        from fast_array_utils import types
-
         assert self.inner is not None
 
         grp: types.H5Group | types.ZarrGroup
@@ -332,9 +326,6 @@ class ArrayType(Generic[Arr, Inner]):
         cls: type[CSBase] | None = None,
     ) -> types.CSBase:
         """Convert to a scipy sparse matrix/array."""
-        from fast_array_utils import types
-        from fast_array_utils.conv import to_dense
-
         if isinstance(x, types.DaskArray):
             x = x.compute()
         if isinstance(x, types.CupySpMatrix):
@@ -349,9 +340,6 @@ class ArrayType(Generic[Arr, Inner]):
         self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> types.CupyArray:
         import cupy as cu
-
-        from fast_array_utils import types
-        from fast_array_utils.conv import to_dense
 
         if isinstance(x, types.DaskArray):
             x = x.compute()  # this could now be a cupy array already
@@ -369,8 +357,6 @@ class ArrayType(Generic[Arr, Inner]):
         *,
         dtype: DTypeLike | None = None,
     ) -> types.CupyCSMatrix:
-        from fast_array_utils import types
-
         if not isinstance(x, types.spmatrix | types.sparray | types.CupyArray | types.CupySpMatrix):
             x = self._to_cupy_array(x, dtype=dtype)
 

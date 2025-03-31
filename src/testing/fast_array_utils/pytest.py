@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from fast_array_utils import types
+from testing.fast_array_utils import ConversionContext
+
 from . import SUPPORTED_TYPES, ArrayType, Flags
 
 
@@ -114,14 +117,10 @@ def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[Arra
             def test_something(array_type: ArrayType) -> None:
                 ...
     """
-    from fast_array_utils.types import H5Dataset
-
     at = cast("ArrayType", request.param)
     f: h5py.File | None = None
-    if at.cls is H5Dataset or (at.inner and at.inner.cls is H5Dataset):
+    if at.cls is types.H5Dataset or (at.inner and at.inner.cls is types.H5Dataset):
         import h5py
-
-        from testing.fast_array_utils._array_type import ConversionContext
 
         f = h5py.File(tmp_path / f"{request.fixturename}.h5", "w")
         ctx = ConversionContext(hdf5_file=f)
