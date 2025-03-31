@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from fast_array_utils import types
-from testing.fast_array_utils import ArrayType, Flags
+from testing.fast_array_utils import Flags
 from testing.fast_array_utils.pytest import array_type
 
 
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from cupyx.scipy.sparse import coo_matrix as CupyCooMatrix
     from numpy.typing import DTypeLike, NDArray
     from scipy.sparse import coo_array, coo_matrix
+
+    from testing.fast_array_utils import ArrayType
 
 
 other_array_type = array_type
