@@ -22,7 +22,10 @@ __all__ = ["to_dense"]
 
 @overload
 def to_dense(
-    x: CpuArray | DiskArray | types.CSDataset, /, *, to_memory: bool = False
+    x: CpuArray | DiskArray | types.sparray | types.spmatrix | types.CSDataset,
+    /,
+    *,
+    to_memory: bool = False,
 ) -> NDArray[Any]: ...
 
 
@@ -33,13 +36,22 @@ def to_dense(x: types.DaskArray, /, *, to_memory: Literal[True]) -> NDArray[Any]
 
 
 @overload
-def to_dense(x: GpuArray, /, *, to_memory: Literal[False] = False) -> types.CupyArray: ...
+def to_dense(
+    x: GpuArray | types.CupySpMatrix, /, *, to_memory: Literal[False] = False
+) -> types.CupyArray: ...
 @overload
-def to_dense(x: GpuArray, /, *, to_memory: Literal[True]) -> NDArray[Any]: ...
+def to_dense(x: GpuArray | types.CupySpMatrix, /, *, to_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 def to_dense(
-    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray,
+    x: CpuArray
+    | GpuArray
+    | DiskArray
+    | types.CSDataset
+    | types.DaskArray
+    | types.sparray
+    | types.spmatrix
+    | types.CupySpMatrix,
     /,
     *,
     to_memory: bool = False,

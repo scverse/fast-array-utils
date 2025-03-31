@@ -32,12 +32,20 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
     assert arr.shape == (2, 3)
 
 
+@pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
+def test_to_dense_extra(coo_matrix_type: ArrayType[Array], *, to_memory: bool) -> None:
+    src_mtx = coo_matrix_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
+    arr = to_dense(src_mtx, to_memory=to_memory)
+    assert_expected_cls(src_mtx, arr, to_memory=to_memory)
+    assert arr.shape == (2, 3)
+
+
 def assert_expected_cls(orig: Array, converted: Array, *, to_memory: bool) -> None:
     match (to_memory, orig):
         case False, types.DaskArray():
             assert isinstance(converted, types.DaskArray)
             assert_expected_cls(orig._meta, converted._meta, to_memory=to_memory)  # noqa: SLF001
-        case False, types.CupyArray() | types.CupyCSCMatrix() | types.CupyCSRMatrix():
+        case False, types.CupyArray() | types.CupySpMatrix():
             assert isinstance(converted, types.CupyArray)
         case _:
             assert isinstance(converted, np.ndarray)

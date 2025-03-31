@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from testing.fast_array_utils import ArrayType
+from testing.fast_array_utils.pytest import _skip_if_unimportable
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -25,3 +28,18 @@ def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[o
         obj.visualize(str(path), engine="ipycytoscape")
 
     return viz
+
+
+COO_PARAMS = [
+    pytest.param(at := ArrayType(mod, name), id=f"{mod}.{name}", marks=_skip_if_unimportable(at))
+    for mod, name in [
+        ("scipy.sparse", "coo_matrix"),
+        ("scipy.sparse", "coo_array"),
+        ("cupyx.scipy.sparse", "coo_matrix"),
+    ]
+]
+
+
+@pytest.fixture(scope="session", params=COO_PARAMS)
+def coo_matrix_type(request: pytest.FixtureRequest) -> ArrayType:
+    return cast("ArrayType", request.param)

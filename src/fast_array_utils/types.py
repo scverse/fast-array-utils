@@ -10,13 +10,13 @@ from typing import TYPE_CHECKING, TypeVar
 __all__ = [
     "CSArray",
     "CSBase",
-    "CSBase",
     "CSDataset",
     "CSMatrix",
     "CupyArray",
     "CupyCSCMatrix",
     "CupyCSMatrix",
     "CupyCSRMatrix",
+    "CupySpMatrix",
     "DaskArray",
     "H5Dataset",
     "H5Group",
@@ -29,21 +29,23 @@ T_co = TypeVar("T_co", covariant=True)
 
 # scipy sparse
 if TYPE_CHECKING:
-    from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix
+    from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix, sparray, spmatrix
 else:
     try:  # cs?_array isn’t available in older scipy versions
-        from scipy.sparse import csc_array, csr_array
+        from scipy.sparse import csc_array, csr_array, sparray
     except ImportError:  # pragma: no cover
         csc_array = type("csc_array", (), {})
         csr_array = type("csr_array", (), {})
-        csc_array.__module__ = csr_array.__module__ = "scipy.sparse"
+        sparray = type("sparray", (), {})
+        csc_array.__module__ = csr_array.__module__ = sparray.__module__ = "scipy.sparse"
 
     try:  # cs?_matrix is available when scipy is installed
-        from scipy.sparse import csc_matrix, csr_matrix
+        from scipy.sparse import csc_matrix, csr_matrix, spmatrix
     except ImportError:  # pragma: no cover
         csc_matrix = type("csc_matrix", (), {})
         csr_matrix = type("csr_matrix", (), {})
-        csc_matrix.__module__ = csr_matrix.__module__ = "scipy.sparse"
+        spmatrix = type("spmatrix", (), {})
+        csc_matrix.__module__ = csr_matrix.__module__ = spmatrix.__module__ = "scipy.sparse"
 CSMatrix = csc_matrix | csr_matrix
 CSArray = csc_array | csr_array
 CSBase = CSMatrix | CSArray
@@ -54,12 +56,16 @@ if TYPE_CHECKING or find_spec("cupy"):  # cupy always comes with cupyx
     from cupy import ndarray as CupyArray
     from cupyx.scipy.sparse import csc_matrix as CupyCSCMatrix
     from cupyx.scipy.sparse import csr_matrix as CupyCSRMatrix
+    from cupyx.scipy.sparse import spmatrix as CupySpMatrix
 else:  # pragma: no cover
     CupyArray = type("ndarray", (), {})
     CupyArray.__module__ = "cupy"
     CupyCSCMatrix = type("csc_matrix", (), {})
     CupyCSRMatrix = type("csr_matrix", (), {})
-    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = "cupyx.scipy.sparse"
+    CupySpMatrix = type("spmatrix", (), {})
+    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = CupySpMatrix.__module__ = (
+        "cupyx.scipy.sparse"
+    )
 CupyCSMatrix = CupyCSRMatrix | CupyCSCMatrix
 
 
