@@ -5,10 +5,10 @@
    :hidden:
 
    fast-array-utils <self>
-   testing
    conv
    stats
    typing
+   testing
 
 .. automodule:: fast_array_utils
    :members:

@@ -70,6 +70,7 @@ scripts.clean = "git clean -fdX docs"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 
 [tool.hatch.envs.hatch-test]
+default-args = [  ]
 features = [ "test-min" ]
 extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
@@ -88,6 +89,8 @@ extras = [ "full", "default", "min" ]
 [tool.ruff]
 line-length = 100
 namespace-packages = [ "src/testing" ]
+format.preview = true
+format.docstring-code-format = true
 lint.select = [ "ALL" ]
 lint.ignore = [
   "A005",    # submodules never shadow builtins.
@@ -114,7 +117,6 @@ lint.per-file-ignores."tests/**/*.py" = [
 lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # Stubs don’t follow name conventions
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
-
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true
