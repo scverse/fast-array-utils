@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from contextlib import nullcontext
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
@@ -22,6 +23,11 @@ if TYPE_CHECKING:
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")]
+
+
+WARNS_NUMBA = pytest.warns(
+    RuntimeWarning, match="numba is not installed; falling back to slow conversion"
+)
 
 
 @pytest.fixture(scope="session", params=["csr", "csc"])
@@ -47,7 +53,8 @@ def test_to_dense(
     dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
 ) -> None:
     mat = array_type.random((10, 10), density=0.1, dtype=dtype)
-    arr = to_dense(mat, order=order)
+    with WARNS_NUMBA if not find_spec("numba") else nullcontext():
+        arr = to_dense(mat, order=order)
     assert arr.flags[order]
     assert arr.dtype == mat.dtype
     np.testing.assert_equal(arr, mat.toarray(order=order))
@@ -56,6 +63,7 @@ def test_to_dense(
 @pytest.mark.benchmark
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("order", ["C", "F"])
+@pytest.mark.skipif(not find_spec("numba"), reason="numba not installed")
 def test_to_dense_benchmark(
     benchmark: BenchmarkFixture,
     array_type: ArrayType[CSBase, None],

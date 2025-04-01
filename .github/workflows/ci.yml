@@ -13,11 +13,15 @@ env:
 
 jobs:
   test:
-    name: Min Tests
+    name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.13"]
+        include:
+          - python-version: "3.13"
+            test-extra: test-min
+          - python-version: "3.11"
+          - python-version: "3.13"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +34,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
-      - run: uv pip install --system -e .[test]
+      - run: uv pip install --system -e .[${{ matrix.test-extra || 'test' }}]
       - run: |
           coverage run -m pytest -m "not benchmark"
           coverage report

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from contextlib import nullcontext
+from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -19,6 +21,11 @@ if TYPE_CHECKING:
     Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
 
+WARNS_NUMBA = pytest.warns(
+    RuntimeWarning, match="numba is not installed; falling back to slow conversion"
+)
+
+
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
 def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -27,7 +34,12 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
             to_dense(x, to_memory=to_memory)
         return
 
-    arr = to_dense(x, to_memory=to_memory)
+    with (
+        WARNS_NUMBA
+        if issubclass(array_type.cls, types.CSBase) and not find_spec("numba")
+        else nullcontext()
+    ):
+        arr = to_dense(x, to_memory=to_memory)
     assert_expected_cls(x, arr, to_memory=to_memory)
     assert arr.shape == (2, 3)
 
@@ -35,7 +47,8 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
 @pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
 def test_to_dense_extra(coo_matrix_type: ArrayType[Array], *, to_memory: bool) -> None:
     src_mtx = coo_matrix_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
-    arr = to_dense(src_mtx, to_memory=to_memory)
+    with WARNS_NUMBA if not find_spec("numba") else nullcontext():
+        arr = to_dense(src_mtx, to_memory=to_memory)
     assert_expected_cls(src_mtx, arr, to_memory=to_memory)
     assert arr.shape == (2, 3)
 
