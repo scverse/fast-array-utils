@@ -13,13 +13,10 @@ requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "Programming Language :: R",
-  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dynamic = [ "description", "version" ]
 dependencies = [ "numpy" ]
@@ -136,6 +133,7 @@ addopts = [
 testpaths = [ "./tests", "fast_array_utils" ]
 doctest_subpackage_requires = [
   "src/fast_array_utils/conv/scipy/* = scipy",
+  "src/fast_array_utils/conv/scipy/_to_dense.py = numba",
   "src/fast_array_utils/stats/* = numba",
 ]
 filterwarnings = [

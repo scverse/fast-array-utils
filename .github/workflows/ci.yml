@@ -13,7 +13,7 @@ env:
 
 jobs:
   test:
-    name: Subset of Tests
+    name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
