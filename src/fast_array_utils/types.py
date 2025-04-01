@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Shared types."""
+"""Shared types that can be used e.g. in :func:`isinstance` checks."""
 
 from __future__ import annotations
 

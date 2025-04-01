@@ -67,6 +67,7 @@ installer = "uv"
 features = [ "doc" ]
 scripts.build = "sphinx-build -M html docs docs/_build"
 scripts.clean = "git clean -fdX docs"
+scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 
 [tool.hatch.envs.hatch-test]
 features = [ "test-min" ]

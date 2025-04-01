@@ -56,7 +56,11 @@ def to_dense(
     *,
     to_memory: bool = False,
 ) -> NDArray[Any] | types.DaskArray | types.CupyArray:
-    """Convert x to a dense array.
+    r"""Convert x to a dense array.
+
+    If ``to_memory`` is :data:`False`, :class:`dask.array.Array`\ s and
+    :class:`cupy.ndarray`\ s/:class:`cupyx.scipy.sparse.spmatrix` instances
+    stay out-of-core and in GPU memory, respecively.
 
     Parameters
     ----------

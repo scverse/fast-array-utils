@@ -36,6 +36,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    # "scanpydoc.definition_list_typed_field",
     "scanpydoc.elegant_typehints",
     "sphinx_autofixture",
 ]
@@ -59,6 +61,7 @@ intersphinx_mapping = dict(
     cupy=("https://docs.cupy.dev/en/stable/", None),
     dask=("https://docs.dask.org/en/stable/", None),
     h5py=("https://docs.h5py.org/en/stable/", None),
+    numba=("https://numba.readthedocs.io/en/stable/", None),
     numpy=("https://numpy.org/doc/stable/", None),
     python=("https://docs.python.org/3", None),
     scipy=("https://docs.scipy.org/doc/scipy/", None),

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Type categories."""
+"""Type categories to be used in type annotations."""
 
 from __future__ import annotations
 
