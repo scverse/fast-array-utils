@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
@@ -38,7 +39,11 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
 
 def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
     src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
-    arr = other_array_type(src_arr)
+    with catch_warnings():
+        filterwarnings(
+            "ignore", r"numba is not installed; falling back to slow conversion", RuntimeWarning
+        )
+        arr = other_array_type(src_arr)
     assert isinstance(arr, other_array_type.cls)
     if isinstance(arr, types.DaskArray):
         arr = arr.compute()

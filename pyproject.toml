@@ -36,11 +36,15 @@ optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py",
 optional-dependencies.sparse = [ "scipy>=1.8" ]
 optional-dependencies.test = [
   "anndata",
+  "fast-array-utils[accel,test-min]",
+  "zarr<3",                           # anndata needs this
+]
+optional-dependencies.test-min = [
   "coverage[toml]",
-  "fast-array-utils[accel,testing]",
+  "fast-array-utils[testing,sparse]", # include sparse for testing numba-less to_dense
   "pytest",
   "pytest-codspeed",
-  "zarr<3",                          # anndata needs this
+  "pytest-doctestplus",
 ]
 optional-dependencies.testing = [ "packaging" ]
 urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
@@ -68,11 +72,12 @@ scripts.build = "sphinx-build -M html docs docs/_build"
 scripts.clean = "git clean -fdX docs"
 
 [tool.hatch.envs.hatch-test]
-features = [ "test" ]
+features = [ "test-min" ]
 extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
+  { if = [ "default", "full" ], value = "test" },
 ]
 overrides.matrix.extras.dependencies = [
   { if = [ "full" ], value = "scipy-stubs" },
@@ -80,7 +85,7 @@ overrides.matrix.extras.dependencies = [
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [ "3.13", "3.12", "3.11" ]
-extras = [ "full", "min" ]
+extras = [ "full", "default", "min" ]
 
 [tool.ruff]
 line-length = 100
@@ -125,9 +130,14 @@ addopts = [
   "--import-mode=importlib",
   "--strict-markers",
   "--doctest-modules",
+  "--doctest-plus",
   "--pyargs",
 ]
 testpaths = [ "./tests", "fast_array_utils" ]
+doctest_subpackage_requires = [
+  "src/fast_array_utils/conv/scipy/* = scipy",
+  "src/fast_array_utils/stats/* = numba",
+]
 filterwarnings = [
   "error",
   # codspeed seems to break this dtype added by h5py

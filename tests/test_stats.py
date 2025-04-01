@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
@@ -33,6 +34,9 @@ if TYPE_CHECKING:
             axis: Literal[0, 1, None] = None,
             dtype: DTypeOut | None = None,
         ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
+
+
+pytestmark = [pytest.mark.skipif(not find_spec("numba"), reason="numba not installed")]
 
 
 # can’t select these using a category filter
