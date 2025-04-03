@@ -241,7 +241,7 @@ class ArrayType(Generic[Arr, Inner]):
         x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
     ) -> NDArray[np.number[Any]]:
         """Convert to a numpy array."""
-        x = to_dense(x, to_memory=True)
+        x = to_dense(x, to_cpu_memory=True)
         return x if dtype is None else x.astype(dtype)
 
     def _to_dask_array(
@@ -331,7 +331,7 @@ class ArrayType(Generic[Arr, Inner]):
         if isinstance(x, types.CupySpMatrix):
             x = x.get()  # can be a coo_matrix due to dask concatenation
         elif not isinstance(x, types.spmatrix | types.sparray | np.ndarray):
-            x = to_dense(x, to_memory=True)
+            x = to_dense(x, to_cpu_memory=True)
 
         cls = cast("type[types.CSBase]", cls or self.cls)
         return cls(x, dtype=dtype)  # type: ignore[arg-type]
@@ -346,7 +346,7 @@ class ArrayType(Generic[Arr, Inner]):
         if isinstance(x, types.CupySpMatrix):
             x = x.toarray()
         if isinstance(x, types.CSDataset | types.CSBase):
-            x = to_dense(x, to_memory=True)
+            x = to_dense(x, to_cpu_memory=True)
 
         return cu.asarray(x, dtype=None if dtype is None else np.dtype(dtype))
 

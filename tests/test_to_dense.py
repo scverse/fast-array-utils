@@ -26,12 +26,14 @@ WARNS_NUMBA = pytest.warns(
 )
 
 
-@pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
-def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
+@pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
+def test_to_dense(array_type: ArrayType[Array], *, to_cpu_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
-    if not to_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
-        with pytest.raises(ValueError, match="to_memory must be True if x is an CS{R,C}Dataset"):
-            to_dense(x, to_memory=to_memory)
+    if not to_cpu_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
+        with pytest.raises(
+            ValueError, match="to_cpu_memory must be True if x is an CS{R,C}Dataset"
+        ):
+            to_dense(x, to_cpu_memory=to_cpu_memory)
         return
 
     with (
@@ -39,25 +41,25 @@ def test_to_dense(array_type: ArrayType[Array], *, to_memory: bool) -> None:
         if issubclass(array_type.cls, types.CSBase) and not find_spec("numba")
         else nullcontext()
     ):
-        arr = to_dense(x, to_memory=to_memory)
-    assert_expected_cls(x, arr, to_memory=to_memory)
+        arr = to_dense(x, to_cpu_memory=to_cpu_memory)
+    assert_expected_cls(x, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)
 
 
-@pytest.mark.parametrize("to_memory", [True, False], ids=["to_memory", "not_to_memory"])
-def test_to_dense_extra(coo_matrix_type: ArrayType[Array], *, to_memory: bool) -> None:
+@pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
+def test_to_dense_extra(coo_matrix_type: ArrayType[Array], *, to_cpu_memory: bool) -> None:
     src_mtx = coo_matrix_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
     with WARNS_NUMBA if not find_spec("numba") else nullcontext():
-        arr = to_dense(src_mtx, to_memory=to_memory)
-    assert_expected_cls(src_mtx, arr, to_memory=to_memory)
+        arr = to_dense(src_mtx, to_cpu_memory=to_cpu_memory)
+    assert_expected_cls(src_mtx, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)
 
 
-def assert_expected_cls(orig: Array, converted: Array, *, to_memory: bool) -> None:
-    match (to_memory, orig):
+def assert_expected_cls(orig: Array, converted: Array, *, to_cpu_memory: bool) -> None:
+    match (to_cpu_memory, orig):
         case False, types.DaskArray():
             assert isinstance(converted, types.DaskArray)
-            assert_expected_cls(orig._meta, converted._meta, to_memory=to_memory)  # noqa: SLF001
+            assert_expected_cls(orig._meta, converted._meta, to_cpu_memory=to_cpu_memory)  # noqa: SLF001
         case False, types.CupyArray() | types.CupySpMatrix():
             assert isinstance(converted, types.CupyArray)
         case _:

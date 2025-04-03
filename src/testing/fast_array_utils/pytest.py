@@ -13,9 +13,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 from fast_array_utils import types
-from testing.fast_array_utils import ConversionContext
-
-from . import SUPPORTED_TYPES, ArrayType, Flags
+from testing.fast_array_utils import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 
 
 if TYPE_CHECKING:
