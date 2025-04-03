@@ -121,7 +121,7 @@ MODELS = {typ: type(f"{typ.cls.__name__}Model", (CS2DModel,), {}) for typ in TYP
 
 
 def unbox_matrix(typ: CS2DType, obj: CSBase, c: UnboxContext) -> NativeValue:
-    struct_proxy_cls = cast("type[cgutils._StructProxy]", cgutils.create_struct_proxy(typ))  # noqa: SLF001
+    struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder)
 
     data = c.pyapi.object_getattr_string(obj, "data")
@@ -207,7 +207,7 @@ def _sparse_copy(
         args: tuple[CS2DType, nbtypes.Array, nbtypes.Array, nbtypes.Array, nbtypes.UniTuple],
     ) -> NativeValue:
         typ = sig.return_type
-        struct_proxy_cls = cast("type[cgutils._StructProxy]", cgutils.create_struct_proxy(typ))  # noqa: SLF001
+        struct_proxy_cls = cgutils.create_struct_proxy(typ)
         struct = struct_proxy_cls(context, builder)
         _, data, indices, indptr, shape = args
         struct.data = data
