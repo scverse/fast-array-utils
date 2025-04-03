@@ -83,7 +83,7 @@ def _sparse_mean_var(
     )
 
 
-@numba.njit
+@numba.njit(cache=True)
 def sparse_mean_var_minor_axis(
     data: NDArray[np.number[Any]],
     indptr: NDArray[np.integer[Any]],
@@ -115,7 +115,7 @@ def sparse_mean_var_minor_axis(
     return means, variances
 
 
-@numba.njit
+@numba.njit(cache=True)
 def sparse_mean_var_major_axis(
     data: NDArray[np.number[Any]],
     indptr: NDArray[np.integer[Any]],
