@@ -49,9 +49,9 @@ def to_dense(x: types.spmatrix | types.sparray, order: Literal["C", "F"] = "C") 
 
     out = np.zeros(x.shape, dtype=x.dtype, order=order)
     if x.format == "csr":
-        _to_dense_csr_numba(x.indptr, x.indices, x.data, out)
+        _to_dense_csr_numba(x, out)
     elif x.format == "csc":
-        _to_dense_csc_numba(x.indptr, x.indices, x.data, out)
+        _to_dense_csc_numba(x, out)
     else:  # pragma: no cover
         out = x.toarray(order=order)
     return out

@@ -12,29 +12,21 @@ if TYPE_CHECKING:
     import numpy as np
     from numpy.typing import NDArray
 
+    from fast_array_utils.types import CSBase
+
 
 __all__ = ["_to_dense_csc_numba", "_to_dense_csr_numba"]
 
 
 @numba.njit(cache=True)
-def _to_dense_csc_numba(
-    indptr: NDArray[np.integer[Any]],
-    indices: NDArray[np.integer[Any]],
-    data: NDArray[np.number[Any]],
-    x: NDArray[np.number[Any]],
-) -> None:
-    for c in numba.prange(x.shape[1]):
-        for i in range(indptr[c], indptr[c + 1]):
-            x[indices[i], c] = data[i]
+def _to_dense_csc_numba(x: CSBase, out: NDArray[np.number[Any]]) -> None:
+    for c in numba.prange(out.shape[1]):
+        for i in range(x.indptr[c], x.indptr[c + 1]):
+            out[x.indices[i], c] = x.data[i]
 
 
 @numba.njit(cache=True)
-def _to_dense_csr_numba(
-    indptr: NDArray[np.integer[Any]],
-    indices: NDArray[np.integer[Any]],
-    data: NDArray[np.number[Any]],
-    x: NDArray[np.number[Any]],
-) -> None:
-    for r in numba.prange(x.shape[0]):
-        for i in range(indptr[r], indptr[r + 1]):
-            x[r, indices[i]] = data[i]
+def _to_dense_csr_numba(x: CSBase, out: NDArray[np.number[Any]]) -> None:
+    for r in numba.prange(out.shape[0]):
+        for i in range(x.indptr[r], x.indptr[r + 1]):
+            out[r, x.indices[i]] = x.data[i]
