@@ -15,11 +15,10 @@
 
 from __future__ import annotations
 
-from . import conv, stats, types
-from ._plugins import dask, numba_sparse
+from . import _plugins, conv, stats, types
 
 
 __all__ = ["conv", "stats", "types"]
 
-dask.patch()
-numba_sparse.register()
+_plugins.patch_dask()
+_plugins.register_numba_sparse()
