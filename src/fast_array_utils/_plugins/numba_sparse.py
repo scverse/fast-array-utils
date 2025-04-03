@@ -193,12 +193,12 @@ def overload_sparse_ndim(inst: nbtypes.Type) -> None | Callable[[CS2DType], Lite
 
 @intrinsic
 def _sparse_copy(
-    typingctx,
+    typingctx: object,  # noqa: ARG001
     inst: CS2DType,
-    data: nbtypes.Array,
-    indices: nbtypes.Array,
-    indptr: nbtypes.Array,
-    shape: nbtypes.UniTuple,
+    data: nbtypes.Array,  # noqa: ARG001
+    indices: nbtypes.Array,  # noqa: ARG001
+    indptr: nbtypes.Array,  # noqa: ARG001
+    shape: nbtypes.UniTuple,  # noqa: ARG001
 ) -> tuple[Signature, Callable[..., NativeValue]]:
     def _construct(
         context: BaseContext,
