@@ -6,7 +6,7 @@ import numpy as np
 
 # TODO(flying-sheep): upstream
 # https://github.com/dask/dask/issues/11749
-def patch_dask() -> None:  # pragma: no cover
+def patch() -> None:  # pragma: no cover
     """Patch dask to support sparse arrays.
 
     See <https://github.com/dask/dask/blob/4d71629d1f22ced0dd780919f22e70a642ec6753/dask/array/backends.py#L212-L232>

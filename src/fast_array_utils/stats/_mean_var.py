@@ -11,7 +11,7 @@ from ._power import power
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal
+    from typing import Literal
 
     from numpy.typing import NDArray
 
@@ -74,38 +74,34 @@ def _sparse_mean_var(
         raise TypeError(msg)
     f = sparse_mean_var_major_axis if axis == ax_minor else sparse_mean_var_minor_axis
     return f(
-        mtx.data,
-        mtx.indptr,
-        mtx.indices,
+        mtx,
         major_len=shape[0],
         minor_len=shape[1],
         n_threads=numba.get_num_threads(),
     )
 
 
-@numba.njit
+@numba.njit(cache=True)
 def sparse_mean_var_minor_axis(
-    data: NDArray[np.number[Any]],
-    indptr: NDArray[np.integer[Any]],
-    indices: NDArray[np.integer[Any]],
+    x: types.CSBase,
     *,
     major_len: int,
     minor_len: int,
     n_threads: int,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Compute mean and variance along the minor axis of a compressed sparse matrix."""
-    rows = len(indptr) - 1
+    rows = len(x.indptr) - 1
     sums = np.zeros((n_threads, minor_len))
     squared_sums = np.zeros((n_threads, minor_len))
     means = np.zeros(minor_len)
     variances = np.zeros(minor_len)
     for i in numba.prange(n_threads):
         for r in range(i, rows, n_threads):
-            for j in range(indptr[r], indptr[r + 1]):
-                minor_index = indices[j]
+            for j in range(x.indptr[r], x.indptr[r + 1]):
+                minor_index = x.indices[j]
                 if minor_index >= minor_len:
                     continue
-                value = data[j]
+                value = x.data[j]
                 sums[i, minor_index] += value
                 squared_sums[i, minor_index] += value * value
     for c in numba.prange(minor_len):
@@ -115,18 +111,16 @@ def sparse_mean_var_minor_axis(
     return means, variances
 
 
-@numba.njit
+@numba.njit(cache=True)
 def sparse_mean_var_major_axis(
-    data: NDArray[np.number[Any]],
-    indptr: NDArray[np.integer[Any]],
-    indices: NDArray[np.integer[Any]],  # noqa: ARG001
+    x: types.CSBase,
     *,
     major_len: int,
     minor_len: int,
     n_threads: int,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Compute means and variances along the major axis of a compressed sparse matrix."""
-    rows = len(indptr) - 1
+    rows = len(x.indptr) - 1
     means = np.zeros(major_len)
     variances = np.zeros_like(means)
 
@@ -134,8 +128,8 @@ def sparse_mean_var_major_axis(
         for r in range(i, rows, n_threads):
             sum_major = np.float64(0.0)
             squared_sum_minor = np.float64(0.0)
-            for j in range(indptr[r], indptr[r + 1]):
-                value = np.float64(data[j])
+            for j in range(x.indptr[r], x.indptr[r + 1]):
+                value = np.float64(x.data[j])
                 sum_major += value
                 squared_sum_minor += value * value
             means[r] = sum_major
