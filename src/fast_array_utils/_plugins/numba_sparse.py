@@ -26,7 +26,7 @@ from scipy import sparse
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, ClassVar, Literal
+    from typing import Any, ClassVar
 
     from llvmlite.ir import IRBuilder, Value
     from numba.core.base import BaseContext
@@ -157,7 +157,7 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
 
 
 @overload(np.shape)
-def overload_sparse_shape(x: nbtypes.Type) -> None | Callable[[CS2DType], nbtypes.UniTuple]:
+def overload_sparse_shape(x: CS2DType) -> None | Callable[[CS2DType], nbtypes.UniTuple]:
     if not isinstance(x, CS2DType):  # pragma: no cover
         return None
 
@@ -168,12 +168,12 @@ def overload_sparse_shape(x: nbtypes.Type) -> None | Callable[[CS2DType], nbtype
 
 
 @overload_attribute(CS2DType, "ndim")
-def overload_sparse_ndim(inst: nbtypes.Type) -> None | Callable[[CS2DType], Literal[2]]:
+def overload_sparse_ndim(inst: CS2DType) -> None | Callable[[CS2DType], int]:
     if not isinstance(inst, CS2DType):  # pragma: no cover
         return None
 
-    def ndim(_: CS2DType) -> Literal[2]:
-        return 2
+    def ndim(inst: CS2DType) -> int:
+        return len(inst.shape)
 
     return ndim
 
