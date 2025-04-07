@@ -146,7 +146,10 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> CSBase:
     c.pyapi.incref(shape_obj)
 
     cls_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.instance_class))
-    obj = c.pyapi.call_function_objargs(cls_obj, (data_obj, indices_obj, indptr_obj, shape_obj))
+    obj = cast(
+        "CSBase",
+        c.pyapi.call_function_objargs(cls_obj, (data_obj, indices_obj, indptr_obj, shape_obj)),
+    )
 
     c.pyapi.decref(data_obj)
     c.pyapi.decref(indices_obj)

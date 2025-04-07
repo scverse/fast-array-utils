@@ -155,7 +155,7 @@ class ArrayType(Generic[Arr, Inner]):
         self,
         shape: tuple[int, int],
         *,
-        dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None,
+        dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None = None,
         gen: np.random.Generator | None = None,
         # sparse only
         density: float | np.floating[Any] = 0.01,

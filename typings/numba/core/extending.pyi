@@ -7,7 +7,7 @@ from llvmlite.ir import Constant, Instruction, IRBuilder, Value  # type: ignore[
 from numba.core.base import BaseContext  # type: ignore[import-untyped]
 from numba.core.datamodel import models
 from numba.core.datamodel import register_default as register_model
-from numba.core.pythonapi import PythonAPI  # type: ignore[import-untyped]
+from numba.core.pythonapi import PythonAPI
 from numba.core.types import Type
 from numba.core.typing.templates import Signature  # type: ignore[import-untyped]
 from numba.core.typing.typeof import typeof_impl
