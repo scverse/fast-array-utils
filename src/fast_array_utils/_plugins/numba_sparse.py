@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+import numba.core.types as nbtypes
 import numpy as np
 from numba.core import cgutils
-from numba.core import types as nbtypes
 from numba.core.imputils import impl_ret_borrowed
 from numba.extending import (
     NativeValue,
     box,
     intrinsic,
     make_attribute_wrapper,
+    models,
     overload,
     overload_attribute,
     overload_method,
@@ -24,38 +25,17 @@ from scipy import sparse
 
 
 if TYPE_CHECKING:
-    from numba.core.datamodel import new_models as models
-else:
-    from numba.extending import models
-
-
-if TYPE_CHECKING:
     from collections.abc import Callable
-    from functools import _SingleDispatchCallable
-    from typing import Any, ClassVar, Literal, Protocol
+    from typing import Any, ClassVar, Literal
 
     from llvmlite.ir import IRBuilder
     from numba.core.base import BaseContext
-    from numba.core.pythonapi import PythonAPI
+    from numba.core.extending import BoxContext, TypingContext, UnboxContext
     from numba.core.typing.templates import Signature
     from numba.core.typing.typeof import _TypeofContext
-    from numpy.typing import DTypeLike, NDArray
+    from numpy.typing import NDArray
 
     from fast_array_utils.types import CSBase
-
-    class _Context(Protocol):
-        # https://numba.readthedocs.io/en/stable/extending/low-level.html#boxing-and-unboxing
-        context: BaseContext
-        builder: IRBuilder
-        pyapi: PythonAPI
-
-    class BoxContext(_Context):
-        env_manager: object
-
-        def box(self, typ: nbtypes.Type, val: NativeValue) -> object: ...
-
-    class UnboxContext(_Context):
-        def unbox(self, typ: nbtypes.Type, obj: object) -> NativeValue: ...
 
 
 class CS2DType(nbtypes.Type):
@@ -74,7 +54,7 @@ class CS2DType(nbtypes.Type):
     ) -> CSBase:
         return cls.cls((data, indices, indptr), shape, copy=False)
 
-    def __init__(self, dtype: DTypeLike) -> None:
+    def __init__(self, dtype: nbtypes.Type) -> None:
         self.dtype = nbtypes.DType(dtype)
         self.data = nbtypes.Array(dtype, 1, "A")
         self.indices = nbtypes.Array(nbtypes.int32, 1, "A")
@@ -83,7 +63,7 @@ class CS2DType(nbtypes.Type):
         super().__init__(self.name)
 
     @property
-    def key(self) -> tuple[str, np.dtype[np.number[Any]]]:
+    def key(self) -> tuple[str, nbtypes.DType]:
         return (self.name, self.dtype)
 
 
@@ -101,7 +81,7 @@ def make_typeof_fn(typ: type[CS2DType]) -> Callable[[CSBase, _TypeofContext], CS
     return typeof
 
 
-class CS2DModel(models.StructModel):
+class CS2DModel(models.StructModel[CS2DType]):
     def __init__(self, dmm: object, fe_type: CS2DType) -> None:
         members = [
             ("data", fe_type.data),
@@ -113,7 +93,7 @@ class CS2DModel(models.StructModel):
 
 
 CLASSES = [sparse.csr_matrix, sparse.csc_matrix, sparse.csr_array, sparse.csc_array]
-TYPES = [
+TYPES: list[type[CS2DType]] = [
     type(f"{cls.__name__}Type", (CS2DType,), {"cls": cls, "name": cls.__name__}) for cls in CLASSES
 ]
 TYPEOF_FUNCS = {typ.cls: make_typeof_fn(typ) for typ in TYPES}
@@ -193,7 +173,7 @@ def overload_sparse_ndim(inst: nbtypes.Type) -> None | Callable[[CS2DType], Lite
 
 @intrinsic
 def _sparse_copy(
-    typingctx: object,  # noqa: ARG001
+    typingctx: TypingContext,  # noqa: ARG001
     inst: CS2DType,
     data: nbtypes.Array,  # noqa: ARG001
     indices: nbtypes.Array,  # noqa: ARG001
@@ -241,7 +221,7 @@ def overload_sparse_copy(inst: nbtypes.Type) -> None | Callable[[CS2DType], CS2D
 
 def register() -> None:
     for cls, func in TYPEOF_FUNCS.items():
-        cast("_SingleDispatchCallable", typeof_impl).register(cls, func)
+        typeof_impl.register(cls, func)
     for typ, model in MODELS.items():
         register_model(typ)(model)
         unbox(typ)(unbox_matrix)
