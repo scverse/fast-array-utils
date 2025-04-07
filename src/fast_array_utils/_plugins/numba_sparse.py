@@ -75,7 +75,7 @@ make_attribute_wrapper(CS2DType, "shape", "shape")
 
 def make_typeof_fn(typ: type[CS2DType]) -> Callable[[CSBase, _TypeofContext], CS2DType]:
     def typeof(val: CSBase, c: _TypeofContext) -> CS2DType:
-        data = cast("CS2DType", typeof_impl(val.data, c))
+        data = cast("nbtypes.Array", typeof_impl(val.data, c))
         return typ(data.dtype)
 
     return typeof
