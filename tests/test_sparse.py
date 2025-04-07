@@ -70,6 +70,6 @@ def test_to_dense_benchmark(
     order: Literal["C", "F"],
     dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
 ) -> None:
-    mat = array_type.random((1_000, 1_000), dtype=dtype)
+    mat = array_type.random((10_000, 10_000), dtype=dtype)
     to_dense(mat, order=order)  # warmup: numba compile
     benchmark(to_dense, mat, order=order)
