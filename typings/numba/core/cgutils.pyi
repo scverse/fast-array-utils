@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 from llvmlite.ir import Constant, IRBuilder, Value
 from numba.core.base import BaseContext
 from numba.core.extending import NativeValue

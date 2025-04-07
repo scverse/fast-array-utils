@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 from collections.abc import Iterable
 
 from llvmlite.ir import IRBuilder, Value

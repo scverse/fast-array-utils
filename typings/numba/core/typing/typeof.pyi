@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 from enum import Enum
 from functools import singledispatch
 

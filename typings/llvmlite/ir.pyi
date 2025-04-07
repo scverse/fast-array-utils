@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 class IRBuilder:
     def load(self, value: Value) -> Value: ...
 

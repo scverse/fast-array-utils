@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 from typing import Generic, TypeVar
 
 from numba.core.types import Type

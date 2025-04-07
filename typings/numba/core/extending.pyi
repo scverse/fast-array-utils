@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 import typing
 from collections.abc import Callable
 from dataclasses import dataclass
