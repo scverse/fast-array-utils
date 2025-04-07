@@ -1,4 +1,4 @@
-from llvmlite.ir import IRBuilder, Value  # type: ignore[import-untyped]
+from llvmlite.ir import IRBuilder, Value
 from numba.core.base import BaseContext
 from numba.core.extending import NativeValue
 from numba.core.types import Type

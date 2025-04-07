@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numba
 import numpy as np
 import pytest
 
-from fast_array_utils.types import CSBase
-from testing.fast_array_utils._array_type import ArrayType, Flags
+from testing.fast_array_utils._array_type import Flags
+
+
+if TYPE_CHECKING:
+    from fast_array_utils.types import CSBase
+    from testing.fast_array_utils._array_type import ArrayType
 
 
 @numba.njit(cache=True)

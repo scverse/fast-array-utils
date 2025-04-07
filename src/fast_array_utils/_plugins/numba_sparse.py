@@ -28,10 +28,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, ClassVar, Literal
 
-    from llvmlite.ir import IRBuilder  # type: ignore[import-untyped]
-    from numba.core.base import BaseContext  # type: ignore[import-untyped]
+    from llvmlite.ir import IRBuilder, Value
+    from numba.core.base import BaseContext
     from numba.core.extending import BoxContext, TypingContext, UnboxContext
-    from numba.core.typing.templates import Signature  # type: ignore[import-untyped]
+    from numba.core.typing.templates import Signature
     from numba.core.typing.typeof import _TypeofContext
     from numpy.typing import NDArray
 
@@ -106,7 +106,7 @@ TYPEOF_FUNCS = {typ.cls: make_typeof_fn(typ) for typ in TYPES}
 MODELS = {typ: type(f"{typ.cls.__name__}Model", (CS2DModel,), {}) for typ in TYPES}
 
 
-def unbox_matrix(typ: CS2DType, obj: CSBase, c: UnboxContext) -> NativeValue:
+def unbox_matrix(typ: CS2DType, obj: Value, c: UnboxContext) -> NativeValue:
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder)
 
@@ -131,7 +131,7 @@ def unbox_matrix(typ: CS2DType, obj: CSBase, c: UnboxContext) -> NativeValue:
     return NativeValue(struct_ptr._getvalue(), is_error=is_error)  # noqa: SLF001
 
 
-def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> CSBase:
+def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder, value=val)
 
@@ -146,10 +146,7 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> CSBase:
     c.pyapi.incref(shape_obj)
 
     cls_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.instance_class))
-    obj = cast(
-        "CSBase",
-        c.pyapi.call_function_objargs(cls_obj, (data_obj, indices_obj, indptr_obj, shape_obj)),
-    )
+    obj = c.pyapi.call_function_objargs(cls_obj, (data_obj, indices_obj, indptr_obj, shape_obj))
 
     c.pyapi.decref(data_obj)
     c.pyapi.decref(indices_obj)
@@ -194,10 +191,9 @@ def _sparse_copy(
         context: BaseContext,
         builder: IRBuilder,
         sig: Signature,
-        args: tuple[CS2DType, nbtypes.Array, nbtypes.Array, nbtypes.Array, nbtypes.UniTuple],
+        args: tuple[Value, Value, Value, Value, Value],
     ) -> NativeValue:
-        typ = sig.return_type
-        struct_proxy_cls = cgutils.create_struct_proxy(typ)
+        struct_proxy_cls = cgutils.create_struct_proxy(sig.return_type)
         struct = struct_proxy_cls(context, builder)
         _, data, indices, indptr, shape = args
         struct.data = data
@@ -217,15 +213,14 @@ def _sparse_copy(
 
 
 @overload_method(CS2DType, "copy")
-def overload_sparse_copy(inst: nbtypes.Type) -> None | Callable[[CS2DType], CS2DType]:
+def overload_sparse_copy(inst: CS2DType) -> None | Callable[[CS2DType], CS2DType]:
     if not isinstance(inst, CS2DType):
         return None
 
     def copy(inst: CS2DType) -> CS2DType:
-        rv = _sparse_copy(
+        return _sparse_copy(
             inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
-        )
-        return cast("CS2DType", rv)
+        )  # type: ignore[return-value]
 
     return copy
 
