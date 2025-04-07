@@ -20,6 +20,28 @@ if TYPE_CHECKING:
 
 
 @numba.njit(cache=True)
+def mat_ndim(mat: CSBase) -> int:
+    return mat.ndim
+
+
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
+def test_ndim(array_type: ArrayType[CSBase, None]) -> None:
+    mat = array_type.random((10, 10), density=0.1)
+    assert mat_ndim(mat) == mat.ndim
+
+
+@numba.njit(cache=True)
+def mat_shape(mat: CSBase) -> tuple[int, ...]:
+    return mat.shape
+
+
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
+def test_shape(array_type: ArrayType[CSBase, None]) -> None:
+    mat = array_type.random((10, 10), density=0.1)
+    assert mat_shape(mat) == mat.shape
+
+
+@numba.njit(cache=True)
 def copy_mat(mat: CSBase) -> CSBase:
     return mat.copy()
 

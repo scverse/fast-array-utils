@@ -158,7 +158,7 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
 
 @overload(np.shape)
 def overload_sparse_shape(x: nbtypes.Type) -> None | Callable[[CS2DType], nbtypes.UniTuple]:
-    if not isinstance(x, CS2DType):
+    if not isinstance(x, CS2DType):  # pragma: no cover
         return None
 
     def shape(x: CS2DType) -> nbtypes.UniTuple:
@@ -169,7 +169,7 @@ def overload_sparse_shape(x: nbtypes.Type) -> None | Callable[[CS2DType], nbtype
 
 @overload_attribute(CS2DType, "ndim")
 def overload_sparse_ndim(inst: nbtypes.Type) -> None | Callable[[CS2DType], Literal[2]]:
-    if not isinstance(inst, CS2DType):
+    if not isinstance(inst, CS2DType):  # pragma: no cover
         return None
 
     def ndim(_: CS2DType) -> Literal[2]:
@@ -214,7 +214,7 @@ def _sparse_copy(
 
 @overload_method(CS2DType, "copy")
 def overload_sparse_copy(inst: CS2DType) -> None | Callable[[CS2DType], CS2DType]:
-    if not isinstance(inst, CS2DType):
+    if not isinstance(inst, CS2DType):  # pragma: no cover
         return None
 
     def copy(inst: CS2DType) -> CS2DType:
