@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # See <https://numba.readthedocs.io/en/stable/reference/types.html#numba-types>
 
-from typing import Literal, TypeAlias
+from typing import Literal, Self, TypeAlias
 
 class Type:
     def __init__(self, name: str) -> None: ...
@@ -43,6 +43,12 @@ class ArrayCompatible(Type): ...
 class Buffer(IterableType, ArrayCompatible):
     Layout: TypeAlias = Literal["C", "F", "CS", "FS", "A"]
     LAYOUTS: frozenset[Layout]
+    def copy(
+        self,
+        dtype: Type | type[Type] | None = None,
+        ndim: int | None = None,
+        layout: Layout | None = None,
+    ) -> Self: ...
 
 class Array(Buffer):
     def __init__(

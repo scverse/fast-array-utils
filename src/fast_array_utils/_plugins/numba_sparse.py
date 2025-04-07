@@ -28,10 +28,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, ClassVar, Literal
 
-    from llvmlite.ir import IRBuilder
-    from numba.core.base import BaseContext
+    from llvmlite.ir import IRBuilder  # type: ignore[import-untyped]
+    from numba.core.base import BaseContext  # type: ignore[import-untyped]
     from numba.core.extending import BoxContext, TypingContext, UnboxContext
-    from numba.core.typing.templates import Signature
+    from numba.core.typing.templates import Signature  # type: ignore[import-untyped]
     from numba.core.typing.typeof import _TypeofContext
     from numpy.typing import NDArray
 
@@ -75,13 +75,19 @@ make_attribute_wrapper(CS2DType, "shape", "shape")
 
 def make_typeof_fn(typ: type[CS2DType]) -> Callable[[CSBase, _TypeofContext], CS2DType]:
     def typeof(val: CSBase, c: _TypeofContext) -> CS2DType:
-        data = typeof_impl(val.data, c)
+        data = cast("CS2DType", typeof_impl(val.data, c))
         return typ(data.dtype)
 
     return typeof
 
 
-class CS2DModel(models.StructModel[CS2DType]):
+if TYPE_CHECKING:
+    _Base = models.StructModel[CS2DType]
+else:
+    _Base = models.StructModel
+
+
+class CS2DModel(_Base):
     def __init__(self, dmm: object, fe_type: CS2DType) -> None:
         members = [
             ("data", fe_type.data),
@@ -101,7 +107,7 @@ MODELS = {typ: type(f"{typ.cls.__name__}Model", (CS2DModel,), {}) for typ in TYP
 
 
 def unbox_matrix(typ: CS2DType, obj: CSBase, c: UnboxContext) -> NativeValue:
-    struct_proxy_cls = cast("type[cgutils._StructProxy]", cgutils.create_struct_proxy(typ))  # noqa: SLF001
+    struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder)
 
     data = c.pyapi.object_getattr_string(obj, "data")
@@ -126,7 +132,8 @@ def unbox_matrix(typ: CS2DType, obj: CSBase, c: UnboxContext) -> NativeValue:
 
 
 def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> CSBase:
-    struct_ptr = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+    struct_proxy_cls = cgutils.create_struct_proxy(typ)
+    struct_ptr = struct_proxy_cls(c.context, c.builder, value=val)
 
     data_obj = c.box(typ.data, struct_ptr.data)
     indices_obj = c.box(typ.indices, struct_ptr.indices)
@@ -187,7 +194,7 @@ def _sparse_copy(
         args: tuple[CS2DType, nbtypes.Array, nbtypes.Array, nbtypes.Array, nbtypes.UniTuple],
     ) -> NativeValue:
         typ = sig.return_type
-        struct_proxy_cls = cast("type[cgutils._StructProxy]", cgutils.create_struct_proxy(typ))  # noqa: SLF001
+        struct_proxy_cls = cgutils.create_struct_proxy(typ)
         struct = struct_proxy_cls(context, builder)
         _, data, indices, indptr, shape = args
         struct.data = data
@@ -212,9 +219,10 @@ def overload_sparse_copy(inst: nbtypes.Type) -> None | Callable[[CS2DType], CS2D
         return None
 
     def copy(inst: CS2DType) -> CS2DType:
-        return _sparse_copy(
+        rv = _sparse_copy(
             inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
         )
+        return cast("CS2DType", rv)
 
     return copy
 
