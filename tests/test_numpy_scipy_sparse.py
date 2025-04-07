@@ -3,11 +3,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numba
 import numpy as np
 import pytest
 
 from testing.fast_array_utils._array_type import Flags
+
+
+pytest.importorskip("numba")
+
+import numba
 
 
 if TYPE_CHECKING:
