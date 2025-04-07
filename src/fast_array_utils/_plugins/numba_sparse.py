@@ -161,7 +161,8 @@ def overload_sparse_shape(x: CS2DType) -> None | Callable[[CS2DType], nbtypes.Un
     if not isinstance(x, CS2DType):  # pragma: no cover
         return None
 
-    def shape(x: CS2DType) -> nbtypes.UniTuple:
+    # nopython code:
+    def shape(x: CS2DType) -> nbtypes.UniTuple:  # pragma: no cover
         return x.shape
 
     return shape
@@ -172,7 +173,8 @@ def overload_sparse_ndim(inst: CS2DType) -> None | Callable[[CS2DType], int]:
     if not isinstance(inst, CS2DType):  # pragma: no cover
         return None
 
-    def ndim(inst: CS2DType) -> int:
+    # nopython code:
+    def ndim(inst: CS2DType) -> int:  # pragma: no cover
         return len(inst.shape)
 
     return ndim
@@ -217,7 +219,8 @@ def overload_sparse_copy(inst: CS2DType) -> None | Callable[[CS2DType], CS2DType
     if not isinstance(inst, CS2DType):  # pragma: no cover
         return None
 
-    def copy(inst: CS2DType) -> CS2DType:
+    # nopython code:
+    def copy(inst: CS2DType) -> CS2DType:  # pragma: no cover
         return _sparse_copy(
             inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
         )  # type: ignore[return-value]
