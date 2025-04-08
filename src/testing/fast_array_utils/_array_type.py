@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import KW_ONLY, dataclass, field
-from functools import cached_property
+from functools import cached_property, partial
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
@@ -42,6 +42,9 @@ if TYPE_CHECKING:
 
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
+    _DTypeLikeInt32 = np.dtype[np.int32] | type[np.int32]
+    _DTypeLikeIn64 = np.dtype[np.int64] | type[np.int64]
+    _DTypeLikeNum = _DTypeLikeFloat32 | _DTypeLikeFloat64 | _DTypeLikeInt32 | _DTypeLikeIn64
 else:
     Arr = TypeVar("Arr")
     Inner = TypeVar("Inner")
@@ -155,7 +158,7 @@ class ArrayType(Generic[Arr, Inner]):
         self,
         shape: tuple[int, int],
         *,
-        dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None = None,
+        dtype: _DTypeLikeNum | None = None,
         gen: np.random.Generator | None = None,
         # sparse only
         density: float | np.floating[Any] = 0.01,
@@ -165,7 +168,7 @@ class ArrayType(Generic[Arr, Inner]):
 
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
-                return cast("Arr", gen.random(shape, dtype=dtype or np.float64))
+                return cast("Arr", random_array(shape, dtype=dtype, rng=gen))
             case "scipy.sparse", (
                 "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
             ) as cls_name, None:
@@ -179,7 +182,7 @@ class ArrayType(Generic[Arr, Inner]):
                     ),
                 )
             case "cupy", "ndarray", None:
-                return self(gen.random(shape, dtype=dtype or np.float64))
+                return self(random_array(shape, dtype=dtype, rng=gen))
             case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix") as cls_name, None:
                 import cupy as cu
 
@@ -363,12 +366,28 @@ class ArrayType(Generic[Arr, Inner]):
         return self.cls(x)  # type: ignore[call-arg,arg-type, return-value]
 
 
+def random_array(
+    shape: tuple[int, int],
+    *,
+    dtype: _DTypeLikeNum | None = None,
+    rng: np.random.Generator | None = None,
+) -> Array:
+    """Create a random array."""
+    rng = np.random.default_rng(rng)
+    f = (
+        partial(rng.integers, 0, 10_000)
+        if dtype is not None and np.dtype(dtype).kind in "iu"
+        else rng.random
+    )
+    return f(shape, dtype=dtype)  # type: ignore[arg-type]
+
+
 def random_mat(
     shape: tuple[int, int],
     *,
     density: float | np.floating[Any] = 0.01,
     format: Literal["csr", "csc"] = "csr",  # noqa: A002
-    dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64 | None = None,
+    dtype: _DTypeLikeNum | None = None,
     container: Literal["array", "matrix"] = "array",
     rng: np.random.Generator | None = None,
 ) -> types.CSBase:
