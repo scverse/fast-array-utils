@@ -67,10 +67,8 @@ class CS2DType(nbtypes.Type):
         return (self.name, self.dtype)
 
 
-make_attribute_wrapper(CS2DType, "data", "data")
-make_attribute_wrapper(CS2DType, "indices", "indices")
-make_attribute_wrapper(CS2DType, "indptr", "indptr")
-make_attribute_wrapper(CS2DType, "shape", "shape")
+for attr in ["data", "indices", "indptr, "shape"]:
+    make_attribute_wrapper(CS2DType, attr, attr)
 
 
 def make_typeof_fn(typ: type[CS2DType]) -> Callable[[CSBase, _TypeofContext], CS2DType]:
