@@ -207,7 +207,7 @@ def test_stats_benchmark(
     axis: Literal[0, 1, None],
     dtype: type[np.float32 | np.float64],
 ) -> None:
-    density = 0.1 if func is stats.is_constant and is_along_major_axis(array_type, axis) else 0.01
+    density = 0.1 if func is stats.is_constant and reduces_major_axis(array_type, axis) else 0.01
 
     shape = (10_000, 10_000) if "sparse" in array_type.mod else (1000, 1000)
     arr = array_type.random(shape, dtype=dtype, density=density)
@@ -216,7 +216,8 @@ def test_stats_benchmark(
     benchmark(func, arr, axis=axis)
 
 
-def is_along_major_axis(array_type: ArrayType[Any], axis: Literal[0, 1, None]) -> bool:
+def reduces_major_axis(array_type: ArrayType[Any], axis: Literal[0, 1, None]) -> bool:
+    """Determine if `array_type` is (or contains) a sparse matrix with major axis `1 - axis`."""
     if axis is None or not (array_type.flags & Flags.Sparse):
         return False
     cls = array_type.inner.cls if array_type.inner else array_type.cls
