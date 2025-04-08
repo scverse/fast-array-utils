@@ -28,7 +28,7 @@ from scipy import sparse
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping, Sequence
     from typing import Any, ClassVar, Literal
 
     from llvmlite.ir import IRBuilder, Value
@@ -42,8 +42,12 @@ if TYPE_CHECKING:
     from fast_array_utils.types import CSBase
 
 
-class CS2DType(nbtypes.Type):
-    """A Numba `Type` modeled after the base class `scipy.sparse.compressed._cs_matrix`."""
+# define numba base type representing compressed sparse matrix classes
+class CSType(nbtypes.Type):
+    """A Numba `Type` modeled after the base class `scipy.sparse.compressed._cs_matrix`.
+
+    This is an abstract base class for the actually used, registered types in `TYPES` below.
+    """
 
     name: ClassVar[Literal["csr_matrix", "csc_matrix", "csr_array", "csc_array"]]
     cls: ClassVar[type[CSBase]]
@@ -58,39 +62,51 @@ class CS2DType(nbtypes.Type):
     ) -> CSBase:
         return cls.cls((data, indices, indptr), shape, copy=False)
 
-    def __init__(self, dtype: nbtypes.Type) -> None:
-        self.dtype = nbtypes.DType(dtype)
-        self.data = nbtypes.Array(dtype, 1, "A")
-        self.indices = nbtypes.Array(nbtypes.int32, 1, "A")
-        self.indptr = nbtypes.Array(nbtypes.int32, 1, "A")
-        self.shape = nbtypes.UniTuple(nbtypes.int64, 2)
+    def __init__(
+        self,
+        ndim: int,
+        *,
+        dtype_data: nbtypes.Type,
+        dtype_indices: nbtypes.Type,
+        dtype_indptr: nbtypes.Type,
+    ) -> None:
+        self.dtype = nbtypes.DType(dtype_data)
+        self.data = nbtypes.Array(dtype_data, 1, "A")
+        self.indices = nbtypes.Array(dtype_indices, 1, "A")
+        self.indptr = nbtypes.Array(dtype_indptr, 1, "A")
+        self.shape = nbtypes.UniTuple(nbtypes.intp, ndim)
         super().__init__(self.name)
 
     @property
-    def key(self) -> tuple[str, nbtypes.DType]:
-        return (self.name, self.dtype)
+    def key(self) -> tuple[str | nbtypes.Type, ...]:
+        return (self.name, self.dtype, self.indices.dtype, self.indptr.dtype)
 
 
+# make data model attributes available in numba functions
 for attr in ["data", "indices", "indptr", "shape"]:
-    make_attribute_wrapper(CS2DType, attr, attr)
+    make_attribute_wrapper(CSType, attr, attr)
 
 
-def make_typeof_fn(typ: type[CS2DType]) -> Callable[[CSBase, _TypeofContext], CS2DType]:
-    def typeof(val: CSBase, c: _TypeofContext) -> CS2DType:
+def make_typeof_fn(typ: type[CSType]) -> Callable[[CSBase, _TypeofContext], CSType]:
+    def typeof(val: CSBase, c: _TypeofContext) -> CSType:
         data = cast("nbtypes.Array", typeof_impl(val.data, c))
-        return typ(data.dtype)
+        indices = cast("nbtypes.Array", typeof_impl(val.indices, c))
+        indptr = cast("nbtypes.Array", typeof_impl(val.indptr, c))
+        return typ(
+            val.ndim, dtype_data=data.dtype, dtype_indices=indices.dtype, dtype_indptr=indptr.dtype
+        )
 
     return typeof
 
 
 if TYPE_CHECKING:
-    _Base = models.StructModel[CS2DType]
+    _Base = models.StructModel[CSType]
 else:
     _Base = models.StructModel
 
 
-class CS2DModel(_Base):
-    def __init__(self, dmm: DataModelManager, fe_type: CS2DType) -> None:
+class CSModel(_Base):
+    def __init__(self, dmm: DataModelManager, fe_type: CSType) -> None:
         members = [
             ("data", fe_type.data),
             ("indices", fe_type.indices),
@@ -100,15 +116,24 @@ class CS2DModel(_Base):
         super().__init__(dmm, fe_type, members)
 
 
-CLASSES = [sparse.csr_matrix, sparse.csc_matrix, sparse.csr_array, sparse.csc_array]
-TYPES: list[type[CS2DType]] = [
-    type(f"{cls.__name__}Type", (CS2DType,), {"cls": cls, "name": cls.__name__}) for cls in CLASSES
+CLASSES: Sequence[type[CSBase]] = [
+    sparse.csr_matrix,
+    sparse.csc_matrix,
+    sparse.csr_array,
+    sparse.csc_array,
 ]
-TYPEOF_FUNCS = {typ.cls: make_typeof_fn(typ) for typ in TYPES}
-MODELS = {typ: type(f"{typ.cls.__name__}Model", (CS2DModel,), {}) for typ in TYPES}
+TYPES: Sequence[type[CSType]] = [
+    type(f"{cls.__name__}Type", (CSType,), {"cls": cls, "name": cls.__name__}) for cls in CLASSES
+]
+TYPEOF_FUNCS: Mapping[type[CSBase], Callable[[CSBase, _TypeofContext], CSType]] = {
+    typ.cls: make_typeof_fn(typ) for typ in TYPES
+}
+MODELS: Mapping[type[CSType], type[CSModel]] = {
+    typ: type(f"{typ.cls.__name__}Model", (CSModel,), {}) for typ in TYPES
+}
 
 
-def unbox_matrix(typ: CS2DType, obj: Value, c: UnboxContext) -> NativeValue:
+def unbox_matrix(typ: CSType, obj: Value, c: UnboxContext) -> NativeValue:
     """Convert a Python cs{rc}_{matrix,array} to a Numba value."""
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder)
@@ -134,7 +159,7 @@ def unbox_matrix(typ: CS2DType, obj: Value, c: UnboxContext) -> NativeValue:
     return NativeValue(struct_ptr._getvalue(), is_error=is_error)  # noqa: SLF001
 
 
-def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
+def box_matrix(typ: CSType, val: NativeValue, c: BoxContext) -> Value:
     """Convert numba value into a Python cs{rc}_{matrix,array}."""
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder, value=val)
@@ -162,24 +187,24 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
 
 # See https://numba.readthedocs.io/en/stable/extending/overloading-guide.html
 @overload(np.shape)
-def overload_sparse_shape(x: CS2DType) -> None | Callable[[CS2DType], nbtypes.UniTuple]:
-    if not isinstance(x, CS2DType):  # pragma: no cover
+def overload_sparse_shape(x: CSType) -> None | Callable[[CSType], nbtypes.UniTuple]:
+    if not isinstance(x, CSType):  # pragma: no cover
         return None
 
     # nopython code:
-    def shape(x: CS2DType) -> nbtypes.UniTuple:  # pragma: no cover
+    def shape(x: CSType) -> nbtypes.UniTuple:  # pragma: no cover
         return x.shape
 
     return shape
 
 
-@overload_attribute(CS2DType, "ndim")
-def overload_sparse_ndim(inst: CS2DType) -> None | Callable[[CS2DType], int]:
-    if not isinstance(inst, CS2DType):  # pragma: no cover
+@overload_attribute(CSType, "ndim")
+def overload_sparse_ndim(inst: CSType) -> None | Callable[[CSType], int]:
+    if not isinstance(inst, CSType):  # pragma: no cover
         return None
 
     # nopython code:
-    def ndim(inst: CS2DType) -> int:  # pragma: no cover
+    def ndim(inst: CSType) -> int:  # pragma: no cover
         return len(inst.shape)
 
     return ndim
@@ -188,7 +213,7 @@ def overload_sparse_ndim(inst: CS2DType) -> None | Callable[[CS2DType], int]:
 @intrinsic
 def _sparse_copy(
     typingctx: TypingContext,  # noqa: ARG001
-    inst: CS2DType,
+    inst: CSType,
     data: nbtypes.Array,  # noqa: ARG001
     indices: nbtypes.Array,  # noqa: ARG001
     indptr: nbtypes.Array,  # noqa: ARG001
@@ -219,13 +244,13 @@ def _sparse_copy(
     return sig, _construct
 
 
-@overload_method(CS2DType, "copy")
-def overload_sparse_copy(inst: CS2DType) -> None | Callable[[CS2DType], CS2DType]:
-    if not isinstance(inst, CS2DType):  # pragma: no cover
+@overload_method(CSType, "copy")
+def overload_sparse_copy(inst: CSType) -> None | Callable[[CSType], CSType]:
+    if not isinstance(inst, CSType):  # pragma: no cover
         return None
 
     # nopython code:
-    def copy(inst: CS2DType) -> CS2DType:  # pragma: no cover
+    def copy(inst: CSType) -> CSType:  # pragma: no cover
         return _sparse_copy(
             inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
         )  # type: ignore[return-value]

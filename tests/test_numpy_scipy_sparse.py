@@ -47,14 +47,24 @@ def copy_mat(mat: CSBase) -> CSBase:
 
 
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
-def test_copy(array_type: ArrayType[CSBase, None]) -> None:
-    mat = array_type.random((10, 10), density=0.1)
+@pytest.mark.parametrize("dtype_data", [np.int32, np.int64])
+@pytest.mark.parametrize("dtype_index", [np.int32, np.int64])
+@pytest.mark.parametrize("dtype_indptr", [np.int32, np.int64])
+def test_copy(
+    array_type: ArrayType[CSBase, None],
+    dtype_data: type[np.int32 | np.int64],
+    dtype_index: type[np.int32 | np.int64],
+    dtype_indptr: type[np.int32 | np.int64],
+) -> None:
+    mat = array_type.random((10, 10), density=0.1, dtype=dtype_data)
+    mat.indices = mat.indices.astype(dtype_index)
+    mat.indptr = mat.indptr.astype(dtype_indptr)
     copied = copy_mat(mat)
     assert mat.data is not copied.data
     assert mat.indices is not copied.indices
     assert mat.indptr is not copied.indptr
     assert mat.shape == copied.shape
-    np.testing.assert_equal(mat.toarray(), copied.toarray())
-    np.testing.assert_equal(mat.data, copied.data)
-    np.testing.assert_equal(mat.indices, copied.indices)
-    np.testing.assert_equal(mat.indptr, copied.indptr)
+    np.testing.assert_equal(mat.toarray(), copied.toarray(), strict=True)
+    np.testing.assert_equal(mat.data, copied.data, strict=True)
+    np.testing.assert_equal(mat.indices, copied.indices, strict=True)
+    np.testing.assert_equal(mat.indptr, copied.indptr, strict=True)
