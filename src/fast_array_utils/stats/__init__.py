@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
+from .._checks import check_dask_sparray_support
 from .._validation import validate_axis
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 
@@ -38,6 +39,7 @@ def is_constant(x: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArra
 def is_constant(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
 
 
+@check_dask_sparray_support
 def is_constant(
     x: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
     /,
@@ -103,6 +105,7 @@ def mean(
 ) -> types.DaskArray: ...
 
 
+@check_dask_sparray_support
 def mean(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
@@ -166,6 +169,7 @@ def mean_var(
 ) -> tuple[types.DaskArray, types.DaskArray]: ...
 
 
+@check_dask_sparray_support
 def mean_var(
     x: CpuArray | GpuArray | types.DaskArray,
     /,
@@ -242,6 +246,7 @@ def sum(
 ) -> types.DaskArray: ...
 
 
+@check_dask_sparray_support
 def sum(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
