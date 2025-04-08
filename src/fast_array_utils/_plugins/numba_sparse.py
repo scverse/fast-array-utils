@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # taken from https://github.com/numba/numba-scipy/blob/release0.4/numba_scipy/sparse.py
+# See https://numba.pydata.org/numba-doc/dev/extending/interval-example.html
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
