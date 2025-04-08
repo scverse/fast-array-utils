@@ -62,24 +62,18 @@ class CSType(nbtypes.Type):
     ) -> CSBase:
         return cls.cls((data, indices, indptr), shape, copy=False)
 
-    def __init__(
-        self,
-        ndim: int,
-        *,
-        dtype_data: nbtypes.Type,
-        dtype_indices: nbtypes.Type,
-        dtype_indptr: nbtypes.Type,
-    ) -> None:
-        self.dtype = nbtypes.DType(dtype_data)
-        self.data = nbtypes.Array(dtype_data, 1, "A")
-        self.indices = nbtypes.Array(dtype_indices, 1, "A")
-        self.indptr = nbtypes.Array(dtype_indptr, 1, "A")
+    def __init__(self, ndim: int, *, dtype: nbtypes.Type, dtype_ind: nbtypes.Type) -> None:
+        self.dtype = nbtypes.DType(dtype)
+        self.dtype_ind = nbtypes.DType(dtype_ind)
+        self.data = nbtypes.Array(dtype, 1, "A")
+        self.indices = nbtypes.Array(dtype_ind, 1, "A")
+        self.indptr = nbtypes.Array(dtype_ind, 1, "A")
         self.shape = nbtypes.UniTuple(nbtypes.intp, ndim)
         super().__init__(self.name)
 
     @property
     def key(self) -> tuple[str | nbtypes.Type, ...]:
-        return (self.name, self.dtype, self.indices.dtype, self.indptr.dtype)
+        return (self.name, self.dtype, self.dtype_ind)
 
 
 # make data model attributes available in numba functions
@@ -88,13 +82,15 @@ for attr in ["data", "indices", "indptr", "shape"]:
 
 
 def make_typeof_fn(typ: type[CSType]) -> Callable[[CSBase, _TypeofContext], CSType]:
+    """Create a `typeof` function that maps a scipy matrix/array type to a numba `Type`."""
+
     def typeof(val: CSBase, c: _TypeofContext) -> CSType:
+        if val.indptr.dtype != val.indices.dtype:
+            msg = "indptr and indices must have the same dtype"
+            raise TypeError(msg)
         data = cast("nbtypes.Array", typeof_impl(val.data, c))
-        indices = cast("nbtypes.Array", typeof_impl(val.indices, c))
         indptr = cast("nbtypes.Array", typeof_impl(val.indptr, c))
-        return typ(
-            val.ndim, dtype_data=data.dtype, dtype_indices=indices.dtype, dtype_indptr=indptr.dtype
-        )
+        return typ(val.ndim, dtype=data.dtype, dtype_ind=indptr.dtype)
 
     return typeof
 
@@ -106,6 +102,11 @@ else:
 
 
 class CSModel(_Base):
+    """Numba data model for compressed sparse matrices.
+
+    This is the class that is used by numba to lower the array types.
+    """
+
     def __init__(self, dmm: DataModelManager, fe_type: CSType) -> None:
         members = [
             ("data", fe_type.data),
@@ -116,6 +117,7 @@ class CSModel(_Base):
         super().__init__(dmm, fe_type, members)
 
 
+# create all the actual types and data models
 CLASSES: Sequence[type[CSBase]] = [
     sparse.csr_matrix,
     sparse.csc_matrix,
