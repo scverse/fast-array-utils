@@ -47,12 +47,12 @@ def copy_mat(mat: CSBase) -> CSBase:
 
 
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
-@pytest.mark.parametrize("dtype_data", [np.int32, np.int64])
-@pytest.mark.parametrize("dtype_index", [np.int32, np.int64])
-@pytest.mark.parametrize("dtype_indptr", [np.int32, np.int64])
+@pytest.mark.parametrize("dtype_indptr", [np.int32, np.int64], ids=["p=32", "p=64"])
+@pytest.mark.parametrize("dtype_index", [np.int32, np.int64], ids=["i=32", "i=64"])
+@pytest.mark.parametrize("dtype_data", [np.int64, np.float64], ids=["d=i64", "d=f64"])
 def test_copy(
     array_type: ArrayType[CSBase, None],
-    dtype_data: type[np.int32 | np.int64],
+    dtype_data: type[np.int64 | np.float64],
     dtype_index: type[np.int32 | np.int64],
     dtype_indptr: type[np.int32 | np.int64],
 ) -> None:
