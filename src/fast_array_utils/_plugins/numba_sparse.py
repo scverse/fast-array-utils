@@ -58,7 +58,7 @@ class CSType(nbtypes.Type):
         data: NDArray[np.number[Any]],
         indices: NDArray[np.integer[Any]],
         indptr: NDArray[np.integer[Any]],
-        shape: tuple[int, int],
+        shape: tuple[int, int],  # actually tuple[int, ...] for sparray subclasses
     ) -> CSBase:
         return cls.cls((data, indices, indptr), shape, copy=False)
 
