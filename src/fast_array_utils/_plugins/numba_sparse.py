@@ -42,11 +42,11 @@ if TYPE_CHECKING:
     from fast_array_utils.types import CSBase
 
 
-# define numba base type representing compressed sparse matrix classes
 class CSType(nbtypes.Type):
     """A Numba `Type` modeled after the base class `scipy.sparse.compressed._cs_matrix`.
 
     This is an abstract base class for the actually used, registered types in `TYPES` below.
+    It collects information about the type (e.g. field dtypes) for later use in the data model.
     """
 
     name: ClassVar[Literal["csr_matrix", "csc_matrix", "csr_array", "csc_array"]]
@@ -96,12 +96,12 @@ def make_typeof_fn(typ: type[CSType]) -> Callable[[CSBase, _TypeofContext], CSTy
 
 
 if TYPE_CHECKING:
-    _Base = models.StructModel[CSType]
+    _CSModelBase = models.StructModel[CSType]
 else:
-    _Base = models.StructModel
+    _CSModelBase = models.StructModel
 
 
-class CSModel(_Base):
+class CSModel(_CSModelBase):
     """Numba data model for compressed sparse matrices.
 
     This is the class that is used by numba to lower the array types.
@@ -261,6 +261,7 @@ def overload_sparse_copy(inst: CSType) -> None | Callable[[CSType], CSType]:
 
 
 def register() -> None:
+    """Register the numba types, data models, and mappings between them and the Python types."""
     for cls, func in TYPEOF_FUNCS.items():
         typeof_impl.register(cls, func)
     for typ, model in MODELS.items():
