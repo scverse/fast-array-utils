@@ -223,4 +223,4 @@ def reduces_major_axis(array_type: ArrayType[Any], axis: Literal[0, 1, None]) ->
     cls = array_type.inner.cls if array_type.inner else array_type.cls
     if not issubclass(cls, types.CSBase):
         return False
-    return (axis == 1) is (cls.format == "csr")
+    return (axis == 0) is (cls.format == "csr")
