@@ -2,7 +2,7 @@
 from collections.abc import Callable
 from typing import TypeVar
 
-from numba.core.types import Type
+from ..types import Type
 
 _F = TypeVar("_F", bound=Callable[..., object])
 

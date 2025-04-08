@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
+"""Numba support for sparse arrays and matrices."""
+
 # taken from https://github.com/numba/numba-scipy/blob/release0.4/numba_scipy/sparse.py
-# See https://numba.pydata.org/numba-doc/dev/extending/interval-example.html
+# See https://numba.pydata.org/numba-doc/dev/extending/
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
@@ -27,10 +29,11 @@ from scipy import sparse
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, ClassVar
+    from typing import Any, ClassVar, Literal
 
     from llvmlite.ir import IRBuilder, Value
     from numba.core.base import BaseContext
+    from numba.core.datamodel.manager import DataModelManager
     from numba.core.extending import BoxContext, TypingContext, UnboxContext
     from numba.core.typing.templates import Signature
     from numba.core.typing.typeof import _TypeofContext
@@ -42,7 +45,7 @@ if TYPE_CHECKING:
 class CS2DType(nbtypes.Type):
     """A Numba `Type` modeled after the base class `scipy.sparse.compressed._cs_matrix`."""
 
-    name: ClassVar[str]
+    name: ClassVar[Literal["csr_matrix", "csc_matrix", "csr_array", "csc_array"]]
     cls: ClassVar[type[CSBase]]
 
     @classmethod
@@ -68,7 +71,7 @@ class CS2DType(nbtypes.Type):
         return (self.name, self.dtype)
 
 
-for attr in ["data", "indices", "indptr, "shape"]:
+for attr in ["data", "indices", "indptr", "shape"]:
     make_attribute_wrapper(CS2DType, attr, attr)
 
 
@@ -87,7 +90,7 @@ else:
 
 
 class CS2DModel(_Base):
-    def __init__(self, dmm: object, fe_type: CS2DType) -> None:
+    def __init__(self, dmm: DataModelManager, fe_type: CS2DType) -> None:
         members = [
             ("data", fe_type.data),
             ("indices", fe_type.indices),
@@ -106,6 +109,7 @@ MODELS = {typ: type(f"{typ.cls.__name__}Model", (CS2DModel,), {}) for typ in TYP
 
 
 def unbox_matrix(typ: CS2DType, obj: Value, c: UnboxContext) -> NativeValue:
+    """Convert a Python cs{rc}_{matrix,array} to a Numba value."""
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder)
 
@@ -131,6 +135,7 @@ def unbox_matrix(typ: CS2DType, obj: Value, c: UnboxContext) -> NativeValue:
 
 
 def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
+    """Convert numba value into a Python cs{rc}_{matrix,array}."""
     struct_proxy_cls = cgutils.create_struct_proxy(typ)
     struct_ptr = struct_proxy_cls(c.context, c.builder, value=val)
 
@@ -155,6 +160,7 @@ def box_matrix(typ: CS2DType, val: NativeValue, c: BoxContext) -> Value:
     return obj
 
 
+# See https://numba.readthedocs.io/en/stable/extending/overloading-guide.html
 @overload(np.shape)
 def overload_sparse_shape(x: CS2DType) -> None | Callable[[CS2DType], nbtypes.UniTuple]:
     if not isinstance(x, CS2DType):  # pragma: no cover
