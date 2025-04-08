@@ -85,7 +85,7 @@ def make_typeof_fn(typ: type[CSType]) -> Callable[[CSBase, _TypeofContext], CSTy
     """Create a `typeof` function that maps a scipy matrix/array type to a numba `Type`."""
 
     def typeof(val: CSBase, c: _TypeofContext) -> CSType:
-        if val.indptr.dtype != val.indices.dtype:
+        if val.indptr.dtype != val.indices.dtype:  # pragma: no cover
             msg = "indptr and indices must have the same dtype"
             raise TypeError(msg)
         data = cast("nbtypes.Array", typeof_impl(val.data, c))
