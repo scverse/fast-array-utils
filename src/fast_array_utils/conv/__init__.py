@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
+from .._checks import check_dask_sparray_support
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 from ._to_dense import to_dense_
 
@@ -47,6 +48,7 @@ def to_dense(
 ) -> NDArray[Any]: ...
 
 
+@check_dask_sparray_support
 def to_dense(
     x: CpuArray
     | GpuArray

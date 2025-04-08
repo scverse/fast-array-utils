@@ -21,6 +21,7 @@ classifiers = [
 dynamic = [ "description", "version" ]
 dependencies = [ "numpy" ]
 optional-dependencies.accel = [ "numba" ]
+optional-dependencies.dask = [ "dask>=2025.3" ]
 optional-dependencies.doc = [
   "furo",
   "pytest",
@@ -29,7 +30,8 @@ optional-dependencies.doc = [
   "sphinx-autodoc-typehints",
   "sphinx-autofixture",
 ]
-optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
+optional-dependencies.full = [ "fast-array-utils[accel,dask,h5py,sparse,zarr]" ]
+optional-dependencies.h5py = [ "h5py" ]
 optional-dependencies.sparse = [ "scipy>=1.8" ]
 optional-dependencies.test = [
   "anndata",
@@ -44,6 +46,7 @@ optional-dependencies.test-min = [
   "pytest-doctestplus",
 ]
 optional-dependencies.testing = [ "packaging" ]
+optional-dependencies.zarr = [ "zarr" ]
 urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
 urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
