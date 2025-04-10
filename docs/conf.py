@@ -73,8 +73,7 @@ nitpick_ignore = [
     ("py:class", "ToDType"),
     ("py:class", "testing.fast_array_utils._array_type.Arr"),
     ("py:class", "testing.fast_array_utils._array_type.Inner"),
-    ("py:class", "_DTypeLikeFloat32"),
-    ("py:class", "_DTypeLikeFloat64"),
+    ("py:class", "_DTypeLikeNum"),
 ]
 
 # Options for HTML output

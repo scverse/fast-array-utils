@@ -68,23 +68,19 @@ def _is_constant_cs(
             a = a.T.tocsr()
         case 1, "csc":
             a = a.T.tocsc()
-    return _is_constant_cs_major(a.data, a.indptr, shape)
+    return _is_constant_cs_major(a, shape)
 
 
 @numba.njit(cache=True)
-def _is_constant_cs_major(
-    data: NDArray[np.number[Any]],
-    indptr: NDArray[np.integer[Any]],
-    shape: tuple[int, int],
-) -> NDArray[np.bool]:
-    n = len(indptr) - 1
+def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np.bool]:
+    n = len(a.indptr) - 1
     result = np.ones(n, dtype=np.bool)
     for i in numba.prange(n):
-        start = indptr[i]
-        stop = indptr[i + 1]
-        val = data[start] if stop - start == shape[1] else 0
+        start = a.indptr[i]
+        stop = a.indptr[i + 1]
+        val = a.data[start] if stop - start == shape[1] else 0
         for j in range(start, stop):
-            if data[j] != val:
+            if a.data[j] != val:
                 result[i] = False
                 break
     return result

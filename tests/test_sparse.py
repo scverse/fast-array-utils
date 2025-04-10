@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from fast_array_utils.types import CSBase
     from testing.fast_array_utils import ArrayType
-    from testing.fast_array_utils._array_type import _DTypeLikeFloat32, _DTypeLikeFloat64
+    from testing.fast_array_utils._array_type import _DTypeLikeNum
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")]
@@ -48,9 +48,7 @@ def dtype(request: pytest.FixtureRequest) -> type[np.float32 | np.float64]:
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_to_dense(
-    array_type: ArrayType[CSBase, None],
-    order: Literal["C", "F"],
-    dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
+    array_type: ArrayType[CSBase, None], order: Literal["C", "F"], dtype: _DTypeLikeNum
 ) -> None:
     mat = array_type.random((10, 10), density=0.1, dtype=dtype)
     with WARNS_NUMBA if not find_spec("numba") else nullcontext():
@@ -68,7 +66,7 @@ def test_to_dense_benchmark(
     benchmark: BenchmarkFixture,
     array_type: ArrayType[CSBase, None],
     order: Literal["C", "F"],
-    dtype: _DTypeLikeFloat32 | _DTypeLikeFloat64,
+    dtype: _DTypeLikeNum,
 ) -> None:
     mat = array_type.random((10_000, 10_000), dtype=dtype)
     to_dense(mat, order=order)  # warmup: numba compile
