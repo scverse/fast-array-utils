@@ -32,7 +32,7 @@ def test_ndim(array_type: ArrayType[types.CSBase, None]) -> None:
 
 @numba.njit(cache=True)
 def mat_shape(mat: types.CSBase) -> tuple[int, ...]:
-    return np.shape(mat)  # type: ignore[arg-type]
+    return np.shape(mat)
 
 
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)

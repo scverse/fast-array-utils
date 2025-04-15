@@ -391,7 +391,7 @@ def random_mat(
     container: Literal["array", "matrix"] = "array",
     rng: np.random.Generator | None = None,
 ) -> types.CSBase:
-    """Create a random matrix."""
+    """Create a random sparse matrix/array."""
     from scipy.sparse import random as random_spmat
     from scipy.sparse import random_array as random_sparr
 
