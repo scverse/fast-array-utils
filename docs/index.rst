@@ -12,3 +12,6 @@
 
 .. automodule:: fast_array_utils
    :members:
+
+.. include:: ../README.rst
+   :start-after: .. begin
