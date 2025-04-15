@@ -1,10 +1,9 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatch-docstring-description", "hatch-vcs", "hatchling" ]
+requires = [ "hatch-docstring-description", "hatch-fancy-pypi-readme", "hatch-vcs", "hatchling" ]
 
 [project]
 name = "fast-array-utils"
-readme = "README.rst"
 license = "MPL-2.0"
 authors = [
   { name = "Philipp A.", email = "flying-sheep@web.de" },
@@ -18,7 +17,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
-dynamic = [ "description", "version" ]
+dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy" ]
 optional-dependencies.accel = [ "numba" ]
 optional-dependencies.doc = [
@@ -54,6 +53,12 @@ entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 [tool.hatch.version]
 source = "vcs"
 raw-options = { local_scheme = "no-local-version" } # be able to publish dev version
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/x-rst"
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.rst"
+start-after = ".. begin"
 
 # TODO: support setting main package in the plugin
 # [tool.hatch.metadata.hooks.docstring-description]
