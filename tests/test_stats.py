@@ -100,7 +100,7 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
-    np.testing.assert_array_equal(sum_, expected)  # type: ignore[arg-type]
+    np.testing.assert_array_equal(sum_, expected)
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
@@ -143,7 +143,7 @@ def test_mean_var(
         mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
     if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
         mean, var = mean.get(), var.get()
-    np.testing.assert_array_equal(mean, mean_expected)  # type: ignore[arg-type]
+    np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
 
