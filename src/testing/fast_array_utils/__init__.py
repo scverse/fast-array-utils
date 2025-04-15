@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Testing utilities."""
+"""Testing utilities.
+
+Ideally used through the :mod:`testing.fast_array_utils.pytest` plugin.
+"""
 
 from __future__ import annotations
 

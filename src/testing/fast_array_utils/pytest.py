@@ -97,7 +97,7 @@ SUPPORTED_TYPE_PARAMS = [
 def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[ArrayType, None, None]:
     """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`.
 
-    Use :class:`testing.fast_array_utils.Flags` to select or skip array types
+    Use :class:`testing.fast_array_utils.Flags` to select or skip array types:
 
     #.  using ``select=``/``args[0]``:
 
@@ -114,6 +114,21 @@ def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[Arra
             @pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
             def test_something(array_type: ArrayType) -> None:
                 ...
+
+    For special cases, you can also specify a :class:`set` of array types and flags.
+    This is useful if you want to select or skip only specific array types.
+
+    .. code:: python
+
+        from testing.fast_array_utils import SUPPORTED_TYPES
+
+        SPARSE_AND_DASK = {
+            at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask
+        }
+
+        @pytest.mark.array_type(skip={*SPARSE_AND_DASK, Flags.Disk})
+        def test_something(array_type: ArrayType) -> None:
+            ...
     """
     at = cast("ArrayType", request.param)
     f: h5py.File | None = None
