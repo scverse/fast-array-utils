@@ -1,4 +1,7 @@
-|docs| |ci| |cov| |bench|
+|pypi| |docs| |ci| |cov| |bench|
+
+.. |pypi| image:: https://img.shields.io/pypi/v/fast-array-utils
+   :target: https://pypi.org/project/fast-array-utils/
 
 .. |docs| image:: https://readthedocs.com/projects/icb-fast-array-utils/badge/?version=latest
    :target: https://icb-fast-array-utils.readthedocs-hosted.com/en/latest/
