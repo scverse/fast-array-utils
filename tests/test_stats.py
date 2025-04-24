@@ -252,7 +252,7 @@ def test_dask_constant_blocks(
 
 @pytest.mark.benchmark
 @pytest.mark.array_type(skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
-@pytest.mark.parametrize("func", argvalues=STAT_FUNCS)
+@pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.int32])
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,
