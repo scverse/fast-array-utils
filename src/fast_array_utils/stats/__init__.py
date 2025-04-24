@@ -75,7 +75,7 @@ def is_constant(
     """
     from ._is_constant import is_constant_
 
-    validate_axis(axis)
+    validate_axis(x.ndim, axis)
     return is_constant_(x, axis=axis)
 
 
@@ -144,7 +144,7 @@ def mean(
     """
     from ._mean import mean_
 
-    validate_axis(axis)
+    validate_axis(x.ndim, axis)
     return mean_(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]  # literally the same type, wtf mypy
 
 
@@ -284,5 +284,5 @@ def sum(
     """
     from ._sum import sum_
 
-    validate_axis(axis)
+    validate_axis(x.ndim, axis)
     return sum_(x, axis=axis, dtype=dtype)
