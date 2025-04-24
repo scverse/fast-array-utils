@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
-    DTypeIn = type[np.float32 | np.float64 | np.int32 | np.bool]
+    DTypeIn = np.float32 | np.float64 | np.int32 | np.bool
     DTypeOut = type[np.float32 | np.float64 | np.int64]
 
     class BenchFun(Protocol):  # noqa: D101
@@ -44,14 +44,19 @@ ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
 ATS_CUPY_SPARSE = {at for at in SUPPORTED_TYPES if "cupyx.scipy" in str(at)}
 
 
-@pytest.fixture(scope="session", params=[0, 1, None])
+@pytest.fixture(scope="session", params=[0, 1, None], ids=["ax0", "ax1", "all"])
 def axis(request: pytest.FixtureRequest) -> Literal[0, 1, None]:
     return cast("Literal[0, 1, None]", request.param)
 
 
+@pytest.fixture(scope="session", params=[1, 2], ids=["1d", "2d"])
+def ndim(request: pytest.FixtureRequest) -> Literal[1, 2]:
+    return cast("Literal[1, 2]", request.param)
+
+
 @pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool])
-def dtype_in(request: pytest.FixtureRequest) -> DTypeIn:
-    return cast("DTypeIn", request.param)
+def dtype_in(request: pytest.FixtureRequest) -> type[DTypeIn]:
+    return cast("type[DTypeIn]", request.param)
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, None])
@@ -59,14 +64,22 @@ def dtype_arg(request: pytest.FixtureRequest) -> DTypeOut | None:
     return cast("DTypeOut | None", request.param)
 
 
+@pytest.fixture(scope="session")
+def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
+    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
+    if ndim == 1:
+        np_arr = np_arr.flatten()
+    return np_arr
+
+
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
     array_type: ArrayType[Array],
-    dtype_in: DTypeIn,
+    dtype_in: type[DTypeIn],
     dtype_arg: DTypeOut | None,
     axis: Literal[0, 1, None],
+    np_arr: NDArray[DTypeIn],
 ) -> None:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
     if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
         pytest.skip("CuPy sparse matrices only support floats")
     arr = array_type(np_arr.copy())
@@ -106,9 +119,11 @@ def test_sum(
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 @pytest.mark.parametrize(("axis", "expected"), [(None, 3.5), (0, [2.5, 3.5, 4.5]), (1, [2.0, 5.0])])
 def test_mean(
-    array_type: ArrayType[Array], axis: Literal[0, 1, None], expected: float | list[float]
+    array_type: ArrayType[Array],
+    axis: Literal[0, 1, None],
+    expected: float | list[float],
+    np_arr: NDArray[DTypeIn],
 ) -> None:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]])
     if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
         pytest.skip("CuPy sparse matrices only support floats")
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
@@ -132,8 +147,8 @@ def test_mean_var(
     axis: Literal[0, 1, None],
     mean_expected: float | list[float],
     var_expected: float | list[float],
+    np_arr: NDArray[DTypeIn],
 ) -> None:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
     np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)
     np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)
 
