@@ -142,14 +142,9 @@ def test_sum(
 def test_mean(
     array_type: ArrayType[Array], axis: Literal[0, 1, None], np_arr: NDArray[DTypeIn]
 ) -> None:
-    expected = {
-        None: 3.5,
-        0: [2.5, 3.5, 4.5],
-        1: [2.0, 5.0],
-    }[None]
+    expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
     if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
         pytest.skip("CuPy sparse matrices only support floats")
-    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)  # type: ignore[arg-type]
 
     arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777

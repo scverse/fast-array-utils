@@ -81,14 +81,12 @@ def _sum_dask(
                 axis = None
             case (0 | 1 as n,), _:
                 axis = n
-            case tuple():  # pragma: no cover
+            case tuple(), _:  # pragma: no cover
                 msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                 raise ValueError(msg)
         rv = sum(a, axis=axis, dtype=dtype)
-        if a.ndim == 1:  # make sure rv is 1D
-            return np.reshape(rv, (1,))
-        # make sure rv is 2D
-        return np.reshape(rv, (1, 1 if rv.shape == () else len(rv)))  # type: ignore[arg-type]
+        shape = (1,) if a.ndim == 1 else (1, 1 if rv.shape == () else len(rv))
+        return np.reshape(rv, shape)
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
