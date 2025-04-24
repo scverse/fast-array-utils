@@ -87,7 +87,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 
 @pytest.fixture
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
-    np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in)
+    np_arr = cast("NDArray[DTypeIn]", np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in))
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
@@ -149,7 +149,7 @@ def test_mean(
     }[None]
     if array_type in ATS_CUPY_SPARSE and np_arr.dtype.kind != "f":
         pytest.skip("CuPy sparse matrices only support floats")
-    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)
+    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), expected)  # type: ignore[arg-type]
 
     arr = array_type(np_arr)
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
@@ -172,8 +172,8 @@ def test_mean_var(
     var_expected: float | list[float],
     np_arr: NDArray[DTypeIn],
 ) -> None:
-    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)
-    np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)
+    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)  # type: ignore[arg-type]
+    np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)  # type: ignore[arg-type]
 
     arr = array_type(np_arr)
     mean, var = stats.mean_var(arr, axis=axis, correction=1)

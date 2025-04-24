@@ -12,6 +12,7 @@ class HLObject: ...
 class Dataset(HLObject):
     dtype: np.dtype[Any]
     shape: tuple[int, ...]
+    ndim: int
 
 class Group(HLObject): ...
 

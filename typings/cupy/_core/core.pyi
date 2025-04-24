@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 class ndarray:
     dtype: np.dtype[Any]
     shape: tuple[int, ...]
+    ndim: int
 
     # cupy-specific
     def get(self) -> NDArray[Any]: ...
