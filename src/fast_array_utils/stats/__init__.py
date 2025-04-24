@@ -219,6 +219,7 @@ def mean_var(
     """
     from ._mean_var import mean_var_
 
+    validate_axis(x.ndim, axis)
     return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
 
 
