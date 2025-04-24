@@ -75,9 +75,13 @@ def axis(ndim_and_axis: NdAndAx) -> Literal[0, 1, None]:
     return ndim_and_axis[1]
 
 
-@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int32, np.bool])
-def dtype_in(request: pytest.FixtureRequest) -> type[DTypeIn]:
-    return cast("type[DTypeIn]", request.param)
+@pytest.fixture(params=[np.float32, np.float64, np.int32, np.bool])
+def dtype_in(request: pytest.FixtureRequest, array_type: ArrayType) -> type[DTypeIn]:
+    dtype = cast("type[DTypeIn]", request.param)
+    inner_cls = array_type.inner.cls if array_type.inner else array_type.cls
+    if np.dtype(dtype).kind not in "fdFD" and issubclass(inner_cls, types.CupyCSMatrix):
+        pytest.skip("Cupy sparse matrices don’t support non-floating dtypes")
+    return dtype
 
 
 @pytest.fixture(scope="session", params=[np.float32, np.float64, None])
@@ -157,26 +161,21 @@ def test_mean(
 
 
 @pytest.mark.array_type(skip=Flags.Disk)
-@pytest.mark.parametrize(
-    ("axis", "mean_expected", "var_expected"),
-    [(None, 3.5, 3.5), (0, [2.5, 3.5, 4.5], [4.5, 4.5, 4.5]), (1, [2.0, 5.0], [1.0, 1.0])],
-)
 def test_mean_var(
     array_type: ArrayType[CpuArray | GpuArray | types.DaskArray],
     axis: Literal[0, 1, None],
-    mean_expected: float | list[float],
-    var_expected: float | list[float],
     np_arr: NDArray[DTypeIn],
 ) -> None:
-    np.testing.assert_array_equal(np.mean(np_arr, axis=axis), mean_expected)  # type: ignore[arg-type]
-    np.testing.assert_array_equal(np.var(np_arr, axis=axis, correction=1), var_expected)  # type: ignore[arg-type]
-
     arr = array_type(np_arr)
+
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
     if isinstance(mean, types.DaskArray) and isinstance(var, types.DaskArray):
         mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
     if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
         mean, var = mean.get(), var.get()
+
+    mean_expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
+    var_expected = np.var(np_arr, axis=axis, correction=1)  # type: ignore[arg-type]
     np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
