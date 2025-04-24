@@ -27,12 +27,12 @@ if TYPE_CHECKING:
     DTypeIn = np.float32 | np.float64 | np.int32 | np.bool
     DTypeOut = np.float32 | np.float64 | np.int64
 
-    NdAndAx = tuple[Literal[1], Literal[None]] | tuple[Literal[2], Literal[0, 1, None]]
+    NdAndAx: TypeAlias = tuple[Literal[1], Literal[None]] | tuple[Literal[2], Literal[0, 1, None]]
 
     class StatFun(Protocol):  # noqa: D101
         def __call__(  # noqa: D102
             self,
-            arr: CpuArray,
+            arr: Array,
             *,
             axis: Literal[0, 1, None] = None,
             dtype: type[DTypeOut] | None = None,
