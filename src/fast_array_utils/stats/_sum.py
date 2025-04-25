@@ -52,7 +52,9 @@ def _sum_cs(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
 
-    return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))  # type: ignore[call-overload]
+    if axis is None:
+        return cast("np.number[Any]", x.data.sum(dtype=dtype))
+    return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis, dtype=dtype))
 
 
 @sum_.register(types.DaskArray)
@@ -76,17 +78,20 @@ def _sum_dask(
         keepdims: bool = False,
     ) -> NDArray[Any] | types.CupyArray:
         del keepdims
-        match axis:
-            case (0 | 1 as n,):
-                axis = n
-            case (0, 1) | (1, 0):
-                axis = None
-            case tuple():  # pragma: no cover
-                msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
-                raise ValueError(msg)
+        if a.ndim == 1:
+            axis = None
+        else:
+            match axis:
+                case (0, 1) | (1, 0):
+                    axis = None
+                case (0 | 1 as n,):
+                    axis = n
+                case tuple():  # pragma: no cover
+                    msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
+                    raise ValueError(msg)
         rv = sum(a, axis=axis, dtype=dtype)
-        # make sure rv is 2D
-        return np.reshape(rv, (1, 1 if rv.shape == () else len(rv)))  # type: ignore[arg-type]
+        shape = (1,) if a.ndim == 1 else (1, 1 if rv.shape == () else len(rv))  # type: ignore[arg-type]
+        return np.reshape(rv, shape)
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
