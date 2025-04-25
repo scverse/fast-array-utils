@@ -95,7 +95,10 @@ else:  # pragma: no cover
 
 
 if TYPE_CHECKING or find_spec("anndata"):
-    from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
+    try:
+        from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
+    except ImportError:  # anndata < 0.11
+        from anndata import CSCDataset, CSRDataset  # type: ignore[import-untyped]
 else:  # pragma: no cover
     CSRDataset = type("CSRDataset", (), {})
     CSCDataset = type("CSCDataset", (), {})
