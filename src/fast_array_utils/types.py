@@ -94,11 +94,14 @@ else:  # pragma: no cover
     ZarrArray.__module__ = ZarrGroup.__module__ = "zarr"
 
 
-if TYPE_CHECKING or find_spec("anndata"):
+if TYPE_CHECKING:
     from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
 else:  # pragma: no cover
-    CSRDataset = type("CSRDataset", (), {})
-    CSCDataset = type("CSCDataset", (), {})
-    CSRDataset.__module__ = CSCDataset.__module__ = "anndata.abc"
+    try:  # only exists in anndata 0.11+
+        from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
+    except ImportError:
+        CSRDataset = type("CSRDataset", (), {})
+        CSCDataset = type("CSCDataset", (), {})
+        CSRDataset.__module__ = CSCDataset.__module__ = "anndata.abc"
 CSDataset = CSRDataset | CSCDataset
 """Anndata sparse out-of-core matrices."""
