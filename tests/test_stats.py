@@ -95,9 +95,16 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
     return cast("type[DTypeOut] | None", request.param)
 
 
-@pytest.fixture
-def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
-    np_arr = cast("NDArray[DTypeIn]", np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in))
+@pytest.fixture(
+    params=[
+        pytest.param([[1, 0], [3, 0], [5, 6]], id="3x2"),
+        pytest.param([[1, 2, 3], [4, 5, 6]], id="2x3"),
+    ]
+)
+def np_arr(
+    request: pytest.FixtureRequest, dtype_in: type[DTypeIn], ndim: Literal[1, 2]
+) -> NDArray[DTypeIn]:
+    np_arr = cast("NDArray[DTypeIn]", np.array(request.param, dtype=dtype_in))
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
