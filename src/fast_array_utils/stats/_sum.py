@@ -97,13 +97,10 @@ def _sum_dask(
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
         dtype = np.zeros(1, dtype=x.dtype).sum().dtype
 
-    def debug_sum(x, *, axis, dtype, keepdims):
-        return np.sum(x, axis=axis, dtype=dtype, keepdims=keepdims)
-
     return da.reduction(
         x,
         sum_drop_keepdims,  # type: ignore[arg-type]
-        partial(debug_sum, dtype=dtype),  # pyright: ignore[reportArgumentType]
+        partial(np.sum, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,
         meta=np.array([], dtype=dtype),
