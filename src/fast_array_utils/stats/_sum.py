@@ -90,7 +90,7 @@ def _sum_dask(
                     msg = f"`sum` can only sum over `axis=0|1|(0,1)` but got {axis} instead"
                     raise ValueError(msg)
         rv = sum(a, axis=axis, dtype=dtype)
-        shape = (1,) if a.ndim == 1 else (1, 1 if rv.shape == () else len(rv))  # type: ignore[arg-type]
+        shape = (1,) if a.ndim == 1 else (1 if rv.shape == () else len(rv), 1)  # type: ignore[arg-type]
         return np.reshape(rv, shape)
 
     if dtype is None:
