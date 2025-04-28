@@ -105,9 +105,9 @@ def _sum_dask(
         keepdims: bool = False,
     ) -> NDArray[Any] | types.CupyArray:
         axis = normalize_axis(axis, a.ndim)
-        rv = sum(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)
+        rv = sum(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,arg-type]
         shape = get_shape(rv, axis=axis, keepdims=keepdims)
-        return rv.reshape(shape)
+        return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
@@ -126,7 +126,11 @@ def _sum_dask(
         and not keep_cupy_as_array
         and isinstance(x._meta, types.CupyArray | types.CupyCSMatrix)  # noqa: SLF001
     ):
-        return rv.map_blocks(lambda a: a.get()[()], meta=x.dtype.type(0))
+
+        def to_scalar(a: types.CupyArray) -> np.number[Any]:
+            return cast("np.number[Any]", a.get()[()])
+
+        return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
     return rv
 
 
@@ -139,8 +143,8 @@ def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
             axis = axis[0]
         case (0, 1) | (1, 0):
             axis = None
-        case _:
-            raise AxisError(axis, ndim)
+        case _:  # pragma: no cover
+            raise AxisError(axis, ndim)  # type: ignore[call-overload]
     if axis == 0 and ndim == 1:
         return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
     return axis
@@ -151,13 +155,14 @@ def get_shape(
 ) -> tuple[int] | tuple[int, int]:
     """Get the output shape of an axis-flattening operation."""
     match keepdims, a.ndim:
-        case _, 0:
+        case False, 0:
             return (1,)
+        case True, 0:
+            return (1, 1)
         case False, 1:
             return (a.size,)
         case True, 1:
             assert axis is not None
             return (1, a.size) if axis == 0 else (a.size, 1)
-        case _, _:
-            msg = f"{keepdims=}, {type(a)}"
-            raise AssertionError(msg)
+    msg = f"{keepdims=}, {type(a)}"
+    raise AssertionError(msg)
