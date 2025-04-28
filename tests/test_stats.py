@@ -170,6 +170,7 @@ def test_sum(
     [
         pytest.param([[1, 0], [3, 0], [5, 6]], id="3x2"),
         pytest.param([[1, 2, 3], [4, 5, 6]], id="2x3"),
+        pytest.param([[1, 0], [0, 2]], id="2x2"),
     ],
 )
 @pytest.mark.parametrize("axis", [0, 1])
@@ -179,6 +180,7 @@ def test_sum_dask_shapes(
 ) -> None:
     np_arr = np.array(data, dtype=np.float32)
     arr = array_type(np_arr)
+    assert 1 in arr.chunksize, "This test is supposed to test 1×n and n×1 chunk sizes"
     sum_ = cast("NDArray[Any] | types.CupyArray", stats.sum(arr, axis=axis).compute())
     if isinstance(sum_, types.CupyArray):
         sum_ = sum_.get()
