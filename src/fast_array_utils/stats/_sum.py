@@ -122,21 +122,18 @@ def _sum_dask(
         meta=np.array([], dtype=dtype),
     )
 
-    if isinstance(x._meta, types.CupyArray | types.CupyCSMatrix):  # noqa: SLF001
-        if keep_cupy_as_array:
-            return rv
+    if axis is not None or (
+        isinstance(rv._meta, types.CupyArray)  # noqa: SLF001
+        and keep_cupy_as_array
+    ):
+        return rv
 
-        def to_scalar(a: types.CupyArray | NDArray[Any]) -> np.number[Any]:
-            return a.get().reshape(())[()]
+    def to_scalar(a: types.CupyArray | NDArray[Any]) -> np.number[Any]:
+        if isinstance(a, types.CupyArray):
+            a = a.get()
+        return a.reshape(())[()]  # type: ignore[return-value]
 
-    else:
-
-        def to_scalar(a: NDArray[Any]) -> np.number[Any]:
-            return a.reshape(())[()]
-
-    if axis is None:
-        return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
-    return rv
+    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
 
 
 def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
