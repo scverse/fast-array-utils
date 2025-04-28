@@ -9,7 +9,7 @@ def validate_axis(ndim: int, axis: int | None) -> None:
     if axis is None:
         return
     if not isinstance(axis, int | np.integer):  # pragma: no cover
-        msg = "axis must be integer or None."
+        msg = f"axis must be integer or None, not {axis=!r}."
         raise TypeError(msg)
     if axis == 0 and ndim == 1:
         raise AxisError(axis, ndim, "use axis=None for 1D arrays")
