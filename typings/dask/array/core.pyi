@@ -44,6 +44,8 @@ class Array:
     # dask methods and attrs
     _meta: _Array
     blocks: BlockView
+    chunks: tuple[tuple[int, ...], ...]
+    chunksize: tuple[int, ...]
 
     def compute(self) -> _Array: ...
     def visualize(

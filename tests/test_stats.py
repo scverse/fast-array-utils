@@ -97,7 +97,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 
 @pytest.fixture
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
-    np_arr = cast("NDArray[DTypeIn]", np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype_in))
+    np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
@@ -163,6 +163,28 @@ def test_sum(
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
     np.testing.assert_array_equal(sum_, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param([[1, 0], [3, 0], [5, 6]], id="3x2"),
+        pytest.param([[1, 2, 3], [4, 5, 6]], id="2x3"),
+        pytest.param([[1, 0], [0, 2]], id="2x2"),
+    ],
+)
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.array_type(Flags.Dask)
+def test_sum_dask_shapes(
+    array_type: ArrayType[types.DaskArray], axis: Literal[0, 1], data: list[list[int]]
+) -> None:
+    np_arr = np.array(data, dtype=np.float32)
+    arr = array_type(np_arr)
+    assert 1 in arr.chunksize, "This test is supposed to test 1×n and n×1 chunk sizes"
+    sum_ = cast("NDArray[Any] | types.CupyArray", stats.sum(arr, axis=axis).compute())
+    if isinstance(sum_, types.CupyArray):
+        sum_ = sum_.get()
+    np.testing.assert_almost_equal(np_arr.sum(axis=axis), sum_)
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
