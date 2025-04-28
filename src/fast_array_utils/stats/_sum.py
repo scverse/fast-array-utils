@@ -90,24 +90,9 @@ def _sum_dask(
 ) -> types.DaskArray:
     import dask.array as da
 
-    from . import sum
-
     if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum does not support numpy matrices"
         raise TypeError(msg)
-
-    def sum_dask_inner(
-        a: CpuArray | GpuArray,
-        /,
-        *,
-        axis: ComplexAxis = None,
-        dtype: DTypeLike | None = None,
-        keepdims: bool = False,
-    ) -> NDArray[Any] | types.CupyArray:
-        axis = normalize_axis(axis, a.ndim)
-        rv = sum(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,arg-type]
-        shape = get_shape(rv, axis=axis, keepdims=keepdims)
-        return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
@@ -134,6 +119,22 @@ def _sum_dask(
         return a.reshape(())[()]  # type: ignore[return-value]
 
     return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
+
+
+def sum_dask_inner(
+    a: CpuArray | GpuArray,
+    /,
+    *,
+    axis: ComplexAxis = None,
+    dtype: DTypeLike | None = None,
+    keepdims: bool = False,
+) -> NDArray[Any] | types.CupyArray:
+    from . import sum
+
+    axis = normalize_axis(axis, a.ndim)
+    rv = sum(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,arg-type]
+    shape = get_shape(rv, axis=axis, keepdims=keepdims)
+    return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
 
 def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
@@ -166,5 +167,6 @@ def get_shape(
         case True, 1:
             assert axis is not None
             return (1, a.size) if axis == 0 else (a.size, 1)
+    # pragma: no cover
     msg = f"{keepdims=}, {type(a)}"
     raise AssertionError(msg)
