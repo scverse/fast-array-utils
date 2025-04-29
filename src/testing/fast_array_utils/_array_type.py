@@ -38,6 +38,9 @@ if TYPE_CHECKING:
 
         def __call__(self, data: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> Arr_co: ...
 
+    class MkArray(Protocol):
+        def __call__(self, shape: tuple[int, int], /, *, dtype: DTypeLike | None = None) -> Array: ...
+
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
     _DTypeLikeInt32 = np.dtype[np.int32] | type[np.int32]
@@ -348,14 +351,15 @@ def random_array(
 ) -> Array:
     """Create a random array."""
     rng = np.random.default_rng(rng)
+    f: MkArray
     match np.dtype(dtype or "f").kind:
         case "f":
-            f = rng.random
+            f = rng.random  # type: ignore[assignment]
         case "i" | "u":
             f = partial(rng.integers, 0, 10_000)
         case _:
             raise NotImplementedError
-    return f(shape, dtype=dtype)  # type: ignore[arg-type]
+    return f(shape, dtype=dtype)
 
 
 def random_mat(
