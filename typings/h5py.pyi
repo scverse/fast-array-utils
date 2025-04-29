@@ -17,6 +17,10 @@ class Dataset(HLObject):
 class Group(HLObject): ...
 
 class File(Group, closing[File]):  # not actually a subclass of closing
+    filename: str
+    mode: Literal["r", "r+"]
+    libver: Literal["earliest", "latest", "v108", "v110"]
+
     def __init__(
         self,
         name: AnyStr | os.PathLike[AnyStr] | IO[bytes],

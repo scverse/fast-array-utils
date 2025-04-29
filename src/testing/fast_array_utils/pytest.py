@@ -7,6 +7,8 @@ Can be used as pytest plugin: ``pytest -p testing.fast_array_utils.pytest``.
 from __future__ import annotations
 
 import dataclasses
+import os
+import re
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, cast
 
@@ -93,8 +95,8 @@ SUPPORTED_TYPE_PARAMS = [
 ]
 
 
-@pytest.fixture(params=SUPPORTED_TYPE_PARAMS)
-def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[ArrayType, None, None]:
+@pytest.fixture(scope="session", params=SUPPORTED_TYPE_PARAMS)
+def array_type(request: pytest.FixtureRequest) -> ArrayType:
     """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`.
 
     Use :class:`testing.fast_array_utils.Flags` to select or skip array types:
@@ -131,13 +133,42 @@ def array_type(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[Arra
             ...
     """
     at = cast("ArrayType", request.param)
-    f: h5py.File | None = None
     if at.cls is types.H5Dataset or (at.inner and at.inner.cls is types.H5Dataset):
+        at = dataclasses.replace(at, conversion_context=CC(request))
+    return at
+
+
+try:  # get the exception type
+    pytest.fail("x")
+except BaseException as e:  # noqa: BLE001
+    Failed = type(e)
+else:
+    raise AssertionError
+
+
+class CC(ConversionContext):
+    def __init__(self, request: pytest.FixtureRequest) -> None:
+        self._request = request
+
+    @property  # This is intentionally not cached and creates a new file on each access
+    def hdf5_file(self) -> h5py.File:  # type: ignore[override]
         import h5py
 
-        f = h5py.File(tmp_path / f"{request.fixturename}.h5", "w")
-        ctx = ConversionContext(hdf5_file=f)
-        at = dataclasses.replace(at, conversion_context=ctx)
-    yield at
-    if f:
-        f.close()
+        try:  # If we’re being called in a test or function-scoped fixture, use the test `tmp_path`
+            return cast("h5py.File", self._request.getfixturevalue("tmp_hdf5_file"))
+        except Failed:  # We’re being called from a session-scoped fixture or so
+            factory = cast(
+                "pytest.TempPathFactory", self._request.getfixturevalue("tmp_path_factory")
+            )
+            name = re.sub(r"[^\w_. -()\[\]{}]", "_", os.environ["PYTEST_CURRENT_TEST"])
+            f = h5py.File(factory.mktemp(name) / "test.h5", "w")
+            self._request.addfinalizer(f.close)
+            return f
+
+
+@pytest.fixture
+def tmp_hdf5_file(tmp_path: Path) -> Generator[h5py.File, None, None]:
+    import h5py
+
+    with h5py.File(tmp_path / "test.h5", "w") as f:
+        yield f

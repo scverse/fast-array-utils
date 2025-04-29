@@ -77,7 +77,7 @@ class Flags(enum.Flag):
 class ConversionContext:
     """Conversion context required for h5py."""
 
-    hdf5_file: h5py.File
+    hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
 @dataclass(frozen=True)
