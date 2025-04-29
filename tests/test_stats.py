@@ -228,9 +228,12 @@ def test_mean_var(
 @pytest.mark.parametrize("axis", [0, 1])
 def test_mean_var_sparse_64(array_type: ArrayType[types.CSArray], axis: Literal[0, 1]) -> None:
     """Test that we’re equivalent for 64 bit."""
+    from sklearn.utils.sparsefuncs import mean_variance_axis
+
     mtx = array_type.random((10000, 1000), dtype=np.float64)
 
-    (mean_fau, var_fau), (mean_skl, var_skl) = mean_var_fau_and_skl(mtx, axis)
+    mean_fau, var_fau = stats.mean_var(mtx, axis=axis)
+    mean_skl, var_skl = mean_variance_axis(mtx, axis)
 
     np.testing.assert_allclose(mean_fau, mean_skl, rtol=1.0e-5, atol=1.0e-8)
     np.testing.assert_allclose(var_fau, var_skl, rtol=1.0e-5, atol=1.0e-8)
@@ -240,32 +243,20 @@ def test_mean_var_sparse_64(array_type: ArrayType[types.CSArray], axis: Literal[
 @pytest.mark.array_type(Flags.Sparse, skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
 def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
     """Test whether we are more accurate for 32 bit."""
+    from sklearn.utils.sparsefuncs import mean_variance_axis
+
     mtx64 = array_type.random((10000, 1000), dtype=np.float64)
     mtx32 = mtx64.astype(np.float32)
 
     fau, skl = {}, {}
     for n_bit, mtx in [(32, mtx32), (64, mtx64)]:
-        fau[n_bit], skl[n_bit] = mean_var_fau_and_skl(mtx, 0)
+        fau[n_bit] = stats.mean_var(mtx, axis=0)
+        skl[n_bit] = mean_variance_axis(mtx, 0)
 
     for stat, _ in enumerate(["mean", "var"]):
         resid_fau = np.mean(np.abs(fau[64][stat] - fau[32][stat]))
         resid_skl = np.mean(np.abs(skl[64][stat] - skl[32][stat]))
         assert resid_fau < resid_skl
-
-
-def mean_var_fau_and_skl(
-    mtx: types.CSBase, axis: Literal[0, 1]
-) -> tuple[
-    tuple[NDArray[np.floating], NDArray[np.floating]],
-    tuple[NDArray[np.floating], NDArray[np.floating]],
-]:
-    from sklearn.utils.sparsefuncs import mean_variance_axis
-
-    mean_fau, var_fau = stats.mean_var(mtx, axis=axis)
-    mean_skl, var_skl = mean_variance_axis(mtx, axis)
-    var_skl *= mtx.shape[axis] / (mtx.shape[axis] - 1)
-
-    return (mean_fau, var_fau), (mean_skl, var_skl)
 
 
 @pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
