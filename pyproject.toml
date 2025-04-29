@@ -85,6 +85,7 @@ overrides.matrix.extras.features = [
 ]
 overrides.matrix.extras.dependencies = [
   { if = [ "full" ], value = "scipy-stubs" },
+  { if = [ "full" ], value = "scikit-learn" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
