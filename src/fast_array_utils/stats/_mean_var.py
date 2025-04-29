@@ -46,9 +46,7 @@ def mean_var_(
     return mean_, var
 
 
-def _sparse_mean_var(
-    mtx: types.CSBase, /, *, axis: Literal[0, 1]
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def _sparse_mean_var(mtx: types.CSBase, /, *, axis: Literal[0, 1]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Calculate means and variances for each row or column of a sparse matrix.
 
     This code and internal functions are based on sklearns `sparsefuncs.mean_variance_axis`.

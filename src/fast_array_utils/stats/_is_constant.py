@@ -30,9 +30,7 @@ def is_constant_(
 
 
 @is_constant_.register(np.ndarray | types.CupyArray)  # type: ignore[call-overload,misc]
-def _is_constant_ndarray(
-    a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool] | types.CupyArray:
+def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -49,9 +47,7 @@ def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | t
 
 
 @is_constant_.register(types.CSBase)  # type: ignore[call-overload,misc]
-def _is_constant_cs(
-    a: types.CSBase, /, *, axis: Literal[0, 1, None] = None
-) -> bool | NDArray[np.bool]:
+def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool]:
     from . import is_constant
 
     if len(a.shape) == 1:  # pragma: no cover
@@ -87,17 +83,13 @@ def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np
 
 
 @is_constant_.register(types.DaskArray)
-def _is_constant_dask(
-    a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None
-) -> types.DaskArray:
+def _is_constant_dask(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
     import dask.array as da
 
     from . import is_constant
 
     if axis is not None:
-        return da.map_blocks(
-            partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool)
-        )
+        return da.map_blocks(partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool))
 
     rv = (
         (a == a[0, 0].compute()).all()

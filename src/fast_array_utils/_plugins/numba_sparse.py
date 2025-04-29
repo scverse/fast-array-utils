@@ -124,15 +124,9 @@ CLASSES: Sequence[type[CSBase]] = [
     sparse.csr_array,
     sparse.csc_array,
 ]
-TYPES: Sequence[type[CSType]] = [
-    type(f"{cls.__name__}Type", (CSType,), {"cls": cls, "name": cls.__name__}) for cls in CLASSES
-]
-TYPEOF_FUNCS: Mapping[type[CSBase], Callable[[CSBase, _TypeofContext], CSType]] = {
-    typ.cls: make_typeof_fn(typ) for typ in TYPES
-}
-MODELS: Mapping[type[CSType], type[CSModel]] = {
-    typ: type(f"{typ.cls.__name__}Model", (CSModel,), {}) for typ in TYPES
-}
+TYPES: Sequence[type[CSType]] = [type(f"{cls.__name__}Type", (CSType,), {"cls": cls, "name": cls.__name__}) for cls in CLASSES]
+TYPEOF_FUNCS: Mapping[type[CSBase], Callable[[CSBase, _TypeofContext], CSType]] = {typ.cls: make_typeof_fn(typ) for typ in TYPES}
+MODELS: Mapping[type[CSType], type[CSModel]] = {typ: type(f"{typ.cls.__name__}Model", (CSModel,), {}) for typ in TYPES}
 
 
 def unbox_matrix(typ: CSType, obj: Value, c: UnboxContext) -> NativeValue:
@@ -253,9 +247,7 @@ def overload_sparse_copy(inst: CSType) -> None | Callable[[CSType], CSType]:
 
     # nopython code:
     def copy(inst: CSType) -> CSType:  # pragma: no cover
-        return _sparse_copy(
-            inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
-        )  # type: ignore[return-value]
+        return _sparse_copy(inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape)  # type: ignore[return-value]
 
     return copy
 

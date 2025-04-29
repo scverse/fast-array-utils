@@ -106,12 +106,8 @@ def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
 
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
-@pytest.mark.parametrize(
-    ("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"]
-)
-def test_ndim_error(
-    array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1, None]
-) -> None:
+@pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
+def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1, None]) -> None:
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -175,9 +171,7 @@ def test_sum(
 )
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.array_type(Flags.Dask)
-def test_sum_dask_shapes(
-    array_type: ArrayType[types.DaskArray], axis: Literal[0, 1], data: list[list[int]]
-) -> None:
+def test_sum_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1], data: list[list[int]]) -> None:
     np_arr = np.array(data, dtype=np.float32)
     arr = array_type(np_arr)
     assert 1 in arr.chunksize, "This test is supposed to test 1×n and n×1 chunk sizes"
@@ -188,9 +182,7 @@ def test_sum_dask_shapes(
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
-def test_mean(
-    array_type: ArrayType[Array], axis: Literal[0, 1, None], np_arr: NDArray[DTypeIn]
-) -> None:
+def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1, None], np_arr: NDArray[DTypeIn]) -> None:
     arr = array_type(np_arr)
 
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
@@ -294,9 +286,7 @@ def test_is_constant(
 
 
 @pytest.mark.array_type(Flags.Dask, skip=ATS_CUPY_SPARSE)
-def test_dask_constant_blocks(
-    dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]
-) -> None:
+def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
     x_np = np.repeat(np.repeat(np.arange(4, dtype=np.float64).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)

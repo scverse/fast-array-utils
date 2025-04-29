@@ -21,26 +21,18 @@ if TYPE_CHECKING:
     Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
 
-WARNS_NUMBA = pytest.warns(
-    RuntimeWarning, match="numba is not installed; falling back to slow conversion"
-)
+WARNS_NUMBA = pytest.warns(RuntimeWarning, match="numba is not installed; falling back to slow conversion")
 
 
 @pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
 def test_to_dense(array_type: ArrayType[Array], *, to_cpu_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
     if not to_cpu_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
-        with pytest.raises(
-            ValueError, match="to_cpu_memory must be True if x is an CS{R,C}Dataset"
-        ):
+        with pytest.raises(ValueError, match="to_cpu_memory must be True if x is an CS{R,C}Dataset"):
             to_dense(x, to_cpu_memory=to_cpu_memory)
         return
 
-    with (
-        WARNS_NUMBA
-        if issubclass(array_type.cls, types.CSBase) and not find_spec("numba")
-        else nullcontext()
-    ):
+    with WARNS_NUMBA if issubclass(array_type.cls, types.CSBase) and not find_spec("numba") else nullcontext():
         arr = to_dense(x, to_cpu_memory=to_cpu_memory)
     assert_expected_cls(x, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)

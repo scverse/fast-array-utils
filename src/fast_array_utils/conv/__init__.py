@@ -21,41 +21,23 @@ __all__ = ["to_dense"]
 
 
 @overload
-def to_dense(
-    x: CpuArray | DiskArray | types.sparray | types.spmatrix | types.CSDataset,
-    /,
-    *,
-    to_cpu_memory: bool = False,
-) -> NDArray[Any]: ...
+def to_dense(x: CpuArray | DiskArray | types.sparray | types.spmatrix | types.CSDataset, /, *, to_cpu_memory: bool = False) -> NDArray[Any]: ...
 
 
 @overload
-def to_dense(
-    x: types.DaskArray, /, *, to_cpu_memory: Literal[False] = False
-) -> types.DaskArray: ...
+def to_dense(x: types.DaskArray, /, *, to_cpu_memory: Literal[False] = False) -> types.DaskArray: ...
 @overload
 def to_dense(x: types.DaskArray, /, *, to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 @overload
-def to_dense(
-    x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[False] = False
-) -> types.CupyArray: ...
+def to_dense(x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[False] = False) -> types.CupyArray: ...
 @overload
-def to_dense(
-    x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[True]
-) -> NDArray[Any]: ...
+def to_dense(x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 def to_dense(
-    x: CpuArray
-    | GpuArray
-    | DiskArray
-    | types.CSDataset
-    | types.DaskArray
-    | types.sparray
-    | types.spmatrix
-    | types.CupySpMatrix,
+    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
     /,
     *,
     to_cpu_memory: bool = False,

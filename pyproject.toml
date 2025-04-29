@@ -93,7 +93,7 @@ python = [ "3.13", "3.12", "3.11" ]
 extras = [ "full", "default", "min" ]
 
 [tool.ruff]
-line-length = 100
+line-length = 160
 namespace-packages = [ "src/testing" ]
 format.preview = true
 format.docstring-code-format = true

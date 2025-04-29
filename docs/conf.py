@@ -49,9 +49,7 @@ autodoc_member_order = "bysource"
 autodoc_default_options = {
     "special-members": True,
     # everything except __call__ really, to avoid having to write autosummary templates
-    "exclude-members": (
-        "__setattr__,__delattr__,__repr__,__eq__,__or__,__ror__,__hash__,__weakref__,__init__,__new__"
-    ),
+    "exclude-members": "__setattr__,__delattr__,__repr__,__eq__,__or__,__ror__,__hash__,__weakref__,__init__,__new__",
 }
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -115,9 +113,7 @@ def find_type_alias(name: str) -> tuple[str, str] | tuple[None, None]:
     return None, None
 
 
-def resolve_type_aliases(
-    app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: TextElement
-) -> reference | None:
+def resolve_type_aliases(app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: TextElement) -> reference | None:
     """Resolve :class: references to our type aliases as :attr: instead."""
     if (node["refdomain"], node["reftype"]) != ("py", "class"):
         return None
@@ -125,17 +121,13 @@ def resolve_type_aliases(
     if typ is None or target is None:
         return None
     if target.startswith("fast_array_utils."):
-        ref = env.get_domain("py").resolve_xref(
-            env, node["refdoc"], app.builder, typ, target, node, contnode
-        )
+        ref = env.get_domain("py").resolve_xref(env, node["refdoc"], app.builder, typ, target, node, contnode)
     else:
         from sphinx.ext.intersphinx import resolve_reference_any_inventory
 
         node["reftype"] = typ
         node["reftarget"] = target
-        ref = resolve_reference_any_inventory(
-            env=env, honor_disabled_refs=False, node=node, contnode=contnode
-        )
+        ref = resolve_reference_any_inventory(env=env, honor_disabled_refs=False, node=node, contnode=contnode)
     if ref is None:
         msg = f"Could not resolve {typ} {target} (from {node['reftarget']})"
         raise AssertionError(msg)

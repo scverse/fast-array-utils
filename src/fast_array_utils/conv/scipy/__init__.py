@@ -42,9 +42,7 @@ def to_dense(x: types.spmatrix | types.sparray, order: Literal["C", "F"] = "C") 
     try:
         from ._to_dense import _to_dense_csc_numba, _to_dense_csr_numba
     except ImportError:
-        warn(
-            "numba is not installed; falling back to slow conversion", RuntimeWarning, stacklevel=2
-        )
+        warn("numba is not installed; falling back to slow conversion", RuntimeWarning, stacklevel=2)
         return x.toarray(order=order)
 
     out = np.zeros(x.shape, dtype=x.dtype, order=order)

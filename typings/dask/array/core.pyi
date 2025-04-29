@@ -56,9 +56,7 @@ class Array:
         *,
         traverse: bool = True,
         maxval: float | None = None,
-        color: Literal[
-            "order", "ages", "freed", "memoryincreases", "memorydecreases", "memorypressure", None
-        ] = None,
+        color: Literal["order", "ages", "freed", "memoryincreases", "memorydecreases", "memorypressure", None] = None,
         collapse_outputs: bool = False,
         verbose: bool = False,
         engine: str = "ipycytoscape",

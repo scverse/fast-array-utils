@@ -29,9 +29,7 @@ __all__ = ["SUPPORTED_TYPE_PARAMS", "array_type"]
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line(
-        "markers", "array_type: filter tests using `testing.fast_array_utils.Flags`"
-    )
+    config.addinivalue_line("markers", "array_type: filter tests using `testing.fast_array_utils.Flags`")
 
 
 def _selected(
@@ -66,9 +64,7 @@ def pytest_collection_modifyitems(
     """Filter tests using `pytest.mark.array_type` based on `testing.fast_array_utils.Flags`."""
     # reverse so we can .pop() items from the back without changing others’ index
     for i, item in reversed(list(enumerate(items))):
-        if not (
-            isinstance(item, pytest.Function) and (mark := item.get_closest_marker("array_type"))
-        ):
+        if not (isinstance(item, pytest.Function) and (mark := item.get_closest_marker("array_type"))):
             continue
 
         msg = "Test function marked with `pytest.mark.array_type` must have `array_type` parameter"
@@ -90,9 +86,7 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
     return pytest.mark.skipif(skip, reason=f"{dist} not installed")
 
 
-SUPPORTED_TYPE_PARAMS = [
-    pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES
-]
+SUPPORTED_TYPE_PARAMS = [pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES]
 
 
 @pytest.fixture(scope="session", params=SUPPORTED_TYPE_PARAMS)
@@ -157,9 +151,7 @@ class CC(ConversionContext):
         try:  # If we’re being called in a test or function-scoped fixture, use the test `tmp_path`
             return cast("h5py.File", self._request.getfixturevalue("tmp_hdf5_file"))
         except Failed:  # We’re being called from a session-scoped fixture or so
-            factory = cast(
-                "pytest.TempPathFactory", self._request.getfixturevalue("tmp_path_factory")
-            )
+            factory = cast("pytest.TempPathFactory", self._request.getfixturevalue("tmp_path_factory"))
             name = re.sub(r"[^\w_. -()\[\]{}]", "_", os.environ["PYTEST_CURRENT_TEST"])
             f = h5py.File(factory.mktemp(name) / "test.h5", "w")
             self._request.addfinalizer(f.close)
