@@ -49,7 +49,7 @@ autodoc_member_order = "bysource"
 autodoc_default_options = {
     "special-members": True,
     # everything except __call__ really, to avoid having to write autosummary templates
-    "exclude-members": ("__setattr__,__delattr__,__repr__,__eq__,__or__,__ror__,__hash__,__weakref__,__init__,__new__"),
+    "exclude-members": "__setattr__,__delattr__,__repr__,__eq__,__or__,__ror__,__hash__,__weakref__,__init__,__new__",
 }
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

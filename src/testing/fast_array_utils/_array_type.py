@@ -348,7 +348,13 @@ def random_array(
 ) -> Array:
     """Create a random array."""
     rng = np.random.default_rng(rng)
-    f = partial(rng.integers, 0, 10_000) if dtype is not None and np.dtype(dtype).kind in "iu" else rng.random
+    match np.dtype(dtype or "f").kind:
+        case "f":
+            f = rng.random
+        case "i" | "u":
+            f = partial(rng.integers, 0, 10_000)
+        case _:
+            raise NotImplementedError
     return f(shape, dtype=dtype)  # type: ignore[arg-type]
 
 
