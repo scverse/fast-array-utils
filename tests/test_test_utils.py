@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
     from scipy.sparse import coo_array, coo_matrix
 
-    from testing.fast_array_utils import ArrayType
+    from testing.fast_array_utils import Array, ArrayType
 
 
 other_array_type = array_type
@@ -78,3 +78,14 @@ def test_array_types(array_type: ArrayType) -> None:
     assert any(
         getattr(t, "mod", None) in {"zarr", "h5py"} for t in (array_type, array_type.inner)
     ) == bool(array_type.flags & Flags.Disk)
+
+
+@pytest.fixture(scope="session")
+def session_scoped_array(array_type: ArrayType) -> Array:
+    return array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
+
+
+def test_session_scoped_array(session_scoped_array: Array) -> None:
+    """Tests that creating a session-scoped array works."""
+    assert session_scoped_array.shape == (3, 4)
+    assert session_scoped_array.dtype == np.float32
