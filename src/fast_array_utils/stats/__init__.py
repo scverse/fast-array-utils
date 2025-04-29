@@ -27,9 +27,7 @@ __all__ = ["is_constant", "mean", "mean_var", "sum"]
 
 
 @overload
-def is_constant(
-    x: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None
-) -> bool: ...
+def is_constant(x: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None) -> bool: ...
 @overload
 def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
 @overload
@@ -82,25 +80,13 @@ def is_constant(
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
 @overload
-def mean(
-    x: CpuArray | GpuArray | DiskArray,
-    /,
-    *,
-    axis: Literal[None] = None,
-    dtype: DTypeLike | None = None,
-) -> np.number[Any]: ...
+def mean(x: CpuArray | GpuArray | DiskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
 @overload
-def mean(
-    x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
-) -> NDArray[np.number[Any]]: ...
+def mean(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[np.number[Any]]: ...
 @overload
-def mean(
-    x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None
-) -> types.CupyArray: ...
+def mean(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> types.CupyArray: ...
 @overload
-def mean(
-    x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None
-) -> types.DaskArray: ...
+def mean(x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None) -> types.DaskArray: ...
 
 
 def mean(
@@ -149,21 +135,13 @@ def mean(
 
 
 @overload
-def mean_var(
-    x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0
-) -> tuple[np.float64, np.float64]: ...
+def mean_var(x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0) -> tuple[np.float64, np.float64]: ...
 @overload
-def mean_var(
-    x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
+def mean_var(x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
 @overload
-def mean_var(
-    x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0
-) -> tuple[types.CupyArray, types.CupyArray]: ...
+def mean_var(x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
-def mean_var(
-    x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0
-) -> tuple[types.DaskArray, types.DaskArray]: ...
+def mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0) -> tuple[types.DaskArray, types.DaskArray]: ...
 
 
 def mean_var(
@@ -226,58 +204,21 @@ def mean_var(
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
 @overload
-def sum(
-    x: CpuArray | DiskArray,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> np.number[Any]: ...
+def sum(x: CpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
 @overload
-def sum(
-    x: CpuArray | DiskArray,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> NDArray[Any]: ...
+def sum(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
 
 
 @overload
-def sum(
-    x: GpuArray,
-    /,
-    *,
-    axis: None = None,
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: Literal[False] = False,
-) -> np.number[Any]: ...
+def sum(x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
 @overload
-def sum(
-    x: GpuArray, /, *, axis: None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]
-) -> types.CupyArray: ...
+def sum(x: GpuArray, /, *, axis: None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
 @overload
-def sum(
-    x: GpuArray,
-    /,
-    *,
-    axis: Literal[0, 1],
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> types.CupyArray: ...
+def sum(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 
 
 @overload
-def sum(
-    x: types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> types.DaskArray: ...
+def sum(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
 
 
 def sum(

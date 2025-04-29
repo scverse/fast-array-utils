@@ -9,25 +9,12 @@ from .core import Array, _Array
 
 class _Chunk(Protocol):
     @overload
-    def __call__(
-        self,
-        x_chunk: _Array,
-        /,
-        *,
-        weights_chunk: NDArray[Any] | None = None,
-        axis: tuple[int, ...],
-        keepdims: bool,
-        **kwargs: object,
-    ) -> _Array: ...
+    def __call__(self, x_chunk: _Array, /, *, weights_chunk: NDArray[Any] | None = None, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
     @overload
-    def __call__(
-        self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object
-    ) -> _Array: ...
+    def __call__(self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
 
 class _CB(Protocol):
-    def __call__(
-        self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object
-    ) -> _Array: ...
+    def __call__(self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
 
 def reduction(
     x: Array,

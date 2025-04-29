@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
     from ..typing import CpuArray, DiskArray, GpuArray
 
-    ComplexAxis: TypeAlias = (
-        tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1, None]
-    )
+    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1, None]
 
 
 @singledispatch
@@ -34,9 +32,7 @@ def sum_(
     del keep_cupy_as_array
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
-        assert not isinstance(
-            x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix
-        )
+        assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
         # np.sum supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(x, types.ZarrArray | types.H5Dataset)
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
@@ -52,11 +48,7 @@ def _sum_cupy(
     keep_cupy_as_array: bool = False,
 ) -> types.CupyArray | np.number[Any]:
     arr = cast("types.CupyArray", np.sum(x, axis=axis, dtype=dtype))
-    return (
-        cast("np.number[Any]", arr.get()[()])
-        if not keep_cupy_as_array and axis is None
-        else arr.squeeze()
-    )
+    return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 
 @sum_.register(types.CSBase)  # type: ignore[call-overload,misc]
@@ -153,9 +145,7 @@ def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
     return axis
 
 
-def get_shape(
-    a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool
-) -> tuple[int] | tuple[int, int]:
+def get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool) -> tuple[int] | tuple[int, int]:
     """Get the output shape of an axis-flattening operation."""
     match keepdims, a.ndim:
         case False, 0:

@@ -40,9 +40,7 @@ def test_conv(array_type: ArrayType, dtype: DTypeLike) -> None:
 def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
     src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
     with catch_warnings():
-        filterwarnings(
-            "ignore", r"numba is not installed; falling back to slow conversion", RuntimeWarning
-        )
+        filterwarnings("ignore", r"numba is not installed; falling back to slow conversion", RuntimeWarning)
         arr = other_array_type(src_arr)
     assert isinstance(arr, other_array_type.cls)
     if isinstance(arr, types.DaskArray):
@@ -70,14 +68,12 @@ def test_array_types(array_type: ArrayType) -> None:
     assert array_type.flags & Flags.Any
     assert array_type.flags & ~Flags(0)
     assert not (array_type.flags & Flags(0))
-    assert ("sparse" in str(array_type) or array_type.name in {"CSCDataset", "CSRDataset"}) == bool(
-        array_type.flags & Flags.Sparse
-    )
+    is_sparse = "sparse" in str(array_type) or array_type.name in {"CSCDataset", "CSRDataset"}
+    assert is_sparse == bool(array_type.flags & Flags.Sparse)
     assert ("cupy" in str(array_type)) == bool(array_type.flags & Flags.Gpu)
     assert ("dask" in str(array_type)) == bool(array_type.flags & Flags.Dask)
-    assert any(
-        getattr(t, "mod", None) in {"zarr", "h5py"} for t in (array_type, array_type.inner)
-    ) == bool(array_type.flags & Flags.Disk)
+    is_disk = any(getattr(t, "mod", None) in {"zarr", "h5py"} for t in (array_type, array_type.inner))
+    assert is_disk == bool(array_type.flags & Flags.Disk)
 
 
 @pytest.fixture(scope="session")

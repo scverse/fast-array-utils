@@ -63,9 +63,7 @@ else:  # pragma: no cover
     CupyCSCMatrix = type("csc_matrix", (), {})
     CupyCSRMatrix = type("csr_matrix", (), {})
     CupySpMatrix = type("spmatrix", (), {})
-    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = CupySpMatrix.__module__ = (
-        "cupyx.scipy.sparse"
-    )
+    CupyCSCMatrix.__module__ = CupyCSRMatrix.__module__ = CupySpMatrix.__module__ = "cupyx.scipy.sparse"
 CupyCSMatrix = CupyCSRMatrix | CupyCSCMatrix
 
 

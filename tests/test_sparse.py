@@ -25,9 +25,7 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.skipif(not find_spec("scipy"), reason="scipy not installed")]
 
 
-WARNS_NUMBA = pytest.warns(
-    RuntimeWarning, match="numba is not installed; falling back to slow conversion"
-)
+WARNS_NUMBA = pytest.warns(RuntimeWarning, match="numba is not installed; falling back to slow conversion")
 
 
 @pytest.fixture(scope="session", params=["csr", "csc"])
@@ -47,9 +45,7 @@ def dtype(request: pytest.FixtureRequest) -> type[np.float32 | np.float64]:
 
 @pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 @pytest.mark.parametrize("order", ["C", "F"])
-def test_to_dense(
-    array_type: ArrayType[CSBase, None], order: Literal["C", "F"], dtype: _DTypeLikeNum
-) -> None:
+def test_to_dense(array_type: ArrayType[CSBase, None], order: Literal["C", "F"], dtype: _DTypeLikeNum) -> None:
     mat = array_type.random((10, 10), density=0.1, dtype=dtype)
     with WARNS_NUMBA if not find_spec("numba") else nullcontext():
         arr = to_dense(mat, order=order)

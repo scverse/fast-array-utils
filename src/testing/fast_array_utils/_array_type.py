@@ -36,9 +36,7 @@ if TYPE_CHECKING:
     class ToArray(Protocol, Generic[Arr_co]):
         """Convert to a supported array."""
 
-        def __call__(
-            self, data: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-        ) -> Arr_co: ...
+        def __call__(self, data: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> Arr_co: ...
 
     _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
     _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
@@ -118,9 +116,7 @@ class ArrayType(Generic[Arr, Inner]):
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
                 return cast("type[Arr]", np.ndarray)
-            case "scipy.sparse", (
-                "csr_array" | "csc_array" | "coo_array" | "csr_matrix" | "csc_matrix" | "coo_matrix"
-            ) as cls_name, None:
+            case "scipy.sparse", ("csr_array" | "csc_array" | "coo_array" | "csr_matrix" | "csc_matrix" | "coo_matrix") as cls_name, None:
                 import scipy.sparse
 
                 return cast("type[Arr]", getattr(scipy.sparse, cls_name))
@@ -128,9 +124,7 @@ class ArrayType(Generic[Arr, Inner]):
                 import cupy as cp
 
                 return cast("type[Arr]", cp.ndarray)
-            case "cupyx.scipy.sparse", (
-                "csr_matrix" | "csc_matrix" | "coo_matrix"
-            ) as cls_name, None:
+            case "cupyx.scipy.sparse", ("csr_matrix" | "csc_matrix" | "coo_matrix") as cls_name, None:
                 import cupyx.scipy.sparse as cu_sparse
 
                 return cast("type[Arr]", getattr(cu_sparse, cls_name))
@@ -169,17 +163,11 @@ class ArrayType(Generic[Arr, Inner]):
         match self.mod, self.name, self.inner:
             case "numpy", "ndarray", None:
                 return cast("Arr", random_array(shape, dtype=dtype, rng=gen))
-            case "scipy.sparse", (
-                "csr_array" | "csc_array" | "csr_matrix" | "csc_matrix"
-            ) as cls_name, None:
-                fmt, container = cast(
-                    'tuple[Literal["csr", "csc"], Literal["array", "matrix"]]', cls_name.split("_")
-                )
+            case "scipy.sparse", ("csr_array" | "csc_array" | "csr_matrix" | "csc_matrix") as cls_name, None:
+                fmt, container = cast('tuple[Literal["csr", "csc"], Literal["array", "matrix"]]', cls_name.split("_"))
                 return cast(
                     "Arr",
-                    random_mat(
-                        shape, density=density, format=fmt, container=container, dtype=dtype
-                    ),
+                    random_mat(shape, density=density, format=fmt, container=container, dtype=dtype),
                 )
             case "cupy", "ndarray", None:
                 return self(random_array(shape, dtype=dtype, rng=gen))
@@ -240,16 +228,12 @@ class ArrayType(Generic[Arr, Inner]):
         return fn(x, dtype=dtype)
 
     @staticmethod
-    def _to_numpy_array(
-        x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> NDArray[np.number[Any]]:
+    def _to_numpy_array(x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> NDArray[np.number[Any]]:
         """Convert to a numpy array."""
         x = to_dense(x, to_cpu_memory=True)
         return x if dtype is None else x.astype(dtype)
 
-    def _to_dask_array(
-        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> types.DaskArray:
+    def _to_dask_array(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
         """Convert to a dask array."""
         import dask.array as da
 
@@ -260,16 +244,12 @@ class ArrayType(Generic[Arr, Inner]):
         if isinstance(x, types.DaskArray):
             if isinstance(x._meta, self.inner.cls):  # noqa: SLF001
                 return x
-            return x.map_blocks(
-                self.inner, dtype=dtype, meta=self.inner([[1]], dtype=dtype or x.dtype)
-            )
+            return x.map_blocks(self.inner, dtype=dtype, meta=self.inner([[1]], dtype=dtype or x.dtype))
 
         arr = self.inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))
 
-    def _to_h5py_dataset(
-        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> types.H5Dataset:
+    def _to_h5py_dataset(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.H5Dataset:
         """Convert to a h5py dataset."""
         if (ctx := self.conversion_context) is None:
             msg = "`conversion_context` must be set for h5py"
@@ -279,9 +259,7 @@ class ArrayType(Generic[Arr, Inner]):
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @classmethod
-    def _to_zarr_array(
-        cls, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> types.ZarrArray:
+    def _to_zarr_array(cls, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
         """Convert to a zarr array."""
         import zarr
 
@@ -293,9 +271,7 @@ class ArrayType(Generic[Arr, Inner]):
         za[...] = arr
         return za
 
-    def _to_cs_dataset(
-        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> types.CSDataset:
+    def _to_cs_dataset(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
         """Convert to a scipy sparse dataset."""
         import anndata.io  # type: ignore[import-untyped]
         from scipy.sparse import csc_array, csr_array
@@ -339,9 +315,7 @@ class ArrayType(Generic[Arr, Inner]):
         cls = cast("type[types.CSBase]", cls or self.cls)
         return cls(x, dtype=dtype)  # type: ignore[arg-type]
 
-    def _to_cupy_array(
-        self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None
-    ) -> types.CupyArray:
+    def _to_cupy_array(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CupyArray:
         import cupy as cu
 
         if isinstance(x, types.DaskArray):
@@ -374,11 +348,7 @@ def random_array(
 ) -> Array:
     """Create a random array."""
     rng = np.random.default_rng(rng)
-    f = (
-        partial(rng.integers, 0, 10_000)
-        if dtype is not None and np.dtype(dtype).kind in "iu"
-        else rng.random
-    )
+    f = partial(rng.integers, 0, 10_000) if dtype is not None and np.dtype(dtype).kind in "iu" else rng.random
     return f(shape, dtype=dtype)  # type: ignore[arg-type]
 
 

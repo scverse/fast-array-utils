@@ -19,13 +19,7 @@ if TYPE_CHECKING:
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: CpuArray
-    | GpuArray
-    | DiskArray
-    | types.DaskArray
-    | types.sparray
-    | types.spmatrix
-    | types.CupySpMatrix,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
     /,
     *,
     to_cpu_memory: bool = False,
@@ -35,9 +29,7 @@ def to_dense_(
 
 
 @to_dense_.register(types.spmatrix | types.sparray)  # type: ignore[call-overload,misc]
-def _to_dense_cs(
-    x: types.spmatrix | types.sparray, /, *, to_cpu_memory: bool = False
-) -> NDArray[Any]:
+def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, to_cpu_memory: bool = False) -> NDArray[Any]:
     from . import scipy
 
     del to_cpu_memory  # it already is
@@ -45,9 +37,7 @@ def _to_dense_cs(
 
 
 @to_dense_.register(types.DaskArray)
-def _to_dense_dask(
-    x: types.DaskArray, /, *, to_cpu_memory: bool = False
-) -> NDArray[Any] | types.DaskArray:
+def _to_dense_dask(x: types.DaskArray, /, *, to_cpu_memory: bool = False) -> NDArray[Any] | types.DaskArray:
     from . import to_dense
 
     x = x.map_blocks(partial(to_dense, to_cpu_memory=to_cpu_memory))
@@ -66,8 +56,6 @@ def _to_dense_ooc(x: types.CSDataset, /, *, to_cpu_memory: bool = False) -> NDAr
 
 
 @to_dense_.register(types.CupyArray | types.CupySpMatrix)  # type: ignore[call-overload,misc]
-def _to_dense_cupy(
-    x: GpuArray, /, *, to_cpu_memory: bool = False
-) -> NDArray[Any] | types.CupyArray:
+def _to_dense_cupy(x: GpuArray, /, *, to_cpu_memory: bool = False) -> NDArray[Any] | types.CupyArray:
     x = x.toarray() if isinstance(x, types.CupySpMatrix) else x
     return x.get() if to_cpu_memory else x
