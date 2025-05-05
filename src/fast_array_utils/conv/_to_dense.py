@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+import warnings
 from functools import partial, singledispatch
 from typing import TYPE_CHECKING, cast
 
@@ -41,6 +42,9 @@ def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, order: Literal["K", "A
 def _to_dense_dask(x: types.DaskArray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> NDArray[Any] | types.DaskArray:
     from . import to_dense
 
+    if order == "F":
+        msg = f"{order=!r} will probably be ignored: Dask can not be made to emit F-contiguous arrays reliably."
+        warnings.warn(msg, RuntimeWarning, stacklevel=4)
     x = x.map_blocks(partial(to_dense, order=order, to_cpu_memory=to_cpu_memory))
     return x.compute() if to_cpu_memory else x  # type: ignore[return-value]
 

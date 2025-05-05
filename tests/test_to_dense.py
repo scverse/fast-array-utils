@@ -35,12 +35,19 @@ def test_to_dense(array_type: ArrayType[Array], *, order: Literal["K", "C", "F"]
             to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
         return
 
-    with WARNS_NUMBA if issubclass(array_type.cls, types.CSBase) and not find_spec("numba") else nullcontext():
+    with (
+        pytest.warns(RuntimeWarning, match="Dask can not be made to emit F-contiguous arrays")
+        if (order == "F" and array_type.cls is types.DaskArray)
+        else nullcontext(),
+        WARNS_NUMBA if issubclass(array_type.cls, types.CSBase) and not find_spec("numba") else nullcontext(),
+    ):
         arr = to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
 
     assert_expected_cls(x, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)
-    assert_expected_order(x, arr, order=order)
+    # Dask is unreliable: for explicit “F”, we emit a warning (tested above), for “K” we just ignore the result
+    if not (array_type.cls is types.DaskArray and order in {"F", "K"}):
+        assert_expected_order(x, arr, order=order)
 
 
 @pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
@@ -79,6 +86,11 @@ def assert_expected_order(orig: ExtendedArray, converted: Array, *, order: Liter
 
 
 def get_orders(orig: ExtendedArray) -> Iterable[Literal["C", "F"]]:
+    """Get the orders of an array.
+
+    Numpy arrays with at most one axis of a length >1 are valid in both orders.
+    So are COO sparse matrices/arrays.
+    """
     match orig:
         case np.ndarray() | types.CupyArray():
             if orig.flags.c_contiguous:
@@ -88,7 +100,7 @@ def get_orders(orig: ExtendedArray) -> Iterable[Literal["C", "F"]]:
         case _ if isinstance(orig, types.CSBase | types.COOBase | types.CupyCSMatrix | types.CupyCOOMatrix | types.CSDataset):
             if orig.format in {"csr", "coo"}:
                 yield "C"
-            if orig.format == {"csc", "coo"}:
+            if orig.format in {"csc", "coo"}:
                 yield "F"
         case types.DaskArray():
             yield from get_orders(orig.compute())
