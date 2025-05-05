@@ -13,6 +13,8 @@ from testing.fast_array_utils.pytest import _skip_if_unimportable
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from fast_array_utils import types
+
 
 @pytest.fixture
 def dask_viz(request: pytest.FixtureRequest, cache: pytest.Cache) -> Callable[[object], None]:
@@ -41,5 +43,5 @@ COO_PARAMS = [
 
 
 @pytest.fixture(scope="session", params=COO_PARAMS)
-def coo_matrix_type(request: pytest.FixtureRequest) -> ArrayType:
-    return cast("ArrayType", request.param)
+def coo_matrix_type(request: pytest.FixtureRequest) -> ArrayType[types.COOBase | types.CupyCOOMatrix]:
+    return cast("ArrayType[types.COOBase | types.CupyCOOMatrix]", request.param)

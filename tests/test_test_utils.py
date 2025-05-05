@@ -15,9 +15,7 @@ from testing.fast_array_utils.pytest import array_type
 if TYPE_CHECKING:
     from typing import Any
 
-    from cupyx.scipy.sparse import coo_matrix as CupyCooMatrix
     from numpy.typing import DTypeLike, NDArray
-    from scipy.sparse import coo_array, coo_matrix
 
     from testing.fast_array_utils import Array, ArrayType
 
@@ -54,7 +52,7 @@ def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
 @pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 def test_conv_extra(
     array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase],
-    coo_matrix_type: ArrayType[coo_matrix | coo_array | CupyCooMatrix],
+    coo_matrix_type: ArrayType[types.COOBase | types.CupyCOOMatrix],
 ) -> None:
     src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
     arr = coo_matrix_type(src_arr)
