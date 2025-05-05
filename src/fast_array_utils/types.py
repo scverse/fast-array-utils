@@ -58,10 +58,10 @@ else:
         csr_matrix = type("csr_matrix", (), {})
         spmatrix = type("spmatrix", (), {})
         coo_matrix.__module__ = csc_matrix.__module__ = csr_matrix.__module__ = spmatrix.__module__ = "scipy.sparse"
+COOBase = coo_matrix | coo_array
 CSMatrix = csc_matrix | csr_matrix
 CSArray = csc_array | csr_array
 CSBase = CSMatrix | CSArray
-COOBase = coo_matrix | coo_array
 """A sparse compressed matrix or array."""
 
 
