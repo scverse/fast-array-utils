@@ -3,6 +3,8 @@ from types import EllipsisType
 from typing import Any, Literal, Self, overload
 
 import numpy as np
+from cupy.cuda import Stream
+from numpy._core.multiarray import flagsobj
 from numpy.typing import NDArray
 
 class ndarray:
@@ -10,9 +12,12 @@ class ndarray:
     shape: tuple[int, ...]
     size: int
     ndim: int
+    flags: flagsobj
 
     # cupy-specific
-    def get(self) -> NDArray[Any]: ...
+    def get(
+        self, stream: Stream | None = None, order: Literal["C", "F", "A"] = "C", out: NDArray[Any] | None = None, blocking: bool = True
+    ) -> NDArray[Any]: ...
 
     # operators
     def __array__(self) -> NDArray[Any]: ...

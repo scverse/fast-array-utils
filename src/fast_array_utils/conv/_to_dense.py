@@ -61,7 +61,7 @@ def _to_dense_cupy(x: GpuArray, /, *, order: Literal["K", "A", "C", "F"] = "K", 
     import cupy as cu
 
     x = x.toarray(sparse_order(x, order=order)) if isinstance(x, types.CupySpMatrix) else cu.asarray(x, order=order)
-    return x.get() if to_cpu_memory else x
+    return x.get(order="A") if to_cpu_memory else x
 
 
 def sparse_order(x: types.spmatrix | types.sparray | types.CupySpMatrix | types.CSDataset, /, *, order: Literal["K", "A", "C", "F"]) -> Literal["C", "F"]:

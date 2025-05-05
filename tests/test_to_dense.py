@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -13,7 +13,7 @@ from fast_array_utils.conv import to_dense
 
 
 if TYPE_CHECKING:
-    from typing import TypeAlias
+    from typing import Literal, TypeAlias
 
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
@@ -58,7 +58,7 @@ def assert_expected_cls(orig: Array, converted: Array, *, to_cpu_memory: bool) -
     match (to_cpu_memory, orig):
         case False, types.DaskArray():
             assert isinstance(converted, types.DaskArray)
-            assert_expected_cls(orig._meta, converted._meta, to_cpu_memory=to_cpu_memory)  # noqa: SLF001
+            assert_expected_cls(orig.compute(), converted.compute(), to_cpu_memory=to_cpu_memory)
         case False, types.CupyArray() | types.CupySpMatrix():
             assert isinstance(converted, types.CupyArray)
         case _:
@@ -66,23 +66,25 @@ def assert_expected_cls(orig: Array, converted: Array, *, to_cpu_memory: bool) -
 
 
 def assert_expected_order(orig: Array, converted: Array, *, order: Literal["K", "C", "F"]) -> None:
-    order_expected = get_order(orig) if order == "K" else order
-    if isinstance(converted, types.DaskArray):
-        pass  # TODO
-    else:
-        assert converted.flags.c_contiguous == (order_expected == "C")
-        assert converted.flags.f_contiguous == (order_expected == "F")
+    match converted:
+        case types.CupyArray() | np.ndarray():
+            order_expected = get_order(orig) if order == "K" else order
+            assert converted.flags.c_contiguous == (order_expected == "C")
+            assert converted.flags.f_contiguous == (order_expected == "F")
+        case types.DaskArray():
+            assert_expected_order(orig, converted.compute(), order=order)
+        case _:
+            pytest.fail(f"Unsupported array type: {type(converted)}")
 
 
 def get_order(orig: Array) -> Literal["C", "F"]:
     match orig:
         case np.ndarray() | types.CupyArray():
-            return "C" if orig.flags["C_CONTIGUOUS"] else "F"
-        case types.spmatrix | types.CupySpMatrix() | types.CSCDataset() | types.CSRDataset():
-            if TYPE_CHECKING:
-                from scipy.sparse._base import _spbase
-
-                assert isinstance(orig, _spbase | types.CSDataset)
-
+            return "C" if orig.flags.c_contiguous else "F"
+        case _ if isinstance(orig, types.CSBase | types.CupyCSMatrix | types.CSDataset):
             return "C" if orig.format == "csr" else "F"
-    raise NotImplementedError
+        case types.DaskArray():
+            return get_order(orig.compute())
+        case types.ZarrArray() | types.H5Dataset():
+            return "C"
+    pytest.fail(f"Unsupported array type: {type(orig)}")
