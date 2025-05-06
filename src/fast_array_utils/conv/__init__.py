@@ -21,25 +21,28 @@ __all__ = ["to_dense"]
 
 
 @overload
-def to_dense(x: CpuArray | DiskArray | types.sparray | types.spmatrix | types.CSDataset, /, *, to_cpu_memory: bool = False) -> NDArray[Any]: ...
+def to_dense(
+    x: CpuArray | DiskArray | types.sparray | types.spmatrix | types.CSDataset, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False
+) -> NDArray[Any]: ...
 
 
 @overload
-def to_dense(x: types.DaskArray, /, *, to_cpu_memory: Literal[False] = False) -> types.DaskArray: ...
+def to_dense(x: types.DaskArray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[False] = False) -> types.DaskArray: ...
 @overload
-def to_dense(x: types.DaskArray, /, *, to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
+def to_dense(x: types.DaskArray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 @overload
-def to_dense(x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[False] = False) -> types.CupyArray: ...
+def to_dense(x: GpuArray | types.CupySpMatrix, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[False] = False) -> types.CupyArray: ...
 @overload
-def to_dense(x: GpuArray | types.CupySpMatrix, /, *, to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
+def to_dense(x: GpuArray | types.CupySpMatrix, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
 
 
 def to_dense(
     x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
     /,
     *,
+    order: Literal["K", "A", "C", "F"] = "K",
     to_cpu_memory: bool = False,
 ) -> NDArray[Any] | types.DaskArray | types.CupyArray:
     r"""Convert x to a dense array.
@@ -52,6 +55,16 @@ def to_dense(
     ----------
     x
         Input object to be converted.
+    order
+        The order of the output array: ``C`` (row-major) or ``F`` (column-major). ``K`` and ``A`` derive the order from ``x``.
+
+        The default matches numpy, and therefore diverges from the ``scipy.sparse`` matrices’
+        :meth:`~scipy.sparse.csr_array.toarray`\ ’s default behavior
+        of always returning a ``C``-contiguous array.
+        Instead, CSC matrices become F-contiguous arrays when ``order="K"`` (the default).
+
+        Dask :class:`~dask.array.Array`\ s concatenation behavior will result in ``order``
+        having no effect on the :func:`dask.compute` / ``to_cpu_memory=True`` result.
     to_cpu_memory
         Also load data into memory (resulting in a :class:`numpy.ndarray`).
 
@@ -60,4 +73,4 @@ def to_dense(
     Dense form of ``x``
 
     """
-    return to_dense_(x, to_cpu_memory=to_cpu_memory)
+    return to_dense_(x, order=order, to_cpu_memory=to_cpu_memory)

@@ -22,14 +22,14 @@ if TYPE_CHECKING:
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
-    from fast_array_utils.types import CSBase
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
 
     InnerArray = CpuArray | GpuArray | DiskArray
     Array: TypeAlias = InnerArray | types.DaskArray | types.CSDataset
+    ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
 
-    Arr = TypeVar("Arr", bound=Array, default=Array)
-    Arr_co = TypeVar("Arr_co", bound=Array, covariant=True)
+    Arr = TypeVar("Arr", bound=ExtendedArray, default=Array)
+    Arr_co = TypeVar("Arr_co", bound=ExtendedArray, covariant=True)
 
     Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default=Any)
 
@@ -305,7 +305,7 @@ class ArrayType(Generic[Arr, Inner]):
         /,
         *,
         dtype: DTypeLike | None = None,
-        cls: type[CSBase] | None = None,
+        cls: type[types.CSBase] | None = None,
     ) -> types.CSBase:
         """Convert to a scipy sparse matrix/array."""
         if isinstance(x, types.DaskArray):
