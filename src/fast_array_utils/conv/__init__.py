@@ -57,6 +57,14 @@ def to_dense(
         Input object to be converted.
     order
         The order of the output array: ``C`` (row-major) or ``F`` (column-major). ``K`` and ``A`` derive the order from ``x``.
+
+        The default matches numpy, and therefore diverges from the ``scipy.sparse`` matrices’
+        :meth:`~scipy.sparse.csr_array.toarray`\ ’s default behavior
+        of always returning a ``C``-contiguous array.
+        Instead, CSC matrices become F-contiguous arrays when `order="K"` (the default).
+
+        Dask :class:`~dask.array.Array`\ s concatenation behavior will result in ``order``
+        having no effect on the :func:`dask.compute` / ``to_cpu_memory=True`` result.
     to_cpu_memory
         Also load data into memory (resulting in a :class:`numpy.ndarray`).
 
