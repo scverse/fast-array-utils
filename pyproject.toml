@@ -1,6 +1,12 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatch-docstring-description>=1.1.1", "hatch-fancy-pypi-readme", "hatch-min-requirements", "hatch-vcs", "hatchling" ]
+requires = [
+  "hatch-docstring-description>=1.1.1",
+  "hatch-fancy-pypi-readme",
+  "hatch-min-requirements",
+  "hatch-vcs",
+  "hatchling",
+]
 
 [project]
 name = "fast-array-utils"
@@ -133,13 +139,14 @@ lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # 
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
+lint.flake8-tidy-imports.banned-api."numpy.bool".msg = "Use `np.bool_` instead for numpy>=1.24<2 compatibility"
+
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
 lint.isort.required-imports = [ "from __future__ import annotations" ]
 lint.pydocstyle.convention = "numpy"
-lint.flake8-tidy-imports.banned-api."numpy.bool".msg = "Use `np.bool_` instead for numpy>=1.24<2 compatibility"
 
 [tool.pytest.ini_options]
 addopts = [
