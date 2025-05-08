@@ -210,7 +210,7 @@ def test_mean_var(
         mean, var = mean.get(), var.get()
 
     mean_expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
-    var_expected = np.var(np_arr, axis=axis, correction=1)  # type: ignore[arg-type]
+    var_expected = np.var(np_arr, axis=axis, ddof=1)  # type: ignore[arg-type]
     np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
