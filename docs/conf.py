@@ -8,6 +8,8 @@ from importlib.metadata import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from docutils.nodes import Text
+
 
 if TYPE_CHECKING:
     from docutils.nodes import TextElement, reference
@@ -82,6 +84,7 @@ html_theme_options = dict(
     source_directory="docs/",
 )
 
+_np_aliases = {"bool_": "bool"}
 _np_nocls = {"float64": "attr"}
 _optional_types = {
     "CupyArray": "cupy.ndarray",
@@ -94,30 +97,31 @@ _optional_types = {
 }
 
 
-def find_type_alias(name: str) -> tuple[str, str] | tuple[None, None]:
+def find_type_alias(name: str) -> tuple[str, str, str | None] | tuple[None, None, None]:
     """Find a type alias."""
     import numpy.typing as npt
 
     from fast_array_utils import types, typing
 
     if name in typing.__all__:
-        return "data", f"fast_array_utils.typing.{name}"
+        return "data", f"fast_array_utils.typing.{name}", None
     if name.startswith("types.") and name[6:] in {*types.__all__, *_optional_types}:
         if path := _optional_types.get(name[6:]):
-            return "class", path
-        return "data", f"fast_array_utils.{name}"
+            return "class", path, None
+        return "data", f"fast_array_utils.{name}", None
     if name.startswith("np."):
-        return _np_nocls.get(name[3:], "class"), f"numpy.{name[3:]}"
+        name = _np_aliases.get(name[3:], name[3:])
+        return _np_nocls.get(name, "class"), f"numpy.{name}", f"np.{name}"
     if name in npt.__all__:
-        return "data", f"numpy.typing.{name}"
-    return None, None
+        return "data", f"numpy.typing.{name}", None
+    return None, None, None
 
 
 def resolve_type_aliases(app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: TextElement) -> reference | None:
     """Resolve :class: references to our type aliases as :attr: instead."""
     if (node["refdomain"], node["reftype"]) != ("py", "class"):
         return None
-    typ, target = find_type_alias(node["reftarget"])
+    typ, target, name = find_type_alias(node["reftarget"])
     if typ is None or target is None:
         return None
     if target.startswith("fast_array_utils."):
@@ -131,6 +135,8 @@ def resolve_type_aliases(app: Sphinx, env: BuildEnvironment, node: pending_xref,
     if ref is None:
         msg = f"Could not resolve {typ} {target} (from {node['reftarget']})"
         raise AssertionError(msg)
+    if name:
+        ref.children[:] = [Text(name)]
     return ref
 
 
