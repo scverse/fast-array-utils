@@ -118,7 +118,7 @@ def mean(
     ...     [0, 0, 0],
     ... ])
     >>> mean(x)
-    np.float64(0.5)
+    0.5
     >>> mean(x, axis=0)
     array([0. , 0.5, 1. ])
     >>> mean(x, axis=1)
@@ -184,7 +184,7 @@ def mean_var(
     ...     [0, 0, 0],
     ... ])
     >>> mean_var(x)  # doctest: +FLOAT_CMP
-    (np.float64(0.5), np.float64(0.5833333333333334))
+    (0.5, 0.5833333333333334)
     >>> mean_var(x, axis=0)
     (array([0. , 0.5, 1. ]), array([0.  , 0.25, 1.  ]))
     >>> mean_var(x, axis=1)
@@ -251,7 +251,7 @@ def sum(
     ...     [0, 0, 0],
     ... ])
     >>> sum(x)
-    np.int64(3)
+    3
     >>> sum(x, axis=0)
     array([0, 1, 2])
     >>> sum(x, axis=1)
