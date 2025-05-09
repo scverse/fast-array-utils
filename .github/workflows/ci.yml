@@ -31,8 +31,10 @@ jobs:
             FORCE_COLOR= uvx hatch env show --json |
             jq -c 'to_entries | map(select(.key | startswith("hatch-test")) | { name: .key, python: .value.python })'
           )
+          PYTHONS_JSON=$(echo "$ENVS_JSON" | jq -c 'map(.python) | unique')
+
           echo "envs=$ENVS_JSON" | tee $GITHUB_OUTPUT
-          echo "pythons=$(echo $ENVS_JSON | jq -c 'map(.python) | unique')" | tee $GITHUB_OUTPUT
+          echo "pythons=$PYTHONS_JSON" | tee $GITHUB_OUTPUT
   test:
     name: Tests
     needs: get-environments
