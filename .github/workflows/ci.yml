@@ -23,12 +23,11 @@ jobs:
           filter: blob:none
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      - run: uvx hatch env show --json
       - name: Get test environments
         id: get-envs
         run: |
           ENVS_JSON=$(
-            uvx hatch env show --json |
+            FORCE_COLOR= uvx hatch env show --json |
             jq -c 'to_entries | map(select(.key | startswith("hatch-test")) | { name: .key, python: .value.python })'
           )
           echo "envs=${ENVS_JSON}" | tee $GITHUB_OUTPUT
