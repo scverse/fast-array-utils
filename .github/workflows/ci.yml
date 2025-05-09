@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       envs: ${{ steps.get-envs.outputs.envs }}
+      pythons: ${{ steps.get-envs.outputs.pythons }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +31,8 @@ jobs:
             FORCE_COLOR= uvx hatch env show --json |
             jq -c 'to_entries | map(select(.key | startswith("hatch-test")) | { name: .key, python: .value.python })'
           )
-          echo "envs=${ENVS_JSON}" | tee $GITHUB_OUTPUT
+          echo "envs=$ENVS_JSON" | tee $GITHUB_OUTPUT
+          echo "pythons=$(echo $ENVS_JSON | jq -c 'map(.python) | unique')" | tee $GITHUB_OUTPUT
   test:
     name: Tests
     needs: get-environments
@@ -58,7 +60,7 @@ jobs:
           rm test-data/.coverage
       - uses: codecov/codecov-action@v5
         with:
-          name: Min Tests
+          name: ${{ matrix.env.name }}
           fail_ci_if_error: true
           files: test-data/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -99,10 +101,11 @@ jobs:
       - run: python -c 'import testing.fast_array_utils as tfau; print(tfau.ArrayType("numpy", "ndarray"))'
   check:
     name: Static Checks
+    needs: get-environments
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.13"]
+        python-version: ${{ fromJSON(needs.get-environments.outputs.pythons) }}
     env:
       SKIP: no-commit-to-branch  # this CI runs on the main branch
     steps:
