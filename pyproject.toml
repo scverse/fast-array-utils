@@ -35,7 +35,7 @@ optional-dependencies.doc = [
   "sphinx-autofixture",
 ]
 optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
-optional-dependencies.sparse = [ "scipy>=1.8" ]
+optional-dependencies.sparse = [ "scipy>=1.11" ]
 optional-dependencies.test = [
   "anndata",
   "fast-array-utils[accel,test-min]",
@@ -104,7 +104,7 @@ extras = [ "full", "min" ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [ "3.11" ]
-extras = [ "default" ]
+extras = [ "full" ]
 resolution = [ "lowest" ]
 
 [tool.ruff]
