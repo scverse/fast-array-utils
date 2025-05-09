@@ -52,9 +52,9 @@ jobs:
         run: uvx hatch env create ${{ matrix.env.name }}
       - name: run tests with coverage
         run: |
-          hatch run ${{ matrix.env.name }}:run-cov
+          uvx hatch run ${{ matrix.env.name }}:run-cov
           # https://github.com/codecov/codecov-cli/issues/648
-          hatch run ${{ matrix.env.name }}:coverage xml
+          uvx hatch run ${{ matrix.env.name }}:coverage xml
           rm test-data/.coverage
       - uses: codecov/codecov-action@v5
         with:
@@ -125,6 +125,6 @@ jobs:
       - check
     runs-on: ubuntu-latest
     steps:
-        - uses: re-actors/alls-green@release/v1
-          with:
-            jobs: ${{ toJSON(needs) }}
+      - uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
