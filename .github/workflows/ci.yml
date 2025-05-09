@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       envs: ${{ steps.get-envs.outputs.envs }}
-      pythons: ${{ steps.get-envs.outputs.pythons }}
+      pythons: ${{ steps.get-pythons.outputs.pythons }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,9 +31,13 @@ jobs:
             FORCE_COLOR= uvx hatch env show --json |
             jq -c 'to_entries | map(select(.key | startswith("hatch-test")) | { name: .key, python: .value.python })'
           )
-          PYTHONS_JSON=$(echo "$ENVS_JSON" | jq -c 'map(.python) | unique')
-
           echo "envs=$ENVS_JSON" | tee $GITHUB_OUTPUT
+      - name: Get python versions
+        id: get-pythons
+        env:
+          ENVS_JSON: ${{ steps.get-envs.outputs.envs }}
+        run: |
+          PYTHONS_JSON=$(echo "$ENVS_JSON" | jq -c 'map(.python) | unique')
           echo "pythons=$PYTHONS_JSON" | tee $GITHUB_OUTPUT
   test:
     name: Tests
