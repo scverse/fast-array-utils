@@ -81,7 +81,7 @@ extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
-  { if = [ "default", "full" ], value = "test" },
+  { if = [ "full" ], value = "test" },
 ]
 overrides.matrix.extras.dependencies = [
   { if = [ "full" ], value = "scipy-stubs" },
@@ -89,8 +89,8 @@ overrides.matrix.extras.dependencies = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.13", "3.12", "3.11" ]
-extras = [ "full", "default", "min" ]
+python = [ "3.13", "3.11" ]
+extras = [ "full", "min" ]
 
 [tool.ruff]
 line-length = 160
