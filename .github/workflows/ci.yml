@@ -36,7 +36,8 @@ jobs:
     needs: get-environments
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.get-environments.outputs.envs) }}
+      matrix:
+        env: ${{ fromJSON(needs.get-environments.outputs.envs) }}
     steps:
       - uses: actions/checkout@v4
         with:
