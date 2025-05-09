@@ -29,7 +29,7 @@ __all__ = ["is_constant", "mean", "mean_var", "sum"]
 @overload
 def is_constant(x: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
+def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
 @overload
 def is_constant(x: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
 @overload
@@ -41,7 +41,7 @@ def is_constant(
     /,
     *,
     axis: Literal[0, 1, None] = None,
-) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
+) -> bool | NDArray[np.bool_] | types.CupyArray | types.DaskArray:
     """Check whether values in array are constant.
 
     Parameters
@@ -118,7 +118,7 @@ def mean(
     ...     [0, 0, 0],
     ... ])
     >>> mean(x)
-    np.float64(0.5)
+    0.5
     >>> mean(x, axis=0)
     array([0. , 0.5, 1. ])
     >>> mean(x, axis=1)
@@ -184,7 +184,7 @@ def mean_var(
     ...     [0, 0, 0],
     ... ])
     >>> mean_var(x)  # doctest: +FLOAT_CMP
-    (np.float64(0.5), np.float64(0.5833333333333334))
+    (0.5, 0.5833333333333334)
     >>> mean_var(x, axis=0)
     (array([0. , 0.5, 1. ]), array([0.  , 0.25, 1.  ]))
     >>> mean_var(x, axis=1)
@@ -251,7 +251,7 @@ def sum(
     ...     [0, 0, 0],
     ... ])
     >>> sum(x)
-    np.int64(3)
+    3
     >>> sum(x, axis=0)
     array([0, 1, 2])
     >>> sum(x, axis=1)

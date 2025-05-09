@@ -1,6 +1,12 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatch-docstring-description>=1.1.1", "hatch-fancy-pypi-readme", "hatch-vcs", "hatchling" ]
+requires = [
+  "hatch-docstring-description>=1.1.1",
+  "hatch-fancy-pypi-readme",
+  "hatch-min-requirements",
+  "hatch-vcs",
+  "hatchling",
+]
 
 [project]
 name = "fast-array-utils"
@@ -18,7 +24,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dynamic = [ "description", "readme", "version" ]
-dependencies = [ "numpy" ]
+dependencies = [ "numpy>=1.25.2" ]
 optional-dependencies.accel = [ "numba" ]
 optional-dependencies.doc = [
   "furo",
@@ -29,7 +35,7 @@ optional-dependencies.doc = [
   "sphinx-autofixture",
 ]
 optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
-optional-dependencies.sparse = [ "scipy>=1.8" ]
+optional-dependencies.sparse = [ "scipy>=1.11" ]
 optional-dependencies.test = [
   "anndata",
   "fast-array-utils[accel,test-min]",
@@ -61,6 +67,7 @@ path = "README.rst"
 start-after = ".. begin"
 
 [tool.hatch.metadata.hooks.docstring-description]
+[tool.hatch.metadata.hooks.min_requirements]
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/testing", "src/fast_array_utils" ]
@@ -87,10 +94,18 @@ overrides.matrix.extras.dependencies = [
   { if = [ "full" ], value = "scipy-stubs" },
   { if = [ "full" ], value = "scikit-learn" },
 ]
+overrides.matrix.resolution.features = [
+  { if = [ "lowest" ], value = "min-reqs" }, # feature added by hatch-min-requirements
+]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [ "3.13", "3.11" ]
 extras = [ "full", "min" ]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = [ "3.11" ]
+extras = [ "full" ]
+resolution = [ "lowest" ]
 
 [tool.ruff]
 line-length = 160
@@ -124,6 +139,7 @@ lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # 
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
+lint.flake8-tidy-imports.banned-api."numpy.bool".msg = "Use `np.bool_` instead for numpy>=1.24<2 compatibility"
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
@@ -133,6 +149,7 @@ lint.pydocstyle.convention = "numpy"
 
 [tool.pytest.ini_options]
 addopts = [
+  "-ptesting.fast_array_utils._private",
   "--import-mode=importlib",
   "--strict-markers",
   "--doctest-modules",

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
-    DTypeIn = np.float32 | np.float64 | np.int32 | np.bool
+    DTypeIn = np.float32 | np.float64 | np.int32 | np.bool_
     DTypeOut = np.float32 | np.float64 | np.int64
 
     NdAndAx: TypeAlias = tuple[Literal[1], Literal[None]] | tuple[Literal[2], Literal[0, 1, None]]
@@ -81,7 +81,7 @@ def axis(ndim_and_axis: NdAndAx) -> Literal[0, 1, None]:
     return ndim_and_axis[1]
 
 
-@pytest.fixture(params=[np.float32, np.float64, np.int32, np.bool])
+@pytest.fixture(params=[np.float32, np.float64, np.int32, np.bool_])
 def dtype_in(request: pytest.FixtureRequest, array_type: ArrayType) -> type[DTypeIn]:
     dtype = cast("type[DTypeIn]", request.param)
     inner_cls = array_type.inner.cls if array_type.inner else array_type.cls
@@ -152,7 +152,7 @@ def test_sum(
 
     if dtype_arg is not None:
         assert sum_.dtype == dtype_arg, (sum_.dtype, dtype_arg)
-    elif dtype_in in {np.bool, np.int32}:
+    elif dtype_in in {np.bool_, np.int32}:
         assert sum_.dtype == np.int64
     else:
         assert sum_.dtype == dtype_in
@@ -210,7 +210,7 @@ def test_mean_var(
         mean, var = mean.get(), var.get()
 
     mean_expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
-    var_expected = np.var(np_arr, axis=axis, correction=1)  # type: ignore[arg-type]
+    var_expected = np.var(np_arr, axis=axis, ddof=1)  # type: ignore[arg-type]
     np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
@@ -276,7 +276,7 @@ def test_is_constant(
     x = array_type(x_data, dtype=np.float64)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = cast("NDArray[np.bool] | bool", result.compute())
+        result = cast("NDArray[np.bool_] | bool", result.compute())
     if isinstance(result, types.CupyArray | types.CupyCSMatrix):
         result = result.get()
     if isinstance(expected, list):

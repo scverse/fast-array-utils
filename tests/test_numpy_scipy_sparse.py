@@ -66,10 +66,10 @@ def test_copy(
     assert mat.indptr.ctypes.data != copied.indptr.ctypes.data
     # check that the array contents and dtypes are the same
     assert mat.shape == copied.shape
-    np.testing.assert_equal(copied.toarray(), mat.toarray(), strict=True)
-    np.testing.assert_equal(copied.data, mat.data, strict=True)
-    np.testing.assert_equal(copied.indices, mat.indices, strict=not downcasts_idx(mat))
-    np.testing.assert_equal(copied.indptr, mat.indptr, strict=not downcasts_idx(mat))
+    np.testing.assert_array_equal(copied.toarray(), mat.toarray(), strict=True)
+    np.testing.assert_array_equal(copied.data, mat.data, strict=True)
+    np.testing.assert_array_equal(copied.indices, mat.indices, strict=not downcasts_idx(mat))
+    np.testing.assert_array_equal(copied.indptr, mat.indptr, strict=not downcasts_idx(mat))
 
 
 def downcasts_idx(mat: types.CSBase) -> bool:
