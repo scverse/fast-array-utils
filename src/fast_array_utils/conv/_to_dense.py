@@ -30,7 +30,7 @@ def to_dense_(
     return np.asarray(x, order=order)
 
 
-@to_dense_.register(types.spmatrix | types.sparray)  # type: ignore[call-overload,misc]
+@to_dense_.register(types.spmatrix | types.sparray)
 def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> NDArray[Any]:
     from . import scipy
 
@@ -60,7 +60,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, order: Literal["K", "A", "C", "F"] =
     return to_dense(cast("types.CSBase", x.to_memory()), order=sparse_order(x, order=order))
 
 
-@to_dense_.register(types.CupyArray | types.CupySpMatrix)  # type: ignore[call-overload,misc]
+@to_dense_.register(types.CupyArray | types.CupySpMatrix)
 def _to_dense_cupy(x: GpuArray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> NDArray[Any] | types.CupyArray:
     import cupy as cu
 

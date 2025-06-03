@@ -38,7 +38,7 @@ def sum_(
     return cast("NDArray[Any] | np.number[Any]", np.sum(x, axis=axis, dtype=dtype))
 
 
-@sum_.register(types.CupyArray | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
+@sum_.register(types.CupyArray | types.CupyCSMatrix)
 def _sum_cupy(
     x: GpuArray,
     /,
@@ -51,7 +51,7 @@ def _sum_cupy(
     return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 
-@sum_.register(types.CSBase)  # type: ignore[call-overload,misc]
+@sum_.register(types.CSBase)
 def _sum_cs(
     x: types.CSBase,
     /,
