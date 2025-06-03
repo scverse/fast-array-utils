@@ -28,7 +28,7 @@ dependencies = [ "numpy>=1.25.2" ]
 optional-dependencies.accel = [ "numba" ]
 optional-dependencies.doc = [
   "furo",
-  "pytest",
+  "pytest<8.4",               # https://github.com/sphinx-toolbox/sphinx-autofixture/issues/84
   "scanpydoc>=0.15.2",
   "sphinx>=8",
   "sphinx-autodoc-typehints",

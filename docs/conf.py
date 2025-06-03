@@ -63,6 +63,7 @@ intersphinx_mapping = dict(
     h5py=("https://docs.h5py.org/en/stable/", None),
     numba=("https://numba.readthedocs.io/en/stable/", None),
     numpy=("https://numpy.org/doc/stable/", None),
+    pytest=("https://docs.pytest.org/en/stable/", None),
     python=("https://docs.python.org/3", None),
     scipy=("https://docs.scipy.org/doc/scipy/", None),
     zarr=("https://zarr.readthedocs.io/en/stable/", None),

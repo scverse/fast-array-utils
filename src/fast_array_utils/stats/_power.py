@@ -31,7 +31,7 @@ def _power(x: Array, n: int, /) -> Array:
     return x**n  # type: ignore[operator]
 
 
-@_power.register(types.CSMatrix | types.CupyCSMatrix)  # type: ignore[call-overload,misc]
+@_power.register(types.CSMatrix | types.CupyCSMatrix)
 def _power_cs(x: types.CSMatrix | types.CupyCSMatrix, n: int, /) -> types.CSMatrix | types.CupyCSMatrix:
     return x.power(n)
 

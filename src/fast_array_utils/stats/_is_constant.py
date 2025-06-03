@@ -29,7 +29,7 @@ def is_constant_(
     raise NotImplementedError
 
 
-@is_constant_.register(np.ndarray | types.CupyArray)  # type: ignore[call-overload,misc]
+@is_constant_.register(np.ndarray | types.CupyArray)
 def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_] | types.CupyArray:
     # Should eventually support nd, not now.
     match axis:
@@ -46,7 +46,7 @@ def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool_] | 
     return cast("NDArray[np.bool_]", (a == b).all(axis=1))
 
 
-@is_constant_.register(types.CSBase)  # type: ignore[call-overload,misc]
+@is_constant_.register(types.CSBase)
 def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
     from . import is_constant
 
