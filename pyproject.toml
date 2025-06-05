@@ -27,12 +27,12 @@ dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=1.25.2" ]
 optional-dependencies.accel = [ "numba" ]
 optional-dependencies.doc = [
-  "furo",
-  "pytest<8.4",               # https://github.com/sphinx-toolbox/sphinx-autofixture/issues/84
-  "scanpydoc>=0.15.2",
-  "sphinx>=8",
-  "sphinx-autodoc-typehints",
-  "sphinx-autofixture",
+  "furo>=2024.8.6",
+  "pytest>=8.4",
+  "scanpydoc>=0.15.4",
+  "sphinx>=8.2.3",
+  "sphinx-autodoc-typehints>=3.2",
+  "sphinx-autofixture>=0.4.1",
 ]
 optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.11" ]
