@@ -28,7 +28,7 @@ repos:
         args: [--config-file=pyproject.toml]
         additional_dependencies:
           - pytest
-          - pytest-codspeed
+          - pytest-codspeed!=4.0.0  # https://github.com/CodSpeedHQ/pytest-codspeed/pull/84
           - numba
           - numpy
           - scipy-stubs

@@ -121,7 +121,7 @@ def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
-    array_type: ArrayType[Array],
+    array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray],
     dtype_in: type[DTypeIn],
     dtype_arg: type[DTypeOut] | None,
     axis: Literal[0, 1, None],
