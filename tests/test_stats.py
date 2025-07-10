@@ -261,6 +261,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
     ],
 )
 def test_is_constant(
+    *,
     array_type: ArrayType[CpuArray | types.DaskArray],
     axis: Literal[0, 1, None],
     expected: bool | list[bool],
