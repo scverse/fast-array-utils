@@ -294,7 +294,7 @@ class ArrayType(Generic[Arr, Inner]):
         else:
             raise NotImplementedError
 
-        cls = csr_array if self.cls is types.CSRDataset else csc_array
+        cls = cast("type[types.csr_array[Any, tuple[int, int]] | types.csc_array]", csr_array if self.cls is types.CSRDataset else csc_array)
         x_sparse = self._to_scipy_sparse(x, dtype=dtype, cls=cls)
         anndata.io.write_elem(grp, "/", x_sparse)
         return anndata.io.sparse_dataset(grp)

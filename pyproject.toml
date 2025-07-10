@@ -121,6 +121,7 @@ lint.ignore = [
   "D213",    # prefer docstring summary on first line
   "FIX002",  # “TODO” comments
   "N812",    # lowercase imports are fine
+  "PLC0415", # we rely heavily on non-top-level imports
   "PLR0913", # having many (kw)args is fine
   "Q",       # handled by formatter
   "S101",    # asserts are fine
