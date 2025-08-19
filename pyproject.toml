@@ -25,7 +25,7 @@ classifiers = [
 ]
 dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=1.25.2" ]
-optional-dependencies.accel = [ "numba" ]
+optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.doc = [
   "furo>=2024.8.6",
   "pytest>=8.4",
