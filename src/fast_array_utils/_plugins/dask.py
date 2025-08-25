@@ -13,7 +13,7 @@ def patch() -> None:  # pragma: no cover
     See <https://github.com/dask/dask/blob/d9b5c5b0256208f1befe94b26bfa8eaabcd0536d/dask/array/backends.py#L239-L241>
     """
     # Avoid patch if already patched or upstream support has been added
-    if concatenate_lookup.dispatch(sparray) is not concatenate_lookup.dispatch(spmatrix):
+    if concatenate_lookup.dispatch(sparray) is concatenate_lookup.dispatch(spmatrix):
         return
 
     concatenate_lookup.register(sparray, concatenate_lookup.dispatch(spmatrix))
