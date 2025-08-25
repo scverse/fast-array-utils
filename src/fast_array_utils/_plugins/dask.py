@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-import numpy as np
 from dask.array.dispatch import concatenate_lookup, take_lookup, tensordot_lookup
 from scipy.sparse import sparray, spmatrix
 
@@ -14,7 +13,7 @@ def patch() -> None:  # pragma: no cover
     See <https://github.com/dask/dask/blob/d9b5c5b0256208f1befe94b26bfa8eaabcd0536d/dask/array/backends.py#L239-L241>
     """
     # Avoid patch if already patched or upstream support has been added
-    if concatenate_lookup.dispatch(sparray) is not np.concatenate:
+    if concatenate_lookup.dispatch(sparray) is not concatenate_lookup.dispatch(spmatrix):
         return
 
     concatenate_lookup.register(sparray, concatenate_lookup.dispatch(spmatrix))
