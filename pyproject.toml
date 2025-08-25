@@ -97,6 +97,10 @@ overrides.matrix.extras.dependencies = [
 overrides.matrix.resolution.features = [
   { if = [ "lowest" ], value = "min-reqs" }, # feature added by hatch-min-requirements
 ]
+overrides.matrix.resolution.dependencies = [
+  # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/5
+  { if = [ "lowest" ], value = "dask==2023.5.1" },
+]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [ "3.13", "3.11" ]
