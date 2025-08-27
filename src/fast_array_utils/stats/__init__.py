@@ -266,3 +266,27 @@ def sum(
 
     validate_axis(x.ndim, axis)
     return sum_(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
+
+
+def min(
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    keep_cupy_as_array: bool = False,
+) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
+    from ._min_max import min_max
+
+    return min_max("min", x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+
+
+def max(
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1, None] = None,
+    keep_cupy_as_array: bool = False,
+) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
+    from ._min_max import min_max
+
+    return min_max("max", x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
