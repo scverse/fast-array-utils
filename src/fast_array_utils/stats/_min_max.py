@@ -24,25 +24,25 @@ if TYPE_CHECKING:
 
 
 @overload
-def min_max(ops: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
+def min_max(op: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
 @overload
-def min_max(ops: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
+def min_max(op: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
 
 
 @overload
-def min_max(ops: MinMaxOps, x: GpuArray, /, *, axis: None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
+def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
 @overload
-def min_max(ops: MinMaxOps, x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
+def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
 @overload
-def min_max(ops: MinMaxOps, x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
+def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 
 
 @overload
-def min_max(ops: MinMaxOps, x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+def min_max(op: MinMaxOps, x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
 
 
 def min_max(
-    ops: MinMaxOps,
+    op: MinMaxOps,
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
@@ -52,7 +52,7 @@ def min_max(
     from ._min_max import min_max_
 
     validate_axis(x.ndim, axis)
-    return min_max_(ops, x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+    return min_max_(op, x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
 
 
 @singledispatch
