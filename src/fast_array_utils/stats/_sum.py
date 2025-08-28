@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from functools import partial, singledispatch
+from functools import singledispatch
 from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
-from numpy.exceptions import AxisError
 
 from .. import types
+from ._utils import _dask_inner
 
 
 if TYPE_CHECKING:
@@ -80,83 +80,10 @@ def _sum_dask(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.DaskArray:
-    import dask.array as da
-
-    if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
-        msg = "sum does not support numpy matrices"
-        raise TypeError(msg)
+    from . import sum
 
     if dtype is None:
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
         dtype = np.zeros(1, dtype=x.dtype).sum().dtype
 
-    rv = da.reduction(
-        x,
-        sum_dask_inner,  # type: ignore[arg-type]
-        partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
-        axis=axis,
-        dtype=dtype,
-        meta=np.array([], dtype=dtype),
-    )
-
-    if axis is not None or (
-        isinstance(rv._meta, types.CupyArray)  # noqa: SLF001
-        and keep_cupy_as_array
-    ):
-        return rv
-
-    def to_scalar(a: types.CupyArray | NDArray[Any]) -> np.number[Any]:
-        if isinstance(a, types.CupyArray):
-            a = a.get()
-        return a.reshape(())[()]  # type: ignore[return-value]
-
-    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
-
-
-def sum_dask_inner(
-    a: CpuArray | GpuArray,
-    /,
-    *,
-    axis: ComplexAxis = None,
-    dtype: DTypeLike | None = None,
-    keepdims: bool = False,
-) -> NDArray[Any] | types.CupyArray:
-    from . import sum
-
-    axis = normalize_axis(axis, a.ndim)
-    rv = sum(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,arg-type]
-    shape = get_shape(rv, axis=axis, keepdims=keepdims)
-    return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
-
-
-def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
-    """Adapt `axis` parameter passed by Dask to what we support."""
-    match axis:
-        case int() | None:
-            pass
-        case (0 | 1,):
-            axis = axis[0]
-        case (0, 1) | (1, 0):
-            axis = None
-        case _:  # pragma: no cover
-            raise AxisError(axis, ndim)  # type: ignore[call-overload]
-    if axis == 0 and ndim == 1:
-        return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
-    return axis
-
-
-def get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool) -> tuple[int] | tuple[int, int]:
-    """Get the output shape of an axis-flattening operation."""
-    match keepdims, a.ndim:
-        case False, 0:
-            return (1,)
-        case True, 0:
-            return (1, 1)
-        case False, 1:
-            return (a.size,)
-        case True, 1:
-            assert axis is not None
-            return (1, a.size) if axis == 0 else (a.size, 1)
-    # pragma: no cover
-    msg = f"{keepdims=}, {type(a)}"
-    raise AssertionError(msg)
+    return _dask_inner(x, sum, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)

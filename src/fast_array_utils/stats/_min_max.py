@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from functools import partial, singledispatch
-from typing import TYPE_CHECKING, cast, overload
+from functools import singledispatch
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
-from numpy.exceptions import AxisError
 
 from .. import types
-from . import validate_axis
+from ._utils import _dask_inner
 
 
 if TYPE_CHECKING:
@@ -23,43 +22,11 @@ if TYPE_CHECKING:
     MinMaxOps = Literal["max", "min"]
 
 
-@overload
-def min_max(op: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
-@overload
-def min_max(op: MinMaxOps, x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
-
-
-@overload
-def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
-@overload
-def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
-@overload
-def min_max(op: MinMaxOps, x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
-
-
-@overload
-def min_max(op: MinMaxOps, x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
-
-
-def min_max(
-    op: MinMaxOps,
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
-    from ._min_max import min_max_
-
-    validate_axis(x.ndim, axis)
-    return min_max_(op, x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
-
-
 @singledispatch
-def min_max_(
-    op: MinMaxOps,
+def min_max(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
+    op: MinMaxOps,
     *,
     axis: Literal[0, 1, None] = None,
     keep_cupy_as_array: bool = False,
@@ -73,11 +40,11 @@ def min_max_(
     return cast("NDArray[Any] | np.number[Any]", getattr(np, op)(x, axis=axis))
 
 
-@min_max_.register(types.CupyArray | types.CupyCSMatrix)
+@min_max.register(types.CupyArray | types.CupyCSMatrix)
 def _min_max_cupy(
-    op: MinMaxOps,
     x: GpuArray,
     /,
+    op: MinMaxOps,
     *,
     axis: Literal[0, 1, None] = None,
     keep_cupy_as_array: bool = False,
@@ -86,11 +53,11 @@ def _min_max_cupy(
     return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 
-@min_max_.register(types.CSBase)
+@min_max.register(types.CSBase)
 def _min_max_cs(
-    op: MinMaxOps,
     x: types.CSBase,
     /,
+    op: MinMaxOps,
     *,
     axis: Literal[0, 1, None] = None,
     keep_cupy_as_array: bool = False,
@@ -106,85 +73,16 @@ def _min_max_cs(
     return cast("NDArray[Any] | np.number[Any]", getattr(sp, op)(x, axis=axis))
 
 
-@min_max_.register(types.DaskArray)
+@min_max.register(types.DaskArray)
 def _min_max_dask(
-    op: MinMaxOps,
     x: types.DaskArray,
     /,
+    op: MinMaxOps,
     *,
     axis: Literal[0, 1, None] = None,
     keep_cupy_as_array: bool = False,
 ) -> types.DaskArray:
-    import dask.array as da
+    from . import max, min
 
-    if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
-        msg = "sum/max/min does not support numpy matrices"
-        raise TypeError(msg)
-
-    rv = da.reduction(
-        x,
-        partial(min_max_dask_inner, op),  # type: ignore[arg-type]
-        partial(min_max_dask_inner, op),  # pyright: ignore[reportArgumentType]
-        axis=axis,
-        meta=np.array([], dtype=x.dtype),
-    )
-
-    if axis is not None or (
-        isinstance(rv._meta, types.CupyArray)  # noqa: SLF001
-        and keep_cupy_as_array
-    ):
-        return rv
-
-    def to_scalar(a: types.CupyArray | NDArray[Any]) -> np.number[Any]:
-        if isinstance(a, types.CupyArray):
-            a = a.get()
-        return a.reshape(())[()]  # type: ignore[return-value]
-
-    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
-
-
-def min_max_dask_inner(
-    op: MinMaxOps,
-    a: CpuArray | GpuArray,
-    /,
-    *,
-    axis: ComplexAxis = None,
-    keepdims: bool = False,
-) -> NDArray[Any] | types.CupyArray:
-    axis = normalize_axis(axis, a.ndim)
-    rv = min_max(op, a, axis=axis, keep_cupy_as_array=True)  # type: ignore[misc,arg-type]
-    shape = get_shape(rv, axis=axis, keepdims=keepdims)
-    return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
-
-
-def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
-    """Adapt `axis` parameter passed by Dask to what we support."""
-    match axis:
-        case int() | None:
-            pass
-        case (0 | 1,):
-            axis = axis[0]
-        case (0, 1) | (1, 0):
-            axis = None
-        case _:  # pragma: no cover
-            raise AxisError(axis, ndim)  # type: ignore[call-overload]
-    if axis == 0 and ndim == 1:
-        return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
-    return axis
-
-
-def get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool) -> tuple[int] | tuple[int, int]:
-    """Get the output shape of an axis-flattening operation."""
-    match keepdims, a.ndim:
-        case False, 0:
-            return (1,)
-        case True, 0:
-            return (1, 1)
-        case False, 1:
-            return (a.size,)
-        case True, 1:
-            assert axis is not None
-            return (1, a.size) if axis == 0 else (a.size, 1)
-    # pragma: no cover
-    msg = f"{keepdims=}, {type(a)}"
-    raise AssertionError(msg)
+    fns = {fn.__name__: fn for fn in (min, max)}
+    return _dask_inner(x, fns[op], axis=axis, keep_cupy_as_array=keep_cupy_as_array)

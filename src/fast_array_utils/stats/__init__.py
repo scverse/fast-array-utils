@@ -7,7 +7,7 @@ which allows you to choose whether to compute the statistic across rows, columns
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, cast, overload
 
 from .._validation import validate_axis
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from optype.numpy import ToDType
 
     from .. import types
+    from ._min_max import MinMaxOps
+    from ._typing import StatFun
 
 
 __all__ = ["is_constant", "mean", "mean_var", "sum"]
@@ -131,7 +133,7 @@ def mean(
     from ._mean import mean_
 
     validate_axis(x.ndim, axis)
-    return mean_(x, axis=axis, dtype=dtype)  # type: ignore[no-any-return]  # literally the same type, wtf mypy
+    return mean_(x, axis=axis, dtype=dtype)
 
 
 @overload
@@ -268,25 +270,22 @@ def sum(
     return sum_(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
 
 
-def min(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
-    from ._min_max import min_max
+def _mk_min_max(op: MinMaxOps) -> StatFun:
+    def _min_max(
+        x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+        /,
+        *,
+        axis: Literal[0, 1, None] = None,
+        keep_cupy_as_array: bool = False,
+    ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
+        from ._min_max import min_max
 
-    return min_max("min", x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+        validate_axis(x.ndim, axis)
+        return min_max(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+
+    _min_max.__name__ = op
+    return cast("StatFun", _min_max)
 
 
-def max(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
-    from ._min_max import min_max
-
-    return min_max("max", x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+min = _mk_min_max("min")
+max = _mk_min_max("max")

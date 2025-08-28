@@ -14,35 +14,20 @@ from testing.fast_array_utils import SUPPORTED_TYPES, Flags
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, Protocol, TypeAlias
+    from typing import Any, Literal
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
+    from fast_array_utils.stats._typing import Array, DTypeIn, DTypeOut, NdAndAx, StatFun
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
-
-    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
-
-    DTypeIn = np.float32 | np.float64 | np.int32 | np.bool_
-    DTypeOut = np.float32 | np.float64 | np.int64
-
-    NdAndAx: TypeAlias = tuple[Literal[1], Literal[None]] | tuple[Literal[2], Literal[0, 1, None]]
-
-    class StatFun(Protocol):  # noqa: D101
-        def __call__(  # noqa: D102
-            self,
-            arr: Array,
-            *,
-            axis: Literal[0, 1, None] = None,
-            dtype: type[DTypeOut] | None = None,
-        ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("numba"), reason="numba not installed")]
 
 
-STAT_FUNCS = [stats.sum, stats.mean, stats.mean_var, stats.is_constant]
+STAT_FUNCS = [stats.sum, stats.min, stats.max, stats.mean, stats.mean_var, stats.is_constant]
 
 # can’t select these using a category filter
 ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
@@ -314,4 +299,4 @@ def test_stats_benchmark(
     arr = array_type.random(shape, dtype=dtype)
 
     func(arr, axis=axis)  # warmup: numba compile
-    benchmark(func, arr, axis=axis)
+    benchmark(func, arr, axis=axis)  # type: ignore[arg-type]
