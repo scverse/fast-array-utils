@@ -34,7 +34,8 @@ optional-dependencies.doc = [
   "sphinx-autodoc-typehints>=3.2",
   "sphinx-autofixture>=0.4.1",
 ]
-optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
+optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
+optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.sparse = [ "scipy>=1.11" ]
 optional-dependencies.test = [
   "anndata",
@@ -99,7 +100,7 @@ overrides.matrix.resolution.features = [
 ]
 overrides.matrix.resolution.dependencies = [
   # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/5
-  { if = [ "lowest" ], value = "dask==2023.5.1" },
+  { if = [ "lowest" ], value = "dask==2023.6.1" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
