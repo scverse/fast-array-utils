@@ -110,6 +110,7 @@ def find_type_alias(name: str) -> tuple[str, str, str | None] | tuple[None, None
             return "class", path, None
         return "data", f"fast_array_utils.{name}", None
     if name.startswith("np."):
+        name = name.removeprefix("np.")
         return _np_nocls.get(name, "class"), f"numpy.{name}", f"np.{name}"
     if name in npt.__all__:
         return "data", f"numpy.typing.{name}", None
