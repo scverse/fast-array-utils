@@ -85,7 +85,6 @@ html_theme_options = dict(
     source_directory="docs/",
 )
 
-_np_aliases = {"bool_": "bool"}
 _np_nocls = {"float64": "attr"}
 _optional_types = {
     "CupyArray": "cupy.ndarray",
@@ -111,7 +110,7 @@ def find_type_alias(name: str) -> tuple[str, str, str | None] | tuple[None, None
             return "class", path, None
         return "data", f"fast_array_utils.{name}", None
     if name.startswith("np."):
-        name = _np_aliases.get(name[3:], name[3:])
+        name = name.removeprefix("np.")
         return _np_nocls.get(name, "class"), f"numpy.{name}", f"np.{name}"
     if name in npt.__all__:
         return "data", f"numpy.typing.{name}", None

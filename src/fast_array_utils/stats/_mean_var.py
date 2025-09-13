@@ -23,7 +23,7 @@ def mean_var_(
     x: CpuArray | GpuArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     correction: int = 0,
 ) -> (
     tuple[NDArray[np.float64], NDArray[np.float64]]

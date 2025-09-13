@@ -24,13 +24,13 @@ def is_constant_(
     a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
-) -> bool | NDArray[np.bool_] | types.CupyArray | types.DaskArray:  # pragma: no cover
+    axis: Literal[0, 1] | None = None,
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:  # pragma: no cover
     raise NotImplementedError
 
 
 @is_constant_.register(np.ndarray | types.CupyArray)
-def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_] | types.CupyArray:
+def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
     match axis:
         case None:
@@ -41,13 +41,13 @@ def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[
             return _is_constant_rows(a)
 
 
-def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool_] | types.CupyArray:
+def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | types.CupyArray:
     b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
-    return cast("NDArray[np.bool_]", (a == b).all(axis=1))
+    return cast("NDArray[np.bool]", (a == b).all(axis=1))
 
 
 @is_constant_.register(types.CSBase)
-def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> bool | NDArray[np.bool_]:
+def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool]:
     from . import is_constant
 
     if len(a.shape) == 1:  # pragma: no cover
@@ -68,9 +68,9 @@ def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1, None] = None) -> 
 
 
 @numba.njit(cache=True)
-def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np.bool_]:
+def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np.bool]:
     n = len(a.indptr) - 1
-    result = np.ones(n, dtype=np.bool_)
+    result = np.ones(n, dtype=np.bool)
     for i in numba.prange(n):
         start = a.indptr[i]
         stop = a.indptr[i + 1]
@@ -83,13 +83,13 @@ def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np
 
 
 @is_constant_.register(types.DaskArray)
-def _is_constant_dask(a: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray:
+def _is_constant_dask(a: types.DaskArray, /, *, axis: Literal[0, 1] | None = None) -> types.DaskArray:
     import dask.array as da
 
     from . import is_constant
 
     if axis is not None:
-        return da.map_blocks(partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool_))
+        return da.map_blocks(partial(is_constant, axis=axis), a, drop_axis=axis, meta=np.array([], dtype=np.bool))
 
     rv = (
         (a == a[0, 0].compute()).all()

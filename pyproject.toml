@@ -24,8 +24,9 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dynamic = [ "description", "readme", "version" ]
-dependencies = [ "numpy>=1.25.2" ]
+dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
+optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.doc = [
   "furo>=2024.8.6",
   "pytest>=8.4",
@@ -34,7 +35,7 @@ optional-dependencies.doc = [
   "sphinx-autodoc-typehints>=3.2",
   "sphinx-autofixture>=0.4.1",
 ]
-optional-dependencies.full = [ "dask", "fast-array-utils[accel,sparse]", "h5py", "zarr" ]
+optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.11" ]
 optional-dependencies.test = [
   "anndata",
@@ -99,7 +100,7 @@ overrides.matrix.resolution.features = [
 ]
 overrides.matrix.resolution.dependencies = [
   # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/5
-  { if = [ "lowest" ], value = "dask==2023.5.1" },
+  { if = [ "lowest" ], value = "dask==2023.6.1" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
@@ -144,13 +145,12 @@ lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # 
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
-lint.flake8-tidy-imports.banned-api."numpy.bool".msg = "Use `np.bool_` instead for numpy>=1.24<2 compatibility"
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
-lint.isort.required-imports = [ "from __future__ import annotations" ]
 lint.pydocstyle.convention = "numpy"
+lint.future-annotations = true
 
 [tool.pytest.ini_options]
 addopts = [

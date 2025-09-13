@@ -31,7 +31,7 @@ WARNS_NUMBA = pytest.warns(RuntimeWarning, match="numba is not installed; fallin
 def test_to_dense(array_type: ArrayType[Array], *, order: Literal["K", "C", "F"], to_cpu_memory: bool) -> None:
     x = array_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
     if not to_cpu_memory and array_type.cls in {types.CSCDataset, types.CSRDataset}:
-        with pytest.raises(ValueError, match="to_cpu_memory must be True if x is an CS{R,C}Dataset"):
+        with pytest.raises(ValueError, match=r"to_cpu_memory must be True if x is an CS\{R,C\}Dataset"):
             to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
         return
 
