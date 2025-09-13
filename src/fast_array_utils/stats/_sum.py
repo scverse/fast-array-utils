@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from ..typing import CpuArray, DiskArray, GpuArray
 
-    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1, None]
+    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
 @singledispatch
@@ -25,7 +25,7 @@ def sum_(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
@@ -43,7 +43,7 @@ def _sum_cupy(
     x: GpuArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.CupyArray | np.number[Any]:
@@ -56,7 +56,7 @@ def _sum_cs(
     x: types.CSBase,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any]:
@@ -76,7 +76,7 @@ def _sum_dask(
     x: types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.DaskArray:
@@ -129,7 +129,7 @@ def sum_dask_inner(
     return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
 
-def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
+def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
     """Adapt `axis` parameter passed by Dask to what we support."""
     match axis:
         case int() | None:
@@ -145,7 +145,7 @@ def normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
     return axis
 
 
-def get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool) -> tuple[int] | tuple[int, int]:
+def get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1] | None, keepdims: bool) -> tuple[int] | tuple[int, int]:
     """Get the output shape of an axis-flattening operation."""
     match keepdims, a.ndim:
         case False, 0:

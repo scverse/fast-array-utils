@@ -10,7 +10,7 @@ from .._core import ndarray
 def asarray(
     a: ArrayLike | h5py.Dataset | zarr.Array,
     dtype: DTypeLike | None = None,
-    order: Literal["C", "F", "A", "K", None] = None,
+    order: Literal["C", "F", "A", "K"] | None = None,
     *,
     blocking: bool = False,
 ) -> ndarray: ...

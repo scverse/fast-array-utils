@@ -24,7 +24,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dynamic = [ "description", "readme", "version" ]
-dependencies = [ "numpy>=1.25.2" ]
+dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.doc = [
   "furo>=2024.8.6",
@@ -144,7 +144,6 @@ lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # 
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
-lint.flake8-tidy-imports.banned-api."numpy.bool".msg = "Use `np.bool_` instead for numpy>=1.24<2 compatibility"
 lint.flake8-type-checking.exempt-modules = [  ]
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
