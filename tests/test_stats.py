@@ -296,7 +296,7 @@ def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: Ar
 
     result = stats.is_constant(x, axis=None)
     dask_viz(result)
-    assert result.compute() is False
+    assert result.compute() is False  # type: ignore[comparison-overlap]
 
 
 @pytest.mark.benchmark
