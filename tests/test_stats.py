@@ -191,7 +191,7 @@ def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: 
     if isinstance(result, types.CupyArray | types.CupyCSMatrix):
         result = result.get()
 
-    expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
+    expected = np.mean(np_arr, axis=axis)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -209,8 +209,8 @@ def test_mean_var(
     if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
         mean, var = mean.get(), var.get()
 
-    mean_expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
-    var_expected = np.var(np_arr, axis=axis, ddof=1)  # type: ignore[arg-type]
+    mean_expected = np.mean(np_arr, axis=axis)
+    var_expected = np.var(np_arr, axis=axis, ddof=1)
     np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 

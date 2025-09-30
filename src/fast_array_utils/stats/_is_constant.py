@@ -56,7 +56,7 @@ def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1] | None = None) ->
     n_row, n_col = a.shape
     if axis is None:
         if len(a.data) == n_row * n_col:
-            return is_constant(cast("NDArray[Any]", a.data))
+            return is_constant(a.data)
         return bool((a.data == 0).all())
     shape = (n_row, n_col) if axis == 1 else (n_col, n_row)
     match axis, a.format:
