@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast, get_args
 
 import numpy as np
 from numpy.exceptions import AxisError
 
 from .. import types
+from ._typing import DtypeOps
 
 
 if TYPE_CHECKING:
@@ -16,28 +17,30 @@ if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
     from ..typing import CpuArray, GpuArray
-    from ._typing import StatFun
+    from ._typing import Ops
 
-    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1, None]
+    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
 __all__ = ["_dask_inner"]
 
 
-def _dask_inner(x: types.DaskArray, op: StatFun, /, *, axis: Literal[0, 1, None], dtype: DTypeLike | None = None, keep_cupy_as_array: bool) -> types.DaskArray:
+def _dask_inner(x: types.DaskArray, op: Ops, /, *, axis: Literal[0, 1] | None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool) -> types.DaskArray:
     import dask.array as da
 
     if isinstance(x._meta, np.matrix):  # pragma: no cover  # noqa: SLF001
         msg = "sum/max/min does not support numpy matrices"
         raise TypeError(msg)
 
+    res_dtype = dtype if op in get_args(DtypeOps) else x.dtype
+
     rv = da.reduction(
         x,
         partial(_dask_block, op),
         partial(_dask_block, op, dtype=dtype),
         axis=axis,
-        dtype=dtype,
-        meta=np.array([], dtype=dtype),
+        dtype=res_dtype,
+        meta=np.array([], dtype=res_dtype),
     )
 
     if axis is not None or (
@@ -55,7 +58,7 @@ def _dask_inner(x: types.DaskArray, op: StatFun, /, *, axis: Literal[0, 1, None]
 
 
 def _dask_block(
-    op: StatFun,
+    op: Ops,
     a: CpuArray | GpuArray,
     /,
     *,
@@ -63,13 +66,17 @@ def _dask_block(
     dtype: DTypeLike | None = None,
     keepdims: bool = False,
 ) -> NDArray[Any] | types.CupyArray:
+    from . import max, min, sum
+
+    fns = {fn.__name__: fn for fn in (min, max, sum)}
+
     axis = _normalize_axis(axis, a.ndim)
-    rv = op(a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,call-overload]
+    rv = fns[op](a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,call-overload]
     shape = _get_shape(rv, axis=axis, keepdims=keepdims)
     return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
 
-def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
+def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
     """Adapt `axis` parameter passed by Dask to what we support."""
     match axis:
         case int() | None:
@@ -85,7 +92,7 @@ def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1, None]:
     return axis
 
 
-def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1, None], keepdims: bool) -> tuple[int] | tuple[int, int]:
+def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Literal[0, 1] | None, keepdims: bool) -> tuple[int] | tuple[int, int]:
     """Get the output shape of an axis-flattening operation."""
     match keepdims, a.ndim:
         case False, 0:

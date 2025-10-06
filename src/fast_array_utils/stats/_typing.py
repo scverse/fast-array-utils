@@ -21,7 +21,7 @@ Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.Das
 DTypeIn: TypeAlias = np.float32 | np.float64 | np.int32 | np.bool_
 DTypeOut: TypeAlias = np.float32 | np.float64 | np.int64
 
-NdAndAx: TypeAlias = tuple[Literal[1], Literal[None]] | tuple[Literal[2], Literal[0, 1, None]]
+NdAndAx: TypeAlias = tuple[Literal[1], None] | tuple[Literal[2], Literal[0, 1] | None]
 
 
 class StatFun(Protocol):
@@ -40,4 +40,9 @@ class StatFun(Protocol):
     def __call__(self, x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 
     @overload
-    def __call__(self, x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+    def __call__(self, x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+
+
+NoDtypeOps = Literal["max", "min"]
+DtypeOps = Literal["sum"]
+Ops: TypeAlias = NoDtypeOps | DtypeOps

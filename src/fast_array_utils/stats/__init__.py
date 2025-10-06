@@ -7,10 +7,11 @@ which allows you to choose whether to compute the statistic across rows, columns
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, cast, get_args, overload
 
 from .._validation import validate_axis
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
+from ._generic_ops import DtypeOps
 
 
 if TYPE_CHECKING:
@@ -21,11 +22,11 @@ if TYPE_CHECKING:
     from optype.numpy import ToDType
 
     from .. import types
-    from ._min_max import MinMaxOps
+    from ._generic_ops import Ops
     from ._typing import StatFun
 
 
-__all__ = ["is_constant", "mean", "mean_var", "sum"]
+__all__ = ["is_constant", "max", "mean", "mean_var", "min", "sum"]
 
 
 @overload
@@ -35,14 +36,14 @@ def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> ND
 @overload
 def is_constant(x: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
 @overload
-def is_constant(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None) -> types.DaskArray: ...
+def is_constant(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None) -> types.DaskArray: ...
 
 
 def is_constant(
     x: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
 ) -> bool | NDArray[np.bool_] | types.CupyArray | types.DaskArray:
     """Check whether values in array are constant.
 
@@ -82,7 +83,7 @@ def is_constant(
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
 @overload
-def mean(x: CpuArray | GpuArray | DiskArray, /, *, axis: Literal[None] = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
+def mean(x: CpuArray | GpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None) -> np.number[Any]: ...
 @overload
 def mean(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[np.number[Any]]: ...
 @overload
@@ -95,7 +96,7 @@ def mean(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[np.number[Any]] | types.CupyArray | np.number[Any] | types.DaskArray:
     """Mean over both or one axis.
@@ -137,20 +138,20 @@ def mean(
 
 
 @overload
-def mean_var(x: CpuArray | GpuArray, /, *, axis: Literal[None] = None, correction: int = 0) -> tuple[np.float64, np.float64]: ...
+def mean_var(x: CpuArray | GpuArray, /, *, axis: None = None, correction: int = 0) -> tuple[np.float64, np.float64]: ...
 @overload
 def mean_var(x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[NDArray[np.float64], NDArray[np.float64]]: ...
 @overload
 def mean_var(x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
-def mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, correction: int = 0) -> tuple[types.DaskArray, types.DaskArray]: ...
+def mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, correction: int = 0) -> tuple[types.DaskArray, types.DaskArray]: ...
 
 
 def mean_var(
     x: CpuArray | GpuArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     correction: int = 0,
 ) -> (
     tuple[np.float64, np.float64]
@@ -205,87 +206,26 @@ def mean_var(
 
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
-@overload
-def sum(x: CpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
-@overload
-def sum(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
-
-
-@overload
-def sum(x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
-@overload
-def sum(x: GpuArray, /, *, axis: None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
-@overload
-def sum(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.CupyArray: ...
-
-
-@overload
-def sum(x: types.DaskArray, /, *, axis: Literal[0, 1, None] = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
-
-
-def sum(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    /,
-    *,
-    axis: Literal[0, 1, None] = None,
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
-    """Sum over both or one axis.
-
-    Parameters
-    ----------
-    x
-        Array to sum up.
-    axis
-        Axis to reduce over.
-
-    Returns
-    -------
-    If ``axis`` is :data:`None`, then the sum over all elements is returned as a scalar.
-    Otherwise, the sum over the given axis is returned as a 1D array.
-
-    Example
-    -------
-    >>> import numpy as np
-    >>> x = np.array([
-    ...     [0, 1, 2],
-    ...     [0, 0, 0],
-    ... ])
-    >>> sum(x)
-    3
-    >>> sum(x, axis=0)
-    array([0, 1, 2])
-    >>> sum(x, axis=1)
-    array([3, 0])
-
-    See Also
-    --------
-    :func:`numpy.sum`
-
-    """
-    from ._sum import sum_
-
-    validate_axis(x.ndim, axis)
-    return sum_(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
-
-
-def _mk_min_max(op: MinMaxOps) -> StatFun:
-    def _min_max(
+def _mk_generic_op(op: Ops) -> StatFun:
+    def _generic_op(
         x: CpuArray | GpuArray | DiskArray | types.DaskArray,
         /,
         *,
-        axis: Literal[0, 1, None] = None,
+        axis: Literal[0, 1] | None = None,
+        dtype: DTypeLike | None = None,
         keep_cupy_as_array: bool = False,
     ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-        from ._min_max import min_max
+        from ._generic_ops import generic_op
+
+        assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation '{op}'"
 
         validate_axis(x.ndim, axis)
-        return min_max(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+        return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)
 
-    _min_max.__name__ = op
-    return cast("StatFun", _min_max)
+    _generic_op.__name__ = op
+    return cast("StatFun", _generic_op)
 
 
-min = _mk_min_max("min")
-max = _mk_min_max("max")
+min = _mk_generic_op("min")
+max = _mk_generic_op("max")
+sum = _mk_generic_op("sum")

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ._sum import sum_
+from . import sum
 
 
 if TYPE_CHECKING:
@@ -21,9 +21,9 @@ def mean_(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
     *,
-    axis: Literal[0, 1, None] = None,
+    axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
-    total = sum_(x, axis=axis, dtype=dtype)
+    total = sum(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
     return total / n  # type: ignore[call-overload,operator,return-value]
