@@ -45,7 +45,7 @@ optional-dependencies.test = [
 ]
 optional-dependencies.test-min = [
   "coverage[toml]",
-  "fast-array-utils[testing,sparse]", # include sparse for testing numba-less to_dense
+  "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
   "pytest",
   "pytest-codspeed",
   "pytest-doctestplus",
