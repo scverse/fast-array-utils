@@ -160,7 +160,7 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
-    if np.dtype(dtype_arg).kind == np.dtype(dtype_in).kind and np.dtype(dtype_arg).itemsize >= np.dtype(dtype_in).itemsize:
+    if array_type.cls is not types.DaskArray:
         np.testing.assert_array_equal(sum_, expected)
     else:
         np.testing.assert_array_almost_equal(sum_, expected)
