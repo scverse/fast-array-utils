@@ -32,7 +32,7 @@ __all__ = ["is_constant", "max", "mean", "mean_var", "min", "sum"]
 @overload
 def is_constant(x: NDArray[Any] | types.CSBase | types.CupyArray, /, *, axis: None = None) -> bool: ...
 @overload
-def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool_]: ...
+def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> NDArray[np.bool]: ...
 @overload
 def is_constant(x: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
 @overload
@@ -44,7 +44,7 @@ def is_constant(
     /,
     *,
     axis: Literal[0, 1] | None = None,
-) -> bool | NDArray[np.bool_] | types.CupyArray | types.DaskArray:
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
     """Check whether values in array are constant.
 
     Parameters

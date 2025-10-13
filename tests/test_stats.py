@@ -62,11 +62,11 @@ def check_ndim(array_type: ArrayType, ndim: Literal[1, 2]) -> Literal[1, 2]:
 
 
 @pytest.fixture(scope="session")
-def axis(ndim_and_axis: NdAndAx) -> Literal[0, 1, None]:
+def axis(ndim_and_axis: NdAndAx) -> Literal[0, 1] | None:
     return ndim_and_axis[1]
 
 
-@pytest.fixture(params=[np.float32, np.float64, np.int32, np.bool_])
+@pytest.fixture(params=[np.float32, np.float64, np.int32, np.bool])
 def dtype_in(request: pytest.FixtureRequest, array_type: ArrayType) -> type[DTypeIn]:
     dtype = cast("type[DTypeIn]", request.param)
     inner_cls = array_type.inner.cls if array_type.inner else array_type.cls
@@ -92,7 +92,7 @@ def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
-def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1, None]) -> None:
+def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -109,7 +109,7 @@ def test_sum(
     array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray],
     dtype_in: type[DTypeIn],
     dtype_arg: type[DTypeOut] | None,
-    axis: Literal[0, 1, None],
+    axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
 ) -> None:
     arr = array_type(np_arr.copy())
@@ -137,7 +137,7 @@ def test_sum(
 
     if dtype_arg is not None:
         assert sum_.dtype == dtype_arg, (sum_.dtype, dtype_arg)
-    elif dtype_in in {np.bool_, np.int32}:
+    elif dtype_in in {np.bool, np.int32}:
         assert sum_.dtype == np.int64
     else:
         assert sum_.dtype == dtype_in
@@ -167,7 +167,7 @@ def test_sum_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
-def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1, None], np_arr: NDArray[DTypeIn]) -> None:
+def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: NDArray[DTypeIn]) -> None:
     arr = array_type(np_arr)
 
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
@@ -176,14 +176,14 @@ def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1, None], np_arr: N
     if isinstance(result, types.CupyArray | types.CupyCSMatrix):
         result = result.get()
 
-    expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
+    expected = np.mean(np_arr, axis=axis)
     np.testing.assert_array_equal(result, expected)
 
 
 @pytest.mark.array_type(skip=Flags.Disk)
 def test_mean_var(
     array_type: ArrayType[CpuArray | GpuArray | types.DaskArray],
-    axis: Literal[0, 1, None],
+    axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
 ) -> None:
     arr = array_type(np_arr)
@@ -194,8 +194,8 @@ def test_mean_var(
     if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
         mean, var = mean.get(), var.get()
 
-    mean_expected = np.mean(np_arr, axis=axis)  # type: ignore[arg-type]
-    var_expected = np.var(np_arr, axis=axis, ddof=1)  # type: ignore[arg-type]
+    mean_expected = np.mean(np_arr, axis=axis)
+    var_expected = np.var(np_arr, axis=axis, ddof=1)
     np.testing.assert_array_equal(mean, mean_expected)
     np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
 
@@ -248,7 +248,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
 def test_is_constant(
     *,
     array_type: ArrayType[CpuArray | types.DaskArray],
-    axis: Literal[0, 1, None],
+    axis: Literal[0, 1] | None,
     expected: bool | list[bool],
 ) -> None:
     x_data = [
@@ -262,7 +262,7 @@ def test_is_constant(
     x = array_type(x_data, dtype=np.float64)
     result = stats.is_constant(x, axis=axis)
     if isinstance(result, types.DaskArray):
-        result = cast("NDArray[np.bool_] | bool", result.compute())
+        result = cast("NDArray[np.bool] | bool", result.compute())
     if isinstance(result, types.CupyArray | types.CupyCSMatrix):
         result = result.get()
     if isinstance(expected, list):
@@ -281,7 +281,7 @@ def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: Ar
 
     result = stats.is_constant(x, axis=None)
     dask_viz(result)
-    assert result.compute() is False
+    assert result.compute() is False  # type: ignore[comparison-overlap]
 
 
 @pytest.mark.benchmark
@@ -292,7 +292,7 @@ def test_stats_benchmark(
     benchmark: BenchmarkFixture,
     func: StatFun,
     array_type: ArrayType[CpuArray, None],
-    axis: Literal[0, 1, None],
+    axis: Literal[0, 1] | None,
     dtype: type[np.float32 | np.float64],
 ) -> None:
     shape = (10_000, 10_000) if "sparse" in array_type.mod else (1000, 1000)
