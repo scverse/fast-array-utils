@@ -90,7 +90,7 @@ def dtype_in(request: pytest.FixtureRequest, array_type: ArrayType) -> type[DTyp
     return dtype
 
 
-@pytest.fixture(scope="session", params=[np.float32, np.float64, None])
+@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int64, None])
 def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
     return cast("type[DTypeOut] | None", request.param)
 
@@ -98,6 +98,8 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 @pytest.fixture
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
     np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
+    if np.dtype(dtype_in).kind == "f":
+        np_arr /= 3
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
@@ -158,7 +160,10 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
-    np.testing.assert_array_equal(sum_, expected)
+    if np.dtype(dtype_arg).kind == np.dtype(dtype_in).kind and np.dtype(dtype_arg).itemsize >= np.dtype(dtype_in).itemsize:
+        np.testing.assert_array_equal(sum_, expected)
+    else:
+        np.testing.assert_array_almost_equal(sum_, expected)
 
 
 @pytest.mark.parametrize(
