@@ -30,7 +30,7 @@ def _run_numpy_op(
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
     kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
-    return getattr(np, op)(x, axis=axis, **kwargs)
+    return getattr(np, op)(x, axis=axis, **kwargs)  # type: ignore[no-any-return]
 
 
 @singledispatch
@@ -85,8 +85,8 @@ def _generic_op_cs(
     kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
 
     if axis is None:
-        return cast("np.number[Any]", getattr(sp, op)(x, **kwargs))
-    return cast("NDArray[Any] | np.number[Any]", getattr(sp, op)(x, axis=axis, **kwargs))
+        return cast("np.number[Any]", getattr(x, op)(**kwargs))
+    return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis, **kwargs))
 
 
 @generic_op.register(types.DaskArray)
