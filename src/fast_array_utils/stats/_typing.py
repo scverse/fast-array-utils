@@ -13,7 +13,7 @@ from ..typing import CpuArray, DiskArray, GpuArray
 if TYPE_CHECKING:
     from typing import Any, TypeAlias
 
-    from numpy.typing import NDArray
+    from numpy.typing import DTypeLike, NDArray
 
 
 Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
@@ -24,7 +24,7 @@ DTypeOut: TypeAlias = np.float32 | np.float64 | np.int64
 NdAndAx: TypeAlias = tuple[Literal[1], None] | tuple[Literal[2], Literal[0, 1] | None]
 
 
-class StatFun(Protocol):
+class StatFunNoDtype(Protocol):
     __name__: str
 
     @overload
@@ -41,6 +41,31 @@ class StatFun(Protocol):
 
     @overload
     def __call__(self, x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+
+
+class StatFunDtype(Protocol):
+    __name__: str
+
+    @overload
+    def __call__(
+        self, x: CpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False
+    ) -> np.number[Any]: ...
+    @overload
+    def __call__(
+        self, x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False
+    ) -> NDArray[Any]: ...
+
+    @overload
+    def __call__(self, x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
+    @overload
+    def __call__(self, x: GpuArray, /, *, axis: None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
+    @overload
+    def __call__(self, x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.CupyArray: ...
+
+    @overload
+    def __call__(
+        self, x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False
+    ) -> types.DaskArray: ...
 
 
 NoDtypeOps = Literal["max", "min"]

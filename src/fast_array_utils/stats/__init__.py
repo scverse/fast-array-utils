@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from .. import types
     from ._generic_ops import Ops
-    from ._typing import StatFun
+    from ._typing import NoDtypeOps, StatFunDtype, StatFunNoDtype
 
 
 __all__ = ["is_constant", "max", "mean", "mean_var", "min", "sum"]
@@ -204,9 +204,15 @@ def mean_var(
     return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
 
 
+@overload
+def _mk_generic_op(op: NoDtypeOps) -> StatFunNoDtype: ...
+@overload
+def _mk_generic_op(op: DtypeOps) -> StatFunDtype: ...
+
+
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
-def _mk_generic_op(op: Ops) -> StatFun:
+def _mk_generic_op(op: Ops) -> StatFunNoDtype | StatFunDtype:
     def _generic_op(
         x: CpuArray | GpuArray | DiskArray | types.DaskArray,
         /,
@@ -223,7 +229,7 @@ def _mk_generic_op(op: Ops) -> StatFun:
         return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)
 
     _generic_op.__name__ = op
-    return cast("StatFun", _generic_op)
+    return cast("StatFunNoDtype | StatFunDtype", _generic_op)
 
 
 min = _mk_generic_op("min")

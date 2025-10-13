@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from fast_array_utils.stats._typing import Array, DTypeIn, DTypeOut, NdAndAx, StatFun
+    from fast_array_utils.stats._typing import Array, DTypeIn, DTypeOut, NdAndAx, StatFunNoDtype
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
@@ -92,7 +92,7 @@ def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
-def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
+def test_ndim_error(array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -290,7 +290,7 @@ def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: Ar
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.int32])
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,
-    func: StatFun,
+    func: StatFunNoDtype,
     array_type: ArrayType[CpuArray, None],
     axis: Literal[0, 1] | None,
     dtype: type[np.float32 | np.float64],
