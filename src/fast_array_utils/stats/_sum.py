@@ -66,8 +66,6 @@ def _sum_cs(
     if isinstance(x, types.CSMatrix):
         x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
 
-    if axis is None:
-        return cast("np.number[Any]", x.data.sum(dtype=dtype))
     return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis, dtype=dtype))
 
 
