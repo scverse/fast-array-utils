@@ -90,7 +90,7 @@ def _sum_dask(
 
     rv = da.reduction(
         x,
-        partial(sum_dask_inner, dtype=dtype),  # type: ignore[arg-type]
+        sum_dask_inner,  # type: ignore[arg-type]
         partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,

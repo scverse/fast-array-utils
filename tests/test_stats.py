@@ -99,7 +99,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
     np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
     if np.dtype(dtype_in).kind == "f":
-        np_arr /= 3
+        np_arr /= 3  # type: ignore[misc]
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
