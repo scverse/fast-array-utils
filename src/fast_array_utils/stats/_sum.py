@@ -88,7 +88,6 @@ def _sum_dask(
         # Explicitly use numpy result dtype (e.g. `NDArray[bool].sum().dtype == int64`)
         dtype = np.zeros(1, dtype=x.dtype).sum().dtype
 
-    # TODO(flying-sheep): chunk=sum_dask_inner fixes mean_var(<1d array dtype=float32>)  # noqa: TD003
     rv = da.reduction(
         x,
         partial(sum_dask_inner, dtype=dtype),  # type: ignore[arg-type]

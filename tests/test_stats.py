@@ -166,6 +166,18 @@ def test_sum(
         np.testing.assert_array_almost_equal(sum_, expected)
 
 
+@pytest.mark.array_type(skip=ATS_SPARSE_DS)
+def test_sum_to_int(array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray], axis: Literal[0, 1] | None) -> None:
+    rng = np.random.default_rng(0)
+    np_arr = rng.random((100, 100))
+    arr = array_type(np_arr)
+    sum_ = stats.sum(arr, axis=axis, dtype=np.int64)
+    if axis is None:
+        assert sum_ == np.int64(0)
+    else:
+        np.testing.assert_array_equal(sum_, np.zeros(arr.shape[axis], dtype=np.int64))
+
+
 @pytest.mark.parametrize(
     "data",
     [
