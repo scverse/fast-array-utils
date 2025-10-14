@@ -25,7 +25,8 @@ repos:
     rev: v1.18.2
     hooks:
       - id: mypy
-        args: [--config-file=pyproject.toml]
+        args: [--config-file=pyproject.toml, .]
+        pass_filenames: false
         additional_dependencies:
           - pytest
           - pytest-codspeed!=4.0.0  # https://github.com/CodSpeedHQ/pytest-codspeed/pull/84

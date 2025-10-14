@@ -160,10 +160,7 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
-    if array_type.cls is not types.DaskArray:
-        np.testing.assert_array_equal(sum_, expected)
-    else:
-        np.testing.assert_array_almost_equal(sum_, expected)
+    np.testing.assert_array_equal(sum_, expected)
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
@@ -172,10 +169,8 @@ def test_sum_to_int(array_type: ArrayType[CpuArray | GpuArray | DiskArray | type
     np_arr = rng.random((100, 100))
     arr = array_type(np_arr)
     sum_ = stats.sum(arr, axis=axis, dtype=np.int64)
-    if axis is None:
-        assert sum_ == np.int64(0)
-    else:
-        np.testing.assert_array_equal(sum_, np.zeros(arr.shape[axis], dtype=np.int64))
+    expected = np.zeros(() if axis is None else arr.shape[axis], dtype=np.int64)
+    np.testing.assert_array_equal(sum_, expected)
 
 
 @pytest.mark.parametrize(

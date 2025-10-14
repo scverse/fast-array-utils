@@ -63,10 +63,13 @@ def _sum_cs(
     del keep_cupy_as_array
     import scipy.sparse as sp
 
-    if isinstance(x, types.CSMatrix):
-        x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
+    dtype = np.dtype(dtype) if dtype is not None else None
+    # convert to array so dimensions collapse as expected
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, dtype=dtype)
 
-    return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis, dtype=dtype))
+    # TODO(flying-sheep): use `dtype=dtype` here when of above once scipy fixes this
+    # https://github.com/scipy/scipy/issues/23768
+    return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis))
 
 
 @sum_.register(types.DaskArray)
@@ -90,7 +93,7 @@ def _sum_dask(
 
     rv = da.reduction(
         x,
-        partial(sum_dask_inner, dtype=dtype),  # type: ignore[arg-type]
+        partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
         partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,
