@@ -63,8 +63,12 @@ def _sum_cs(
     del keep_cupy_as_array
     import scipy.sparse as sp
 
-    dtype = np.dtype(dtype) if dtype is not None else None
+    if axis is None:
+        return cast("NDArray[Any] | np.number[Any]", x.data.sum(dtype=dtype))
+
     # convert to array so dimensions collapse as expected
+    if TYPE_CHECKING:
+        dtype = np.dtype(dtype) if dtype is not None else None
     x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, dtype=dtype)
 
     # TODO(flying-sheep): use `dtype=dtype` here when of above once scipy fixes this
