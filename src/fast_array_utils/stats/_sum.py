@@ -63,12 +63,18 @@ def _sum_cs(
     del keep_cupy_as_array
     import scipy.sparse as sp
 
-    if isinstance(x, types.CSMatrix):
-        x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
+    # TODO(flying-sheep): once scipy fixes this issue, instead of all this,
+    # just convert to sparse array, then `return x.sum(dtype=dtype)`
+    # https://github.com/scipy/scipy/issues/23768
 
     if axis is None:
-        return cast("np.number[Any]", x.data.sum(dtype=dtype))
-    return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis, dtype=dtype))
+        return cast("NDArray[Any] | np.number[Any]", x.data.sum(dtype=dtype))
+
+    if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
+        assert isinstance(dtype, np.dtype | type | None)
+    # convert to array so dimensions collapse as expected
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, dtype=dtype)
+    return cast("NDArray[Any] | np.number[Any]", x.sum(axis=axis))
 
 
 @sum_.register(types.DaskArray)
@@ -92,7 +98,7 @@ def _sum_dask(
 
     rv = da.reduction(
         x,
-        sum_dask_inner,  # type: ignore[arg-type]
+        partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
         partial(sum_dask_inner, dtype=dtype),  # pyright: ignore[reportArgumentType]
         axis=axis,
         dtype=dtype,

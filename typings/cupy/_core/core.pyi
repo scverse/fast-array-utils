@@ -5,7 +5,7 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 from cupy.cuda import Stream
 from numpy._core.multiarray import flagsobj
-from numpy.typing import NDArray
+from numpy.typing import DTypeLike, NDArray
 
 class ndarray:
     dtype: np.dtype[Any]
@@ -41,6 +41,7 @@ class ndarray:
     def flatten(self, order: Literal["C", "F", "A", "K"] = "C") -> Self: ...
     @property
     def flat(self) -> _FlatIter: ...
+    def sum(self, axis: int | None = None, dtype: DTypeLike | None = None, out: ndarray | None = None, keepdims: bool = False) -> ndarray: ...
 
 class _FlatIter:
     def __next__(self) -> np.float32 | np.float64: ...
