@@ -75,7 +75,7 @@ def dtype_in(request: pytest.FixtureRequest, array_type: ArrayType) -> type[DTyp
     return dtype
 
 
-@pytest.fixture(scope="session", params=[np.float32, np.float64, None])
+@pytest.fixture(scope="session", params=[np.float32, np.float64, np.int64, None])
 def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
     return cast("type[DTypeOut] | None", request.param)
 
@@ -83,10 +83,32 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 @pytest.fixture
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
     np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
+    if np.dtype(dtype_in).kind == "f":
+        np_arr /= 4  # type: ignore[misc]
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
     return np_arr
+
+
+def to_np_dense_checked(
+    stat: NDArray[DTypeOut] | np.number[Any] | types.DaskArray, axis: Literal[0, 1] | None, arr: CpuArray | GpuArray | DiskArray | types.DaskArray
+) -> NDArray[DTypeOut] | np.number[Any]:
+    match axis, arr:
+        case _, types.DaskArray():
+            assert isinstance(stat, types.DaskArray), type(stat)
+            stat = stat.compute()  # type: ignore[assignment]
+            return to_np_dense_checked(stat, axis, arr.compute())
+        case None, _:
+            assert isinstance(stat, np.floating | np.integer), type(stat)
+        case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix() | types.CupyCOOMatrix():
+            assert isinstance(stat, types.CupyArray), type(stat)
+            return to_np_dense_checked(stat.get(), axis, arr.get())
+        case 0 | 1, _:
+            assert isinstance(stat, np.ndarray), type(stat)
+        case _:
+            pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(stat)}")
+    return stat
 
 
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
@@ -112,26 +134,13 @@ def test_sum(
     axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
 ) -> None:
+    if np.dtype(dtype_arg).kind in "iu" and (array_type.flags & Flags.Gpu) and (array_type.flags & Flags.Sparse):
+        pytest.skip("GPU sparse matrices don’t support int dtypes")
     arr = array_type(np_arr.copy())
     assert arr.dtype == dtype_in
 
     sum_ = stats.sum(arr, axis=axis, dtype=dtype_arg)
-
-    match axis, arr:
-        case _, types.DaskArray():
-            assert isinstance(sum_, types.DaskArray), type(sum_)
-            sum_ = sum_.compute()  # type: ignore[assignment]
-            if isinstance(sum_, types.CupyArray):
-                sum_ = sum_.get()
-        case None, _:
-            assert isinstance(sum_, np.floating | np.integer), type(sum_)
-        case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix():
-            assert isinstance(sum_, types.CupyArray), type(sum_)
-            sum_ = sum_.get()
-        case 0 | 1, _:
-            assert isinstance(sum_, np.ndarray), type(sum_)
-        case _:
-            pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(sum_)}")
+    sum_ = to_np_dense_checked(sum_, axis, arr)  # type: ignore[arg-type]
 
     assert sum_.shape == () if axis is None else arr.shape[axis], (sum_.shape, arr.shape)
 
@@ -143,6 +152,19 @@ def test_sum(
         assert sum_.dtype == dtype_in
 
     expected = np.sum(np_arr, axis=axis, dtype=dtype_arg)
+    np.testing.assert_array_equal(sum_, expected)
+
+
+@pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Gpu})
+def test_sum_to_int(array_type: ArrayType[CpuArray | DiskArray | types.DaskArray], axis: Literal[0, 1] | None) -> None:
+    rng = np.random.default_rng(0)
+    np_arr = rng.random((100, 100))
+    arr = array_type(np_arr)
+
+    sum_ = stats.sum(arr, axis=axis, dtype=np.int64)
+    sum_ = to_np_dense_checked(sum_, axis, arr)
+
+    expected = np.zeros(() if axis is None else arr.shape[axis], dtype=np.int64)
     np.testing.assert_array_equal(sum_, expected)
 
 

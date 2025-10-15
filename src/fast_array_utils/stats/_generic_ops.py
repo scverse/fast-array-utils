@@ -79,14 +79,18 @@ def _generic_op_cs(
     del keep_cupy_as_array
     import scipy.sparse as sp
 
-    if isinstance(x, types.CSMatrix):
-        x = sp.csr_array(x) if x.format == "csr" else sp.csc_array(x)
+    # TODO(flying-sheep): once scipy fixes this issue, instead of all this,
+    # just convert to sparse array, then `return x.{op}(dtype=dtype)`
+    # https://github.com/scipy/scipy/issues/23768
 
     kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
-
     if axis is None:
         return cast("np.number[Any]", getattr(x, op)(**kwargs))
-    return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis, **kwargs))
+    if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
+        assert isinstance(dtype, np.dtype | type | None)
+    # convert to array so dimensions collapse as expected
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **kwargs)
+    return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis))
 
 
 @generic_op.register(types.DaskArray)

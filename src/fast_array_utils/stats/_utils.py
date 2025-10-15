@@ -36,7 +36,7 @@ def _dask_inner(x: types.DaskArray, op: Ops, /, *, axis: Literal[0, 1] | None, d
 
     rv = da.reduction(
         x,
-        partial(_dask_block, op),
+        partial(_dask_block, op, dtype=dtype),
         partial(_dask_block, op, dtype=dtype),
         axis=axis,
         dtype=res_dtype,
