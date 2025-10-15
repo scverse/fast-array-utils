@@ -85,7 +85,7 @@ def _generic_op_cs(
 
     kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
     if axis is None:
-        return cast("np.number[Any]", getattr(x, op)(**kwargs))
+        return cast("np.number[Any]", getattr(x.data, op)(**kwargs))
     if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
         assert isinstance(dtype, np.dtype | type | None)
     # convert to array so dimensions collapse as expected
