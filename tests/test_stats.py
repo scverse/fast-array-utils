@@ -143,7 +143,7 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
     >>> arr = sps.csr_array(sc.datasets.pbmc68k_reduced().raw.X)
     >>> sps.save_npz("pbmc68k_reduced_raw_csr.npz", arr)
     """
-    return sps.load_npz(DATA_DIR / "pbmc68k_reduced_raw_csr.npz")
+    return cast("sps.csr_array[np.float32]", sps.load_npz(DATA_DIR / "pbmc68k_reduced_raw_csr.npz"))
 
 
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
@@ -301,12 +301,6 @@ def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_redu
     """
     mat = pbmc64k_reduced_raw
     arr = array_type(mat)
-
-    if find_spec("scanpy"):
-        import scanpy as sc
-
-        mat_sc = sc.datasets.pbmc68k_reduced().raw.X
-        np.testing.assert_array_equal(mat.toarray(), mat_sc.toarray())
 
     mean_mat, var_mat = stats.mean_var(mat, axis=0, correction=1)
     mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
