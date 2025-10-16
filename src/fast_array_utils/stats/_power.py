@@ -29,7 +29,7 @@ def power(x: _Arr, n: int, /, dtype: DTypeLike | None = None) -> _Arr:
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
-        assert not isinstance(x, types.DaskArray | types.CSMatrix)
+        assert not isinstance(x, types.DaskArray | types.CSMatrix | types.CupyCSMatrix)
     if dtype is not None:
         x = x.astype(dtype, copy=False)  # type: ignore[assignment]
     return x**n  # type: ignore[operator]
@@ -39,9 +39,9 @@ def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
 def _power_cs(x: types.CSMatrix | types.CupyCSMatrix, n: int, /, dtype: DTypeLike | None = None) -> types.CSMatrix | types.CupyCSMatrix:
     if dtype is not None:
         try:
-            x = x.astype(dtype, copy=False)  # type: ignore[assignment]
+            x = x.astype(dtype, copy=False)  # type: ignore[assignment,call-arg]
         except TypeError:  # cupyx doesn’t have the `copy parameter`
-            x.astype(dtype)  # type: ignore[assignment]
+            x = x.astype(dtype)  # type: ignore[assignment]
     return x.power(n)
 
 
