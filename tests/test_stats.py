@@ -2,14 +2,19 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pytest
+import scipy.sparse as sps
 from numpy.exceptions import AxisError
 
 from fast_array_utils import stats, types
 from testing.fast_array_utils import SUPPORTED_TYPES, Flags
+
+
+DATA_DIR = Path(__file__).parent / "data"
 
 
 if TYPE_CHECKING:
@@ -99,7 +104,7 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
     np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
     if np.dtype(dtype_in).kind == "f":
-        np_arr /= 3  # type: ignore[misc]
+        np_arr /= 4  # type: ignore[misc]
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
@@ -124,6 +129,19 @@ def to_np_dense_checked(
         case _:
             pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(stat)}")
     return stat
+
+
+@pytest.fixture(scope="session")
+def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
+    """Scanpy’s pbmc68k_reduced raw data.
+
+    Data was created using:
+    >>> import scanpy as sc
+    >>> import scipy.sparse as sps
+    >>> arr = sps.csr_array(sc.datasets.pbmc68k_reduced().raw.X)
+    >>> sps.save_npz("pbmc68k_reduced_raw_csr.npz", arr)
+    """
+    return sps.load_npz(DATA_DIR / "pbmc68k_reduced_raw_csr.npz")
 
 
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
@@ -271,6 +289,27 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         resid_fau = np.mean(np.abs(fau[64][stat] - fau[32][stat]))
         resid_skl = np.mean(np.abs(skl[64][stat] - skl[32][stat]))
         assert resid_fau < resid_skl
+
+
+@pytest.mark.array_type(Flags.Dask, Flags.Disk)
+def test_mean_var_pbmc_dask(
+    array_type: ArrayType[CpuArray | GpuArray | types.DaskArray], axis: Literal[0, 1] | None, pbmc64k_reduced_raw: sps.csr_array[np.float32]
+) -> None:
+    """Test float32 precision for bigger data."""
+    mat = pbmc64k_reduced_raw
+    arr = array_type(mat)
+
+    if find_spec("scanpy"):
+        import scanpy as sc
+
+        mat_sc = sc.datasets.pbmc68k_reduced().raw.X
+        np.testing.assert_array_equal(mat.toarray(), mat_sc.toarray())
+
+    mean_mat, var_mat = stats.mean_var(mat, axis=axis, correction=1)
+    mean_arr, var_arr = (to_np_dense_checked(a, axis, arr) for a in stats.mean_var(arr, axis=axis, correction=1))
+
+    np.testing.assert_array_almost_equal(mean_arr, mean_mat)
+    np.testing.assert_array_almost_equal(var_arr, var_mat)
 
 
 @pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
