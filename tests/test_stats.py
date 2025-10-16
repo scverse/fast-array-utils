@@ -293,11 +293,12 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         assert resid_fau < resid_skl
 
 
-@pytest.mark.array_type(Flags.Dask & Flags.Sparse, Flags.Disk)
-def test_mean_var_pbmc_dask(
-    array_type: ArrayType[CpuArray | GpuArray | types.DaskArray], axis: Literal[0, 1] | None, pbmc64k_reduced_raw: sps.csr_array[np.float32]
-) -> None:
-    """Test float32 precision for bigger data."""
+@pytest.mark.array_type(Flags.Dask)
+def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1] | None, pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
+    """Test float32 precision for bigger data.
+
+    This test is flaky for sparse-in-dask for some reason.
+    """
     mat = pbmc64k_reduced_raw
     arr = array_type(mat)
 
