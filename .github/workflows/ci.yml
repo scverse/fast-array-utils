@@ -42,10 +42,11 @@ jobs:
   test:
     name: Tests
     needs: get-environments
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         env: ${{ fromJSON(needs.get-environments.outputs.envs) }}
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
