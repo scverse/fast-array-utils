@@ -27,7 +27,7 @@ classifiers = [
 dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
-optional-dependencies.dask = [ "dask>=2025.4.0" ]
+optional-dependencies.dask = [ "dask>=2025.4" ]
 optional-dependencies.doc = [
   "furo>=2024.8.6",
   "pytest>=8.4",
