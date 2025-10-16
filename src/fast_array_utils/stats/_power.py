@@ -38,7 +38,10 @@ def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
 @_power.register(types.CSMatrix | types.CupyCSMatrix)
 def _power_cs(x: types.CSMatrix | types.CupyCSMatrix, n: int, /, dtype: DTypeLike | None = None) -> types.CSMatrix | types.CupyCSMatrix:
     if dtype is not None:
-        x = x.astype(dtype, copy=False)  # type: ignore[assignment]
+        try:
+            x = x.astype(dtype, copy=False)  # type: ignore[assignment]
+        except TypeError:  # cupyx doesn’t have the `copy parameter`
+            x.astype(dtype)  # type: ignore[assignment]
     return x.power(n)
 
 
