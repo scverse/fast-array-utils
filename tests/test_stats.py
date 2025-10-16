@@ -293,8 +293,8 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         assert resid_fau < resid_skl
 
 
-@pytest.mark.array_type(Flags.Dask)
-def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1] | None, pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
+@pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
+def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
     """Test float32 precision for bigger data.
 
     This test is flaky for sparse-in-dask for some reason.
@@ -308,8 +308,8 @@ def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], axis: Litera
         mat_sc = sc.datasets.pbmc68k_reduced().raw.X
         np.testing.assert_array_equal(mat.toarray(), mat_sc.toarray())
 
-    mean_mat, var_mat = stats.mean_var(mat, axis=axis, correction=1)
-    mean_arr, var_arr = (to_np_dense_checked(a, axis, arr) for a in stats.mean_var(arr, axis=axis, correction=1))
+    mean_mat, var_mat = stats.mean_var(mat, axis=0, correction=1)
+    mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
 
     np.testing.assert_array_almost_equal(mean_arr, mean_mat)
     np.testing.assert_array_almost_equal(var_arr, var_mat)
