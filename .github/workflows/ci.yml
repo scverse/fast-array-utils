@@ -46,7 +46,12 @@ jobs:
     strategy:
       matrix:
         env: ${{ fromJSON(needs.get-environments.outputs.envs) }}
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
+        include:
+          - env:
+              name: hatch-test.py3.13-full
+              python: "3.13"
+            os: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
