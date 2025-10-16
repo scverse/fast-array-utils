@@ -136,6 +136,8 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
     """Scanpy’s pbmc68k_reduced raw data.
 
     Data was created using:
+    >>> if not find_spec("scanpy"):
+    ...     pytest.skip()
     >>> import scanpy as sc
     >>> import scipy.sparse as sps
     >>> arr = sps.csr_array(sc.datasets.pbmc68k_reduced().raw.X)
@@ -291,7 +293,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         assert resid_fau < resid_skl
 
 
-@pytest.mark.array_type(Flags.Dask, Flags.Disk)
+@pytest.mark.array_type(Flags.Dask & Flags.Sparse, Flags.Disk)
 def test_mean_var_pbmc_dask(
     array_type: ArrayType[CpuArray | GpuArray | types.DaskArray], axis: Literal[0, 1] | None, pbmc64k_reduced_raw: sps.csr_array[np.float32]
 ) -> None:
