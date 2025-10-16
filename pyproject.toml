@@ -27,7 +27,7 @@ classifiers = [
 dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
-optional-dependencies.dask = [ "dask>=2023.6.1" ]
+optional-dependencies.dask = [ "dask>=2025.4.0" ]
 optional-dependencies.doc = [
   "furo>=2024.8.6",
   "pytest>=8.4",
@@ -100,8 +100,8 @@ overrides.matrix.resolution.features = [
   { if = [ "lowest" ], value = "min-reqs" }, # feature added by hatch-min-requirements
 ]
 overrides.matrix.resolution.dependencies = [
-  # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/5
-  { if = [ "lowest" ], value = "dask==2023.6.1" },
+  # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/11
+  { if = [ "lowest" ], value = "dask==2025.4.0" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
