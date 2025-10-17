@@ -29,6 +29,9 @@ class ndarray:
     def __power__(self, other: int) -> Self: ...
 
     # methods
+    def astype(
+        self, dtype: DTypeLike | None, order: Literal["C", "F", "A", "K"] = "K", casting: None = None, subok: None = None, copy: bool = True
+    ) -> Self: ...
     @property
     def T(self) -> Self: ...  # noqa: N802
     @overload

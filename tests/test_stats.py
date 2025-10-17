@@ -2,14 +2,19 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pytest
+import scipy.sparse as sps
 from numpy.exceptions import AxisError
 
 from fast_array_utils import stats, types
 from testing.fast_array_utils import SUPPORTED_TYPES, Flags
+
+
+DATA_DIR = Path(__file__).parent / "data"
 
 
 if TYPE_CHECKING:
@@ -124,6 +129,21 @@ def to_np_dense_checked(
         case _:
             pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(stat)}")
     return stat
+
+
+@pytest.fixture(scope="session")
+def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
+    """Scanpy’s pbmc68k_reduced raw data.
+
+    Data was created using:
+    >>> if not find_spec("scanpy"):
+    ...     pytest.skip()
+    >>> import scanpy as sc
+    >>> import scipy.sparse as sps
+    >>> arr = sps.csr_array(sc.datasets.pbmc68k_reduced().raw.X)
+    >>> sps.save_npz("pbmc68k_reduced_raw_csr.npz", arr)
+    """
+    return cast("sps.csr_array[np.float32]", sps.load_npz(DATA_DIR / "pbmc68k_reduced_raw_csr.npz"))
 
 
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
@@ -271,6 +291,23 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         resid_fau = np.mean(np.abs(fau[64][stat] - fau[32][stat]))
         resid_skl = np.mean(np.abs(skl[64][stat] - skl[32][stat]))
         assert resid_fau < resid_skl
+
+
+@pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
+def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
+    """Test float32 precision for bigger data.
+
+    This test is flaky for sparse-in-dask for some reason.
+    """
+    mat = pbmc64k_reduced_raw
+    arr = array_type(mat)
+
+    mean_mat, var_mat = stats.mean_var(mat, axis=0, correction=1)
+    mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
+
+    rtol = 1.0e-5 if array_type.flags & Flags.Gpu else 1.0e-7
+    np.testing.assert_allclose(mean_arr, mean_mat, rtol=rtol)
+    np.testing.assert_allclose(var_arr, var_mat, rtol=rtol)
 
 
 @pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
