@@ -37,7 +37,7 @@ def mean_var_(
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
         mean_ = mean(x, axis=axis, dtype=np.float64)
-        mean_sq = mean(power(x, 2, dtype=np.float64), axis=axis)
+        mean_sq = mean(power(x, 2, dtype=np.float64), axis=axis) if isinstance(x, types.DaskArray) else mean(power(x, 2), axis=axis, dtype=np.float64)
         var = mean_sq - mean_**2
     if correction:  # R convention == 1 (unbiased estimator)
         n = np.prod(x.shape) if axis is None else x.shape[axis]
