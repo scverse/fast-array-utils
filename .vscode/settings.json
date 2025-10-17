@@ -15,6 +15,6 @@
             "source.organizeImports": "explicit",
         },
     },
-    "python.testing.pytestArgs": ["-vv", "--color=yes"],
+    "python.testing.pytestArgs": ["-vv", "--color=yes", "-m", "not benchmark"],
     "python.testing.pytestEnabled": true,
 }

@@ -8,6 +8,9 @@ from ._base import spmatrix
 
 class _compressed_sparse_matrix(spmatrix):
     format: Literal["csr", "csc"]
+    data: ndarray
+    indices: ndarray
+    indptr: ndarray
 
     @overload
     def __init__(self, arg1: ndarray | spmatrix) -> None: ...

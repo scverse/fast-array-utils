@@ -4,6 +4,8 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from .. import types
 
 
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     Array: TypeAlias = CpuArray | GpuArray | types.DaskArray
 
     _Arr = TypeVar("_Arr", bound=Array)
+    _Mat = TypeVar("_Mat", bound=types.CSBase | types.CupyCSMatrix)
 
 
 def power(x: _Arr, n: int, /, dtype: DTypeLike | None = None) -> _Arr:
@@ -29,22 +32,17 @@ def power(x: _Arr, n: int, /, dtype: DTypeLike | None = None) -> _Arr:
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
-        assert not isinstance(x, types.DaskArray | types.CSMatrix | types.CupyCSMatrix)
-    if dtype is not None:
-        x = x.astype(dtype, copy=False)  # type: ignore[assignment]
-    return x**n  # type: ignore[operator]
+        assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
+    return np.power(x, n, dtype=dtype)
 
 
-@_power.register(types.CSMatrix | types.CupyCSMatrix)
-def _power_cs(x: types.CSMatrix | types.CupyCSMatrix, n: int, /, dtype: DTypeLike | None = None) -> types.CSMatrix | types.CupyCSMatrix:
-    if dtype is not None:
-        try:
-            x = x.astype(dtype, copy=False)  # type: ignore[assignment,call-arg]
-        except TypeError:  # cupyx doesn’t have the `copy parameter`
-            x = x.astype(dtype)  # type: ignore[assignment]
-    return x.power(n)
+@_power.register(types.CSBase | types.CupyCSMatrix)
+def _power_cs(x: _Mat, n: int, /, dtype: DTypeLike | None = None) -> _Mat:
+    new_data = power(x.data, n, dtype=dtype)
+    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[call-overload,return-value]
 
 
 @_power.register(types.DaskArray)
 def _power_dask(x: types.DaskArray, n: int, /, dtype: DTypeLike | None = None) -> types.DaskArray:
-    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype)  # type: ignore[type-var]
+    meta = x._meta.astype(dtype or x.dtype)  # noqa: SLF001
+    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype, meta=meta)  # type: ignore[type-var,arg-type]
