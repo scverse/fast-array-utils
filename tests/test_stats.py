@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -9,6 +10,7 @@ import numpy as np
 import pytest
 import scipy.sparse as sps
 from numpy.exceptions import AxisError
+from packaging.version import Version
 
 from fast_array_utils import stats, types
 from testing.fast_array_utils import SUPPORTED_TYPES, Flags
@@ -37,6 +39,11 @@ STAT_FUNCS = [stats.sum, stats.min, stats.max, stats.mean, stats.mean_var, stats
 # can’t select these using a category filter
 ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
 ATS_CUPY_SPARSE = {at for at in SUPPORTED_TYPES if "cupyx.scipy" in str(at)}
+
+
+def _xfail_if_old_scipy(array_type: ArrayType[Any], ndim: Literal[1, 2]) -> pytest.MarkDecorator:
+    cond = ndim == 1 and bool(array_type.flags & Flags.Sparse) and Version(version("scipy")) < Version("1.14")
+    return pytest.mark.xfail(cond, reason="Sparse matrices don’t support 1d arrays")
 
 
 @pytest.fixture(
@@ -134,7 +141,10 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
-def test_ndim_error(array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
+def test_ndim_error(
+    request: pytest.FixtureRequest, array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None
+) -> None:
+    request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -148,12 +158,15 @@ def test_ndim_error(array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Li
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
+    request: pytest.FixtureRequest,
     array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray],
     dtype_in: type[DTypeIn],
     dtype_arg: type[DTypeOut] | None,
     axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
+    ndim: Literal[1, 2],
 ) -> None:
+    request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     if np.dtype(dtype_arg).kind in "iu" and (array_type.flags & Flags.Gpu) and (array_type.flags & Flags.Sparse):
         pytest.skip("GPU sparse matrices don’t support int dtypes")
     arr = array_type(np_arr.copy())
@@ -209,7 +222,8 @@ def test_sum_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
-def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: NDArray[DTypeIn]) -> None:
+def test_mean(request: pytest.FixtureRequest, array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: NDArray[DTypeIn], ndim: Literal[1, 2]) -> None:
+    request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     arr = array_type(np_arr)
 
     result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
@@ -224,10 +238,13 @@ def test_mean(array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: 
 
 @pytest.mark.array_type(skip=Flags.Disk)
 def test_mean_var(
+    request: pytest.FixtureRequest,
     array_type: ArrayType[CpuArray | GpuArray | types.DaskArray],
     axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
+    ndim: Literal[1, 2],
 ) -> None:
+    request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     arr = array_type(np_arr)
 
     mean, var = stats.mean_var(arr, axis=axis, correction=1)

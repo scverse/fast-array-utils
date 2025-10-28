@@ -7,7 +7,7 @@ import enum
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial
 from importlib.metadata import version
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypedDict, TypeVar, cast
 
 import numpy as np
 from packaging.version import Version
@@ -378,10 +378,18 @@ def random_mat(
     m, n = shape
     return cast(
         "types.CSBase",
-        random_spmat(m, n, density=density, format=format, dtype=dtype, rng=rng)
+        random_spmat(m, n, density=density, format=format, dtype=dtype, **_rng_kw(rng))
         if container == "matrix"
-        else random_sparr(shape, density=density, format=format, dtype=dtype, rng=rng),
+        else random_sparr(shape, density=density, format=format, dtype=dtype, **_rng_kw(rng)),
     )
+
+
+class RngKw(TypedDict):
+    rng: np.random.Generator | None
+
+
+def _rng_kw(rng: np.random.Generator | None) -> RngKw:
+    return RngKw(rng=rng) if Version(version("scipy")) >= Version("1.15") else cast("RngKw", dict(random_state=rng))
 
 
 def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
