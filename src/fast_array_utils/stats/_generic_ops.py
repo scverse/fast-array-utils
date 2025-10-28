@@ -89,7 +89,7 @@ def _generic_op_cs(
     if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
         assert isinstance(dtype, np.dtype | type | None)
     # convert to array so dimensions collapse as expected
-    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **kwargs)
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **kwargs)  # type: ignore[call-overload]
     return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis))
 
 
