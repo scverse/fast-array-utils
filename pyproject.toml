@@ -156,7 +156,6 @@ lint.future-annotations = true
 
 [tool.pytest.ini_options]
 addopts = [
-  "-ptesting.fast_array_utils._private",
   "--import-mode=importlib",
   "--strict-markers",
   "--doctest-modules",
