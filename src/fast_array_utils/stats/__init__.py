@@ -289,7 +289,7 @@ def min(
     :func:`numpy.min`
 
     """
-    return _min(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)  # type: ignore[misc,arg-type]
+    return _min(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
 
 
 @overload
@@ -344,7 +344,7 @@ def max(
     :func:`numpy.max`
 
     """
-    return _max(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)  # type: ignore[misc,arg-type]
+    return _max(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
 
 
 @overload
@@ -400,4 +400,4 @@ def sum(
     :func:`numpy.sum`
 
     """
-    return _sum(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)  # type: ignore[misc,arg-type]
+    return _sum(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)

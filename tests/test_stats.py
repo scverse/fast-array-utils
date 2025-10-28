@@ -358,4 +358,4 @@ def test_stats_benchmark(
     arr = array_type.random(shape, dtype=dtype)
 
     func(arr, axis=axis)  # warmup: numba compile
-    benchmark(func, arr, axis=axis)  # type: ignore[arg-type]
+    benchmark(func, arr, axis=axis)
