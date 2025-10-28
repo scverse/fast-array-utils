@@ -141,7 +141,10 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
-def test_ndim_error(array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
+def test_ndim_error(
+    request: pytest.FixtureRequest, array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None
+) -> None:
+    request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)

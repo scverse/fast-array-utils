@@ -389,7 +389,7 @@ class RngKw(TypedDict):
 
 
 def _rng_kw(rng: np.random.Generator | None) -> RngKw:
-    return cast("RngKw", dict(rng=rng) if Version(version("scipy")) >= Version("1.15") else dict(random_state=rng))
+    return RngKw(rng=rng) if Version(version("scipy")) >= Version("1.15") else cast("RngKw", dict(random_state=rng))
 
 
 def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
