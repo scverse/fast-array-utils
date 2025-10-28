@@ -278,7 +278,7 @@ def min(
     ...     [1, 1, 1],
     ... ])
     >>> min(x)
-    2
+    0
     >>> min(x, axis=0)
     array([0, 1, 1])
     >>> min(x, axis=1)
