@@ -334,9 +334,9 @@ def max(
     ... ])
     >>> max(x)
     2
-    >>> sum(x, axis=0)
+    >>> max(x, axis=0)
     array([0, 1, 2])
-    >>> sum(x, axis=1)
+    >>> max(x, axis=1)
     array([2, 0])
 
     See Also
