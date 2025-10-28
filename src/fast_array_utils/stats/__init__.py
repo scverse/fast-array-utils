@@ -7,10 +7,11 @@ which allows you to choose whether to compute the statistic across rows, columns
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, cast, get_args, overload
 
 from .._validation import validate_axis
 from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
+from ._generic_ops import DtypeOps
 
 
 if TYPE_CHECKING:
@@ -21,9 +22,11 @@ if TYPE_CHECKING:
     from optype.numpy import ToDType
 
     from .. import types
+    from ._generic_ops import Ops
+    from ._typing import NoDtypeOps, StatFunDtype, StatFunNoDtype
 
 
-__all__ = ["is_constant", "mean", "mean_var", "sum"]
+__all__ = ["is_constant", "max", "mean", "mean_var", "min", "sum"]
 
 
 @overload
@@ -201,26 +204,161 @@ def mean_var(
     return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
 
 
+@overload
+def _mk_generic_op(op: NoDtypeOps) -> StatFunNoDtype: ...
+@overload
+def _mk_generic_op(op: DtypeOps) -> StatFunDtype: ...
+
+
 # TODO(flying-sheep): support CSDataset (TODO)
 # https://github.com/scverse/fast-array-utils/issues/52
+def _mk_generic_op(op: Ops) -> StatFunNoDtype | StatFunDtype:
+    def _generic_op(
+        x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+        /,
+        *,
+        axis: Literal[0, 1] | None = None,
+        dtype: DTypeLike | None = None,
+        keep_cupy_as_array: bool = False,
+    ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
+        from ._generic_ops import generic_op
+
+        assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation '{op}'"
+
+        validate_axis(x.ndim, axis)
+        return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)
+
+    _generic_op.__name__ = op
+    return cast("StatFunNoDtype | StatFunDtype", _generic_op)
+
+
+_min = _mk_generic_op("min")
+_max = _mk_generic_op("max")
+_sum = _mk_generic_op("sum")
+
+
+@overload
+def min(x: CpuArray | DiskArray, /, *, axis: None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
+@overload
+def min(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
+@overload
+def min(x: GpuArray, /, *, axis: None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
+@overload
+def min(x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
+@overload
+def min(x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
+@overload
+def min(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+def min(
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1] | None = None,
+    keep_cupy_as_array: bool = False,
+) -> object:
+    """Find the minimum along both or one axis.
+
+    Parameters
+    ----------
+    x
+        Array to find the minimum(s) in.
+    axis
+        Axis to reduce over.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the minimum element is returned as a scalar.
+    Otherwise, the minimum along the given axis is returned as a 1D array.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> x = np.array([
+    ...     [0, 1, 2],
+    ...     [1, 1, 1],
+    ... ])
+    >>> min(x)
+    0
+    >>> min(x, axis=0)
+    array([0, 1, 1])
+    >>> min(x, axis=1)
+    array([0, 1])
+
+    See Also
+    --------
+    :func:`numpy.min`
+
+    """
+    return _min(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+
+
+@overload
+def max(x: CpuArray | DiskArray, /, *, axis: None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
+@overload
+def max(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
+@overload
+def max(x: GpuArray, /, *, axis: None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
+@overload
+def max(x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
+@overload
+def max(x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
+@overload
+def max(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+def max(
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    /,
+    *,
+    axis: Literal[0, 1] | None = None,
+    keep_cupy_as_array: bool = False,
+) -> object:
+    """Find the maximum along both or one axis.
+
+    Parameters
+    ----------
+    x
+        Array to find the maximum(s) in.
+    axis
+        Axis to reduce over.
+
+    Returns
+    -------
+    If ``axis`` is :data:`None`, then the maximum element is returned as a scalar.
+    Otherwise, the maximum along the given axis is returned as a 1D array.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> x = np.array([
+    ...     [0, 1, 2],
+    ...     [0, 0, 0],
+    ... ])
+    >>> max(x)
+    2
+    >>> max(x, axis=0)
+    array([0, 1, 2])
+    >>> max(x, axis=1)
+    array([2, 0])
+
+    See Also
+    --------
+    :func:`numpy.max`
+
+    """
+    return _max(x, axis=axis, keep_cupy_as_array=keep_cupy_as_array)
+
+
 @overload
 def sum(x: CpuArray | DiskArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> np.number[Any]: ...
 @overload
 def sum(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> NDArray[Any]: ...
-
-
 @overload
 def sum(x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[False] = False) -> np.number[Any]: ...
 @overload
-def sum(x: GpuArray, /, *, axis: None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
+def sum(x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: Literal[True]) -> types.CupyArray: ...
 @overload
 def sum(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.CupyArray: ...
-
-
 @overload
 def sum(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
-
-
 def sum(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
     /,
@@ -262,7 +400,4 @@ def sum(
     :func:`numpy.sum`
 
     """
-    from ._sum import sum_
-
-    validate_axis(x.ndim, axis)
-    return sum_(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
+    return _sum(x, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)

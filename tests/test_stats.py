@@ -19,35 +19,20 @@ DATA_DIR = Path(__file__).parent / "data"
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Literal, Protocol, TypeAlias
+    from typing import Any, Literal
 
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
+    from fast_array_utils.stats._typing import Array, DTypeIn, DTypeOut, NdAndAx, StatFunNoDtype
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
-
-    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
-
-    DTypeIn = np.float32 | np.float64 | np.int32 | np.bool
-    DTypeOut = np.float32 | np.float64 | np.int64
-
-    NdAndAx: TypeAlias = tuple[Literal[1], None] | tuple[Literal[2], Literal[0, 1] | None]
-
-    class StatFun(Protocol):  # noqa: D101
-        def __call__(  # noqa: D102
-            self,
-            arr: Array,
-            *,
-            axis: Literal[0, 1] | None = None,
-            dtype: type[DTypeOut] | None = None,
-        ) -> NDArray[Any] | np.number[Any] | types.DaskArray: ...
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("numba"), reason="numba not installed")]
 
 
-STAT_FUNCS = [stats.sum, stats.mean, stats.mean_var, stats.is_constant]
+STAT_FUNCS = [stats.sum, stats.min, stats.max, stats.mean, stats.mean_var, stats.is_constant]
 
 # can’t select these using a category filter
 ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
@@ -149,7 +134,7 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
 @pytest.mark.array_type(skip={*ATS_SPARSE_DS, Flags.Matrix})
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
-def test_ndim_error(array_type: ArrayType[Array], func: StatFun, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
+def test_ndim_error(array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None) -> None:
     check_ndim(array_type, ndim)
     # not using the fixture because we don’t need to test multiple dtypes
     np_arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
@@ -364,7 +349,7 @@ def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: Ar
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.int32])
 def test_stats_benchmark(
     benchmark: BenchmarkFixture,
-    func: StatFun,
+    func: StatFunNoDtype,
     array_type: ArrayType[CpuArray, None],
     axis: Literal[0, 1] | None,
     dtype: type[np.float32 | np.float64],
