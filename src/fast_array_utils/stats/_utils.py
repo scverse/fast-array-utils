@@ -79,7 +79,7 @@ def _dask_block(
 def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
     """Adapt `axis` parameter passed by Dask to what we support."""
     match axis:
-        case int() | None:
+        case int() | None:  # pragma: no cover
             pass
         case (0 | 1,):
             axis = axis[0]
@@ -104,6 +104,6 @@ def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Lite
         case True, 1:
             assert axis is not None
             return (1, a.size) if axis == 0 else (a.size, 1)
-    # pragma: no cover
-    msg = f"{keepdims=}, {type(a)}"
-    raise AssertionError(msg)
+        case _:  # pragma: no cover
+            msg = f"{keepdims=}, {type(a)}"
+            raise AssertionError(msg)
