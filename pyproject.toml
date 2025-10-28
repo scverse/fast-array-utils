@@ -37,7 +37,7 @@ optional-dependencies.doc = [
   "sphinx-autofixture>=0.4.1",
 ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
-optional-dependencies.sparse = [ "scipy>=1.11" ]
+optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.test = [
   "anndata",
   "fast-array-utils[accel,test-min]",
@@ -102,6 +102,7 @@ overrides.matrix.resolution.features = [
 overrides.matrix.resolution.dependencies = [
   # TODO: move to min dep once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/11
   { if = [ "lowest" ], value = "dask==2023.6.1" },
+  { if = [ "lowest" ], value = "scipy==1.13.0" },
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
@@ -174,6 +175,7 @@ filterwarnings = [
   "error",
   # codspeed seems to break this dtype added by h5py
   "ignore:.*numpy[.]longdouble:UserWarning",
+  "ignore:FNV hashing is not implemented in Numba:UserWarning",
 ]
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
