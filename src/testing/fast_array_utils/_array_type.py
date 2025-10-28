@@ -54,9 +54,6 @@ else:
 __all__ = ["ArrayType", "ConversionContext", "ToArray"]
 
 
-SCIPY_TAKES_RNG = Version(version("scipy")) >= Version("1.15")
-
-
 class Flags(enum.Flag):
     """Array classification flags."""
 
@@ -392,7 +389,7 @@ class RngKw(TypedDict):
 
 
 def _rng_kw(rng: np.random.Generator | None) -> RngKw:
-    return cast("RngKw", dict(rng=rng) if SCIPY_TAKES_RNG else dict(random_state=rng))
+    return cast("RngKw", dict(rng=rng) if Version(version("scipy")) >= Version("1.15") else dict(random_state=rng))
 
 
 def _half_chunk_size(a: tuple[int, ...]) -> tuple[int, ...]:
