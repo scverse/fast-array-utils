@@ -68,10 +68,12 @@ def _dask_block(
 ) -> NDArray[Any] | types.CupyArray:
     from . import max, min, sum
 
+    kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
+
     fns = {fn.__name__: fn for fn in (min, max, sum)}
 
     axis = _normalize_axis(axis, a.ndim)
-    rv = fns[op](a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,call-overload]
+    rv = fns[op](a, axis=axis, keep_cupy_as_array=True, **kwargs)  # type: ignore[misc,call-overload]
     shape = _get_shape(rv, axis=axis, keepdims=keepdims)
     return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
