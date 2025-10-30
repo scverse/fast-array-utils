@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Protocol, TypedDict
+from typing import TYPE_CHECKING, Generic, Literal, Protocol, TypedDict, TypeVar
 
 import numpy as np
 
@@ -51,5 +51,8 @@ DtypeOps = Literal["sum"]
 Ops: TypeAlias = NoDtypeOps | DtypeOps
 
 
-class DTypeKw(TypedDict, total=False):
-    dtype: DTypeLike
+_DT = TypeVar("_DT", bound="DTypeLike")
+
+
+class DTypeKw(TypedDict, Generic[_DT], total=False):
+    dtype: _DT

@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 
     from numpy.typing import DTypeLike
 
-    from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
+    from fast_array_utils.typing import CpuArray, GpuArray
 
     # All supported array types except for disk ones and CSDataset
-    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.DaskArray
+    Array: TypeAlias = CpuArray | GpuArray | types.DaskArray
 
     _Arr = TypeVar("_Arr", bound=Array)
     _Mat = TypeVar("_Mat", bound=types.CSBase | types.CupyCSMatrix)
@@ -33,7 +33,7 @@ def power(x: _Arr, n: int, /, dtype: DTypeLike | None = None) -> _Arr:
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-    return np.power(x, n, dtype=dtype)  # type: ignore[operator]
+    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[operator]
 
 
 @_power.register(types.CSBase | types.CupyCSMatrix)
