@@ -8,7 +8,7 @@ import numpy as np
 
 from .. import types
 from ._typing import DtypeOps
-from ._utils import _dask_inner
+from ._utils import _dask_inner, _dtype_kw
 
 
 if TYPE_CHECKING:
@@ -29,8 +29,7 @@ def _run_numpy_op(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
-    return getattr(np, op)(x, axis=axis, **kwargs)  # type: ignore[no-any-return]
+    return getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
 
 
 @singledispatch
@@ -83,13 +82,12 @@ def _generic_op_cs(
     # just convert to sparse array, then `return x.{op}(dtype=dtype)`
     # https://github.com/scipy/scipy/issues/23768
 
-    kwargs = {"dtype": dtype} if op in get_args(DtypeOps) else {}
     if axis is None:
-        return cast("np.number[Any]", getattr(x.data, op)(**kwargs))
+        return cast("np.number[Any]", getattr(x.data, op)(**_dtype_kw(dtype, op)))
     if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
         assert isinstance(dtype, np.dtype | type | None)
     # convert to array so dimensions collapse as expected
-    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **kwargs)  # type: ignore[call-overload]
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **_dtype_kw(dtype, op))  # type: ignore[call-overload]
     return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis))
 
 
