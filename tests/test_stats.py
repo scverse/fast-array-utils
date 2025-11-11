@@ -371,8 +371,8 @@ def test_stats_benchmark(
     axis: Literal[0, 1] | None,
     dtype: type[np.float32 | np.float64],
 ) -> None:
-    shape = (10_000, 10_000) if "sparse" in array_type.mod else (1000, 1000)
-    arr = array_type.random(shape, dtype=dtype)
+    n = 100_000 if "sparse" in array_type.mod else 10_000
+    arr = array_type.random((n, n), dtype=dtype)
 
     func(arr, axis=axis)  # warmup: numba compile
     benchmark(func, arr, axis=axis)
