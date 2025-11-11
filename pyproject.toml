@@ -50,6 +50,7 @@ optional-dependencies.test-min = [
   "pytest",
   "pytest-codspeed",
   "pytest-doctestplus",
+  "pytest-xdist",
 ]
 optional-dependencies.testing = [ "packaging" ]
 urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
