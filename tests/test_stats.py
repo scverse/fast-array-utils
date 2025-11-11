@@ -371,8 +371,10 @@ def test_stats_benchmark(
     axis: Literal[0, 1] | None,
     dtype: type[np.float32 | np.float64],
 ) -> None:
-    shape = (10_000, 10_000) if "sparse" in array_type.mod else (1000, 1000)
-    arr = array_type.random(shape, dtype=dtype)
+    # test with 10M elements will take 20ms for the fastest functions
+    n_elems, density = 10_000_000, 0.01
+    n = int(np.sqrt(n_elems / density if "sparse" in array_type.mod else n_elems))
+    arr = array_type.random((n, n), density=density, dtype=dtype)
 
     func(arr, axis=axis)  # warmup: numba compile
     benchmark(func, arr, axis=axis)
