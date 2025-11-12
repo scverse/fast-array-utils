@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Literal, cast, get_args
+from typing import TYPE_CHECKING, Literal, TypeVar, cast, get_args
 
 import numpy as np
 from numpy.exceptions import AxisError
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
     from ..typing import CpuArray, GpuArray
-    from ._typing import Ops
+    from ._typing import DTypeKw, Ops
 
     ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
@@ -71,7 +71,7 @@ def _dask_block(
     fns = {fn.__name__: fn for fn in (min, max, sum)}
 
     axis = _normalize_axis(axis, a.ndim)
-    rv = fns[op](a, axis=axis, dtype=dtype, keep_cupy_as_array=True)  # type: ignore[misc,call-overload]
+    rv = fns[op](a, axis=axis, keep_cupy_as_array=True, **_dtype_kw(dtype, op))  # type: ignore[call-overload]
     shape = _get_shape(rv, axis=axis, keepdims=keepdims)
     return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
@@ -107,3 +107,10 @@ def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Lite
         case _:  # pragma: no cover
             msg = f"{keepdims=}, {type(a)}"
             raise AssertionError(msg)
+
+
+DT = TypeVar("DT", bound="DTypeLike")
+
+
+def _dtype_kw(dtype: DT | None, op: Ops) -> DTypeKw[DT]:
+    return {"dtype": dtype} if dtype is not None and op in get_args(DtypeOps) else {}

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Generic, Literal, Protocol, TypedDict, TypeVar
 
 import numpy as np
 
@@ -49,3 +49,10 @@ class StatFunDtype(Protocol):
 NoDtypeOps = Literal["max", "min"]
 DtypeOps = Literal["sum"]
 Ops: TypeAlias = NoDtypeOps | DtypeOps
+
+
+_DT = TypeVar("_DT", bound="DTypeLike")
+
+
+class DTypeKw(TypedDict, Generic[_DT], total=False):
+    dtype: _DT
