@@ -74,7 +74,7 @@ class ConversionContext:
     hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
-if sys.version_info >= (3, 13):
+if TYPE_CHECKING or sys.version_info >= (3, 13):
     # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
     Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
     Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
