@@ -223,7 +223,7 @@ def _mk_generic_op(op: Ops) -> StatFunNoDtype | StatFunDtype:
     ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
         from ._generic_ops import generic_op
 
-        assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation '{op}'"
+        assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation {op!r}"
 
         validate_axis(x.ndim, axis)
         return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)

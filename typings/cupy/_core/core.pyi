@@ -3,7 +3,7 @@ from types import EllipsisType
 from typing import Any, Literal, Self, overload
 
 import numpy as np
-from cupy.cuda import Stream
+from cupy.cuda import MemoryPointer, Stream
 from numpy._core.multiarray import flagsobj
 from numpy.typing import DTypeLike, NDArray
 
@@ -13,6 +13,15 @@ class ndarray:
     size: int
     ndim: int
     flags: flagsobj
+
+    def __init__(
+        self,
+        shape: tuple[int, ...],
+        dtype: DTypeLike | None = ...,
+        memptr: MemoryPointer | None = None,
+        strides: tuple[int, ...] | None = None,
+        order: Literal["C", "F"] = "C",
+    ) -> None: ...
 
     # cupy-specific
     def get(

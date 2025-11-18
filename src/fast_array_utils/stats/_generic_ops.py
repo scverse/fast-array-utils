@@ -29,7 +29,8 @@ def _run_numpy_op(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    return getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
+    arr = cast("NDArray[Any] | np.number[Any] | types.CupyArray | types.CupyCOOMatrix | types.DaskArray", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
+    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
 
 
 @singledispatch
@@ -88,7 +89,8 @@ def _generic_op_cs(
         assert isinstance(dtype, np.dtype | type | None)
     # convert to array so dimensions collapse as expected
     x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **_dtype_kw(dtype, op))  # type: ignore[arg-type]
-    return cast("NDArray[Any] | np.number[Any]", getattr(x, op)(axis=axis))
+    rv = cast("NDArray[Any] | types.coo_array | np.number[Any]", getattr(x, op)(axis=axis))
+    return rv.toarray() if isinstance(rv, types.coo_array) else rv
 
 
 @generic_op.register(types.DaskArray)
