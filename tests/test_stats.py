@@ -201,6 +201,20 @@ def test_sum_to_int(array_type: ArrayType[CpuArray | DiskArray | types.DaskArray
     np.testing.assert_array_equal(sum_, expected)
 
 
+@pytest.mark.array_type(skip=ATS_SPARSE_DS)
+@pytest.mark.parametrize("func", [stats.min, stats.max])
+def test_min_max(array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray], axis: Literal[0, 1] | None, func: StatFunNoDtype) -> None:
+    rng = np.random.default_rng(0)
+    np_arr = rng.random((100, 100))
+    arr = array_type(np_arr)
+
+    result = to_np_dense_checked(func(arr, axis=axis), axis, arr)
+
+    expected = (np.min if func is stats.min else np.max)(np_arr, axis=axis)
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [stats.sum, stats.min, stats.max])
 @pytest.mark.parametrize(
     "data",
     [
@@ -211,14 +225,15 @@ def test_sum_to_int(array_type: ArrayType[CpuArray | DiskArray | types.DaskArray
 )
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.array_type(Flags.Dask)
-def test_sum_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1], data: list[list[int]]) -> None:
+def test_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1], data: list[list[int]], func: StatFunNoDtype) -> None:
     np_arr = np.array(data, dtype=np.float32)
     arr = array_type(np_arr)
     assert 1 in arr.chunksize, "This test is supposed to test 1×n and n×1 chunk sizes"
-    sum_ = cast("NDArray[Any] | types.CupyArray", stats.sum(arr, axis=axis).compute())
-    if isinstance(sum_, types.CupyArray):
-        sum_ = sum_.get()
-    np.testing.assert_almost_equal(np_arr.sum(axis=axis), sum_)
+    stat = cast("NDArray[Any] | types.CupyArray", func(arr, axis=axis).compute())
+    if isinstance(stat, types.CupyArray):
+        stat = stat.get()
+    np_func = getattr(np, func.__name__)
+    np.testing.assert_almost_equal(stat, np_func(np_arr, axis=axis))
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
