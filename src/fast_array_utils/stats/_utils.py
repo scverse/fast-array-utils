@@ -8,7 +8,6 @@ import numpy as np
 from numpy.exceptions import AxisError
 
 from .. import types
-from ..typing import GpuArray
 from ._typing import DtypeOps
 
 
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import DTypeLike, NDArray
 
-    from ..typing import CpuArray
+    from ..typing import CpuArray, GpuArray
     from ._typing import DTypeKw, Ops
 
     type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
@@ -71,7 +70,7 @@ def _dask_block(
     from . import max, min, sum
 
     if computing_meta:  # dask.blockwise doesn’t allow to pass `meta` in, and reductions below don’t handle a 0d matrix
-        return (types.CupyArray if isinstance(a, GpuArray) else np.ndarray)((), dtype or a.dtype)
+        return (types.CupyArray if isinstance(a, types.CupyArray | types.CupyCSMatrix) else np.ndarray)((), dtype or a.dtype)
 
     fns = {fn.__name__: fn for fn in (min, max, sum)}
 

@@ -106,11 +106,11 @@ overrides.matrix.resolution.dependencies = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.13", "3.11" ]
+python = [ "3.13", "3.12" ]
 extras = [ "full", "min" ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.11" ]
+python = [ "3.12" ]
 extras = [ "full" ]
 resolution = [ "lowest" ]
 
