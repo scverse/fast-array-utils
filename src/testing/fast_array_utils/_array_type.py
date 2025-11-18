@@ -74,14 +74,17 @@ class ConversionContext:
     hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
-if sys.version_info < (3, 13):
-    pass  # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
-Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
-Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
+if sys.version_info >= (3, 13):
+    # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
+    Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
+    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
+else:
+    Arr = TypeVar("Arr")
+    Inner = TypeVar("Inner")
 
 
 @dataclass(frozen=True)
-class ArrayType(Generic[Arr, Inner]):
+class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
     """Supported array type with methods for conversion and random generation.
 
     Examples
