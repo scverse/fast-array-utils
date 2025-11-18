@@ -90,7 +90,8 @@ def _generic_op_cs(
     # convert to array so dimensions collapse as expected
     x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **_dtype_kw(dtype, op))  # type: ignore[arg-type]
     rv = cast("NDArray[Any] | types.coo_array | np.number[Any]", getattr(x, op)(axis=axis))
-    return rv.toarray() if isinstance(rv, types.coo_array) else rv
+    # old scipy versions’ sparray.{max,min}() return a 1×n/n×1 sparray here, so we squeeze
+    return rv.toarray().squeeze() if isinstance(rv, types.coo_array) else rv
 
 
 @generic_op.register(types.DaskArray)

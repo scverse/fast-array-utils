@@ -110,7 +110,7 @@ def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Lite
             assert axis is not None
             return (1, a.size) if axis == 0 else (a.size, 1)
         case _:  # pragma: no cover
-            msg = f"{keepdims=}, {type(a)}"
+            msg = f"{keepdims=}, {a.ndim=}, {type(a)=}"
             raise AssertionError(msg)
 
 
