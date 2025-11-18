@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
-from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 from ._to_dense import to_dense_
 
 
@@ -15,6 +14,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from .. import types
+    from ..typing import CpuArray, DiskArray, GpuArray
 
 
 __all__ = ["to_dense"]

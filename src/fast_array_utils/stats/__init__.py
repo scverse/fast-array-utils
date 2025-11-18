@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast, get_args, overload
 
 from .._validation import validate_axis
-from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 from ._generic_ops import DtypeOps
 
 
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from optype.numpy import ToDType
 
     from .. import types
+    from ..typing import CpuArray, DiskArray, GpuArray
     from ._generic_ops import Ops
     from ._typing import NoDtypeOps, StatFunDtype, StatFunNoDtype
 
