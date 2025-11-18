@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 
 __all__ = [
@@ -33,8 +33,6 @@ __all__ = [
     "sparray",
     "spmatrix",
 ]
-
-T_co = TypeVar("T_co", covariant=True)
 
 
 # scipy sparse

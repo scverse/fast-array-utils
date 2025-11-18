@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, Literal, Protocol, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Literal, Protocol, TypedDict
 
 import numpy as np
 
@@ -11,17 +11,17 @@ from ..typing import CpuArray, DiskArray, GpuArray
 
 
 if TYPE_CHECKING:
-    from typing import Any, TypeAlias
+    from typing import Any
 
     from numpy.typing import DTypeLike, NDArray
 
 
-Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
+type Array = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
 
-DTypeIn: TypeAlias = np.float32 | np.float64 | np.int32 | np.bool_
-DTypeOut: TypeAlias = np.float32 | np.float64 | np.int64
+type DTypeIn = np.float32 | np.float64 | np.int32 | np.bool_
+type DTypeOut = np.float32 | np.float64 | np.int64
 
-NdAndAx: TypeAlias = tuple[Literal[1], None] | tuple[Literal[2], Literal[0, 1] | None]
+type NdAndAx = tuple[Literal[1], None] | tuple[Literal[2], Literal[0, 1] | None]
 
 
 class StatFunNoDtype(Protocol):
@@ -48,11 +48,8 @@ class StatFunDtype(Protocol):
 
 NoDtypeOps = Literal["max", "min"]
 DtypeOps = Literal["sum"]
-Ops: TypeAlias = NoDtypeOps | DtypeOps
+type Ops = NoDtypeOps | DtypeOps
 
 
-_DT = TypeVar("_DT", bound="DTypeLike")
-
-
-class DTypeKw(TypedDict, Generic[_DT], total=False):
-    dtype: _DT
+class DTypeKw[DT: DTypeLike](TypedDict, total=False):
+    dtype: DT

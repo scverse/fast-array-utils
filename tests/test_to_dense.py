@@ -14,13 +14,13 @@ from fast_array_utils.conv import to_dense
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal, TypeAlias
+    from typing import Literal
 
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
-    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
-    ExtendedArray: TypeAlias = Array | types.COOBase | types.CupyCOOMatrix
+    type Array = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
+    type ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
 
 
 WARNS_NUMBA = pytest.warns(RuntimeWarning, match="numba is not installed; falling back to slow conversion")

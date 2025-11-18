@@ -11,12 +11,9 @@ from .. import types
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any, Literal, TypeVar
+    from typing import Any, Literal
 
     from numpy.typing import NDArray
-
-    C = TypeVar("C", bound=Callable[..., Any])
 
 
 @singledispatch

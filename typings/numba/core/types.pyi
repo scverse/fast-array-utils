@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # See <https://numba.readthedocs.io/en/stable/reference/types.html#numba-types>
 
-from typing import Literal, Self, TypeAlias
+from typing import Literal, Self
 
 from numba.core.typing.templates import Signature
 
@@ -48,7 +48,7 @@ class ArrayCompatible(Type):
     dtype: Type
 
 class Buffer(IterableType, ArrayCompatible):
-    Layout: TypeAlias = Literal["C", "F", "CS", "FS", "A"]
+    type Layout = Literal["C", "F", "CS", "FS", "A"]
     LAYOUTS: frozenset[Layout]
     def copy(
         self,
