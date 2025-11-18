@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from .core import Array, _Chunks
 
-_Order: TypeAlias = Literal["C", "F", "A", "K"]
+type _Order = Literal["C", "F", "A", "K"]
 
 def full(
     a: ArrayLike | None = None,

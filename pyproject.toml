@@ -14,12 +14,11 @@ license = "MPL-2.0"
 authors = [
   { name = "Philipp A.", email = "flying-sheep@web.de" },
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -107,11 +106,11 @@ overrides.matrix.resolution.dependencies = [
 ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.13", "3.11" ]
+python = [ "3.13", "3.12" ]
 extras = [ "full", "min" ]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.11" ]
+python = [ "3.12" ]
 extras = [ "full" ]
 resolution = [ "lowest" ]
 

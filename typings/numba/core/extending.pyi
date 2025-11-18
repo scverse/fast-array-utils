@@ -2,7 +2,7 @@
 import typing
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Concatenate, ParamSpec, Protocol, TypeVar
+from typing import Concatenate, Protocol
 
 from llvmlite.ir import IRBuilder, Value
 from numba.core.base import BaseContext
@@ -28,11 +28,6 @@ __all__ = [
     "unbox",
 ]
 
-_F = TypeVar("_F", bound=Callable[..., object])
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-_T = TypeVar("_T", bound=Type)
-
 TypingContext = object
 
 class _Context(Protocol):
@@ -55,33 +50,33 @@ class NativeValue:
     is_error: Value = ...
     cleanup: Value | None = None
 
-def box(
-    typeclass: type[_T],
+def box[T: Type, R](
+    typeclass: type[T],
 ) -> Callable[
-    [Callable[[_T, NativeValue, BoxContext], _R]],
-    Callable[[_T, NativeValue, BoxContext], _R],
+    [Callable[[T, NativeValue, BoxContext], R]],
+    Callable[[T, NativeValue, BoxContext], R],
 ]: ...
-def unbox(
-    typeclass: type[_T],
+def unbox[T: Type](
+    typeclass: type[T],
 ) -> Callable[
-    [Callable[[_T, Value, UnboxContext], NativeValue]],
-    Callable[[_T, Value, UnboxContext], NativeValue],
+    [Callable[[T, Value, UnboxContext], NativeValue]],
+    Callable[[T, Value, UnboxContext], NativeValue],
 ]: ...
 @typing.overload
-def intrinsic(
-    func: Callable[Concatenate[TypingContext, _P], tuple[Signature, Callable[..., NativeValue]]],
+def intrinsic[**P](
+    func: Callable[Concatenate[TypingContext, P], tuple[Signature, Callable[..., NativeValue]]],
     /,
-) -> Callable[_P, object]: ...
+) -> Callable[P, object]: ...
 @typing.overload
-def intrinsic(
+def intrinsic[**P](
     *,
     prefer_literal: bool = False,
     **kwargs: object,
 ) -> Callable[
-    [Callable[Concatenate[TypingContext, _P], tuple[Signature, Callable[..., NativeValue]]]],
-    Callable[_P, object],
+    [Callable[Concatenate[TypingContext, P], tuple[Signature, Callable[..., NativeValue]]]],
+    Callable[P, object],
 ]: ...
 def make_attribute_wrapper(typeclass: type[Type], struct_attr: str, python_attr: str) -> None: ...
-def overload(f: Callable[..., object]) -> Callable[[_F], _F]: ...
-def overload_method(typecls: type[Type], name: str) -> Callable[[_F], _F]: ...
-def overload_attribute(typecls: type[Type], name: str) -> Callable[[_F], _F]: ...
+def overload[F: Callable[..., object]](f: Callable[..., object]) -> Callable[[F], F]: ...
+def overload_method[F: Callable[..., object]](typecls: type[Type], name: str) -> Callable[[F], F]: ...
+def overload_attribute[F: Callable[..., object]](typecls: type[Type], name: str) -> Callable[[F], F]: ...

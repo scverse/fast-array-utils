@@ -1,19 +1,18 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Any, Literal, Never, TypeAlias
+from typing import Any, Literal, Never, override
 
 import cupy
 import cupyx.scipy.sparse
 import numpy as np
 import scipy.sparse
 from numpy.typing import DTypeLike, NDArray
-from typing_extensions import override
 
 from ..utils import SerializableLock
 
-_Chunks: TypeAlias = tuple[int, ...] | tuple[tuple[int, ...], ...]
-_Array: TypeAlias = (
+type _Chunks = tuple[int, ...] | tuple[tuple[int, ...], ...]
+type _Array = (
     NDArray[Any]
     | scipy.sparse.csr_array
     | scipy.sparse.csc_array

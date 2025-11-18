@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 from collections.abc import Callable
-from typing import Literal, TypeAlias
+from typing import Literal
 
 from .core import Array, _Array
 
-_Depth: TypeAlias = int | tuple[int, ...] | dict[int, _Depth]
-_Boundary: TypeAlias = Literal["reflect", "periodic", "nearest", "none"] | int
-_Boundaries: TypeAlias = _Boundary | tuple[_Boundary, ...] | dict[int, _Boundary]
+type _Depth = int | tuple[int, ...] | dict[int, _Depth]
+type _Boundary = Literal["reflect", "periodic", "nearest", "none"] | int
+type _Boundaries = _Boundary | tuple[_Boundary, ...] | dict[int, _Boundary]
 
 def map_overlap(
     func: Callable[[_Array], _Array],

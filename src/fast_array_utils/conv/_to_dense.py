@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 
 from .. import types
-from ..typing import CpuArray, DiskArray, GpuArray  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from typing import Any, Literal
 
     from numpy.typing import NDArray
+
+    from ..typing import CpuArray, DiskArray, GpuArray
 
 
 # fallback’s arg0 type has to include types of registered functions

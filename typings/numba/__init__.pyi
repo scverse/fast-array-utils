@@ -1,18 +1,17 @@
 # SPDX-License-Identifier: MPL-2.0
 from collections.abc import Callable, Iterable
-from typing import Literal, SupportsIndex, TypeAlias, TypeVar, overload
+from typing import Literal, SupportsIndex, overload
 
 from .core.types import *
 
-_F = TypeVar("_F", bound=Callable[..., object])
-
-_Signature: TypeAlias = str | Type | tuple[_Signature, ...]
+type __Signature = str | Type
+type _Signature = str | Type | tuple[__Signature, ...]
 
 # https://numba.readthedocs.io/en/stable/reference/jit-compilation.html#numba.jit
 @overload
-def njit(f: _F) -> _F: ...
+def njit[F: Callable[..., object]](f: F) -> F: ...
 @overload
-def njit(
+def njit[F: Callable[..., object]](
     signature: _Signature | list[_Signature] | None = None,
     *,
     nopython: bool = True,
@@ -24,7 +23,7 @@ def njit(
     fastmath: bool = False,
     locals: dict[str, object] = {},
     boundscheck: bool = False,
-) -> Callable[[_F], _F]: ...
+) -> Callable[[F], F]: ...
 @overload
 def prange(stop: SupportsIndex, /) -> Iterable[int]: ...
 @overload

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import enum
+import sys
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial
 from importlib.metadata import version
@@ -17,23 +18,18 @@ from fast_array_utils.conv import to_dense
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Protocol, TypeAlias
+    from typing import Any, Literal, Protocol
 
     import h5py
     from numpy.typing import ArrayLike, DTypeLike, NDArray
 
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
 
-    InnerArray = CpuArray | GpuArray | DiskArray
-    Array: TypeAlias = InnerArray | types.DaskArray | types.CSDataset
-    ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
+    type InnerArray = CpuArray | GpuArray | DiskArray
+    type Array = InnerArray | types.DaskArray | types.CSDataset
+    type ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
 
-    Arr = TypeVar("Arr", bound=ExtendedArray, default=Array)
-    Arr_co = TypeVar("Arr_co", bound=ExtendedArray, covariant=True)
-
-    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default=Any)
-
-    class ToArray(Protocol, Generic[Arr_co]):
+    class ToArray[Arr_co: ExtendedArray](Protocol):
         """Convert to a supported array."""
 
         def __call__(self, data: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> Arr_co: ...
@@ -41,14 +37,11 @@ if TYPE_CHECKING:
     class MkArray(Protocol):
         def __call__(self, shape: tuple[int, int], /, *, dtype: DTypeLike | None = None) -> Array: ...
 
-    _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
-    _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
-    _DTypeLikeInt32 = np.dtype[np.int32] | type[np.int32]
-    _DTypeLikeIn64 = np.dtype[np.int64] | type[np.int64]
-    _DTypeLikeNum = _DTypeLikeFloat32 | _DTypeLikeFloat64 | _DTypeLikeInt32 | _DTypeLikeIn64
-else:
-    Arr = TypeVar("Arr")
-    Inner = TypeVar("Inner")
+    type _DTypeLikeFloat32 = np.dtype[np.float32] | type[np.float32]
+    type _DTypeLikeFloat64 = np.dtype[np.float64] | type[np.float64]
+    type _DTypeLikeInt32 = np.dtype[np.int32] | type[np.int32]
+    type _DTypeLikeIn64 = np.dtype[np.int64] | type[np.int64]
+    type _DTypeLikeNum = _DTypeLikeFloat32 | _DTypeLikeFloat64 | _DTypeLikeInt32 | _DTypeLikeIn64
 
 
 __all__ = ["ArrayType", "ConversionContext", "ToArray"]
@@ -81,8 +74,17 @@ class ConversionContext:
     hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
+if TYPE_CHECKING or sys.version_info >= (3, 13):
+    # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
+    Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
+    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
+else:
+    Arr = TypeVar("Arr")
+    Inner = TypeVar("Inner")
+
+
 @dataclass(frozen=True)
-class ArrayType(Generic[Arr, Inner]):
+class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
     """Supported array type with methods for conversion and random generation.
 
     Examples

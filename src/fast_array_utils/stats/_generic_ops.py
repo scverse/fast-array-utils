@@ -12,14 +12,14 @@ from ._utils import _dask_inner, _dtype_kw
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal
 
     from numpy.typing import DTypeLike, NDArray
 
     from ..typing import CpuArray, DiskArray, GpuArray
     from ._typing import Ops
 
-    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
+    type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
 def _run_numpy_op(

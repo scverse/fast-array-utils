@@ -2,25 +2,24 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Literal, TypeVar, cast, get_args
+from typing import TYPE_CHECKING, Literal, cast, get_args
 
 import numpy as np
 from numpy.exceptions import AxisError
 
 from .. import types
-from ..typing import GpuArray
 from ._typing import DtypeOps
 
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal
 
     from numpy.typing import DTypeLike, NDArray
 
-    from ..typing import CpuArray
+    from ..typing import CpuArray, GpuArray
     from ._typing import DTypeKw, Ops
 
-    ComplexAxis: TypeAlias = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
+    type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
 __all__ = ["_dask_inner"]
@@ -71,7 +70,7 @@ def _dask_block(
     from . import max, min, sum
 
     if computing_meta:  # dask.blockwise doesn’t allow to pass `meta` in, and reductions below don’t handle a 0d matrix
-        return (types.CupyArray if isinstance(a, GpuArray) else np.ndarray)((), dtype or a.dtype)
+        return (types.CupyArray if isinstance(a, types.CupyArray | types.CupyCSMatrix) else np.ndarray)((), dtype or a.dtype)
 
     fns = {fn.__name__: fn for fn in (min, max, sum)}
 
@@ -114,8 +113,5 @@ def _get_shape(a: NDArray[Any] | np.number[Any] | types.CupyArray, *, axis: Lite
             raise AssertionError(msg)
 
 
-DT = TypeVar("DT", bound="DTypeLike")
-
-
-def _dtype_kw(dtype: DT | None, op: Ops) -> DTypeKw[DT]:
+def _dtype_kw[DT: DTypeLike](dtype: DT | None, op: Ops) -> DTypeKw[DT]:
     return {"dtype": dtype} if dtype is not None and op in get_args(DtypeOps) else {}
