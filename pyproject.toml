@@ -152,10 +152,10 @@ lint.isort.lines-after-imports = 2
 lint.pydocstyle.convention = "numpy"
 lint.future-annotations = true
 
-[tool.pytest.ini_options]
+[tool.pytest]
+strict = true
 addopts = [
   "--import-mode=importlib",
-  "--strict-markers",
   "--doctest-modules",
   "--doctest-plus",
   "--pyargs",
@@ -177,7 +177,6 @@ filterwarnings = [
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
 ]
-xfail_strict = true
 
 [tool.coverage]
 run.data_file = "test-data/.coverage"

@@ -292,7 +292,7 @@ def test_mean_var_sparse_64(array_type: ArrayType[types.CSArray], axis: Literal[
 
 @pytest.mark.skipif(not find_spec("sklearn"), reason="sklearn not installed")
 @pytest.mark.array_type(Flags.Sparse, skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
-def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
+def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray], subtests: pytest.Subtests) -> None:
     """Test whether we are more accurate for 32 bit."""
     from sklearn.utils.sparsefuncs import mean_variance_axis
 
@@ -304,10 +304,11 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray]) -> None:
         fau[n_bit] = stats.mean_var(mtx, axis=0)
         skl[n_bit] = mean_variance_axis(mtx, 0)
 
-    for stat, _ in enumerate(["mean", "var"]):
-        resid_fau = np.mean(np.abs(fau[64][stat] - fau[32][stat]))
-        resid_skl = np.mean(np.abs(skl[64][stat] - skl[32][stat]))
-        assert resid_fau < resid_skl
+    for stat, name in enumerate(["mean", "var"]):
+        with subtests.test(stat=name):
+            resid_fau = np.mean(np.abs(fau[64][stat] - fau[32][stat]))
+            resid_skl = np.mean(np.abs(skl[64][stat] - skl[32][stat]))
+            assert resid_fau < resid_skl
 
 
 @pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
