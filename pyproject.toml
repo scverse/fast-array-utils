@@ -60,8 +60,9 @@ doc = [
 mypy = [
   "fast-array-utils[full]",
   "scipy-stubs",
+  # TODO: replace sphinx with this: { include-group = "doc" },
+  "sphinx",
   "types-docutils",
-  { include-group = "doc" },
   { include-group = "test" },
 ]
 
