@@ -1,43 +1,108 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: no-commit-to-branch
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
-    hooks:
-      - id: ruff-check
-        args: [--fix, --exit-non-zero-on-fix]
-      - id: ruff-check
-        args: [--preview, --select=CPY]
-      - id: ruff-format
-  - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.11.1
-    hooks:
-      - id: pyproject-fmt
-  - repo: https://github.com/biomejs/pre-commit
-    rev: v2.3.5
-    hooks:
-      - id: biome-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
-    hooks:
-      - id: mypy
-        args: [--config-file=pyproject.toml, .]
-        pass_filenames: false
-        additional_dependencies:
-          - pytest
-          - pytest-codspeed!=4.0.0  # https://github.com/CodSpeedHQ/pytest-codspeed/pull/84
-          - numba
-          - numpy
-          - scipy-stubs
-          - dask
-          - zarr
-          - h5py
-          - anndata
-          - types-docutils
-          - sphinx
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: no-commit-to-branch
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.5
+  hooks:
+  - id: ruff-check
+    args: [--fix, --exit-non-zero-on-fix]
+  - id: ruff-check
+    args: [--preview, --select=CPY]
+  - id: ruff-format
+- repo: https://github.com/tox-dev/pyproject-fmt
+  rev: v2.11.1
+  hooks:
+  - id: pyproject-fmt
+- repo: https://github.com/biomejs/pre-commit
+  rev: v2.3.5
+  hooks:
+  - id: biome-format
+- repo: https://github.com/H4rryK4ne/update-mypy-hook
+  rev: a8b56c4055ff0c7c589794c02813ef8e9d5704fc
+  hooks:
+  - id: update-mypy-hook
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.18.2
+  hooks:
+  - id: mypy
+    args: [--config-file=pyproject.toml, .]
+    pass_filenames: false
+    language_version: '3.13'
+    additional_dependencies:
+    - alabaster==1.0.0
+    - anndata==0.12.6
+    - array-api-compat==1.12.0
+    - babel==2.17.0
+    - certifi==2025.11.12
+    - cffi==2.0.0
+    - charset-normalizer==3.4.4
+    - click==8.3.1
+    - cloudpickle==3.1.2
+    - colorama==0.4.6 ; sys_platform == 'win32'
+    - coverage==7.12.0
+    - dask==2025.11.0
+    - docutils==0.22.3
+    - donfig==0.8.1.post1
+    - execnet==2.1.2
+    - fsspec==2025.10.0
+    - google-crc32c==1.7.1
+    - h5py==3.15.1
+    - idna==3.11
+    - imagesize==1.4.1
+    - iniconfig==2.3.0
+    - jinja2==3.1.6
+    - joblib==1.5.2
+    - legacy-api-wrap==1.5
+    - llvmlite==0.45.1
+    - locket==1.0.0
+    - markdown-it-py==4.0.0
+    - markupsafe==3.0.3
+    - mdurl==0.1.2
+    - natsort==8.4.0
+    - numba==0.62.1
+    - numcodecs==0.16.5
+    - numpy==2.3.5
+    - numpy-typing-compat==20250818.2.3
+    - optype==0.14.0
+    - packaging==25.0
+    - pandas==2.3.3
+    - partd==1.4.2
+    - pluggy==1.6.0
+    - pycparser==2.23 ; implementation_name != 'PyPy'
+    - pygments==2.19.2
+    - pytest==9.0.1
+    - pytest-codspeed==4.2.0
+    - pytest-doctestplus==1.6.0
+    - pytest-xdist==3.8.0
+    - python-dateutil==2.9.0.post0
+    - pytz==2025.2
+    - pyyaml==6.0.3
+    - requests==2.32.5
+    - rich==14.2.0
+    - roman-numerals==3.1.0
+    - scikit-learn==1.7.2
+    - scipy==1.16.3
+    - scipy-stubs==1.16.3.2
+    - six==1.17.0
+    - snowballstemmer==3.0.1
+    - sphinx==9.0.1
+    - sphinxcontrib-applehelp==2.0.0
+    - sphinxcontrib-devhelp==2.0.0
+    - sphinxcontrib-htmlhelp==2.1.0
+    - sphinxcontrib-jsmath==1.0.1
+    - sphinxcontrib-qthelp==2.0.0
+    - sphinxcontrib-serializinghtml==2.0.0
+    - threadpoolctl==3.6.0
+    - toolz==1.1.0
+    - types-docutils==0.22.3.20251115
+    - tzdata==2025.2
+    - urllib3==2.5.0
+    - zarr==3.1.5
 ci:
-  skip: [mypy]  # too big
+  skip:
+  - mypy  # too big
+  - update-mypy-hook  # offline?

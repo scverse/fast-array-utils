@@ -4,6 +4,7 @@ _version.py
 /build/
 /dist/
 /.python-version
+/*.lock
 
 # Testing
 /test-data/

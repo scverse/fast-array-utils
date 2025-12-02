@@ -109,7 +109,7 @@ if TYPE_CHECKING:
     from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
 else:  # pragma: no cover
     try:  # only exists in anndata 0.11+
-        from anndata.abc import CSCDataset, CSRDataset  # type: ignore[import-untyped]
+        from anndata.abc import CSCDataset, CSRDataset
     except ImportError:
         CSRDataset = type("CSRDataset", (), {})
         CSCDataset = type("CSCDataset", (), {})

@@ -14,7 +14,8 @@ class Dataset(HLObject):
     shape: tuple[int, ...]
     ndim: int
 
-class Group(HLObject): ...
+class Group(HLObject):
+    def __getitem__(self, name: str) -> Group | Dataset: ...
 
 class File(Group, closing[File]):  # not actually a subclass of closing
     filename: str
