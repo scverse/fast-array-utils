@@ -22,7 +22,7 @@ repos:
   hooks:
   - id: biome-format
 - repo: https://github.com/H4rryK4ne/update-mypy-hook
-  rev: f124bd630b39a499dc0f51016827ca7346fd001a
+  rev: a8b56c4055ff0c7c589794c02813ef8e9d5704fc
   hooks:
   - id: update-mypy-hook
 - repo: https://github.com/pre-commit/mirrors-mypy
@@ -103,7 +103,4 @@ repos:
     - urllib3==2.5.0
     - zarr==3.1.5
 ci:
-  skip:
-  - mypy  # too big
-
-  - update-mypy-hook  # https://github.com/H4rryK4ne/update-mypy-hook/pull/9
+  skip: [mypy]  # too big
