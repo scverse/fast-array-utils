@@ -1,43 +1,59 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: no-commit-to-branch
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
-    hooks:
-      - id: ruff-check
-        args: [--fix, --exit-non-zero-on-fix]
-      - id: ruff-check
-        args: [--preview, --select=CPY]
-      - id: ruff-format
-  - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.11.1
-    hooks:
-      - id: pyproject-fmt
-  - repo: https://github.com/biomejs/pre-commit
-    rev: v2.3.5
-    hooks:
-      - id: biome-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
-    hooks:
-      - id: mypy
-        args: [--config-file=pyproject.toml, .]
-        pass_filenames: false
-        additional_dependencies:
-          - pytest
-          - pytest-codspeed!=4.0.0  # https://github.com/CodSpeedHQ/pytest-codspeed/pull/84
-          - numba
-          - numpy
-          - scipy-stubs
-          - dask
-          - zarr
-          - h5py
-          - anndata
-          - types-docutils
-          - sphinx
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: no-commit-to-branch
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.5
+  hooks:
+  - id: ruff-check
+    args: [--fix, --exit-non-zero-on-fix]
+  - id: ruff-check
+    args: [--preview, --select=CPY]
+  - id: ruff-format
+- repo: https://github.com/tox-dev/pyproject-fmt
+  rev: v2.11.1
+  hooks:
+  - id: pyproject-fmt
+- repo: https://github.com/biomejs/pre-commit
+  rev: v2.3.5
+  hooks:
+  - id: biome-format
+- repo: https://github.com/H4rryK4ne/update-mypy-hook
+  rev: f124bd630b39a499dc0f51016827ca7346fd001a
+  hooks:
+  - id: update-mypy-hook
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.18.2
+  hooks:
+  - id: mypy
+    args: [--config-file=pyproject.toml, .]
+    pass_filenames: false
+    language_version: '3.13'
+    additional_dependencies:
+    - click==8.3.1
+    - cloudpickle==3.1.2
+    - colorama==0.4.6 ; sys_platform == 'win32'
+    - dask==2025.11.0
+    - donfig==0.8.1.post1
+    - fsspec==2025.10.0
+    - google-crc32c==1.7.1
+    - h5py==3.15.1
+    - llvmlite==0.45.1
+    - locket==1.0.0
+    - numba==0.62.1
+    - numcodecs==0.16.5
+    - numpy==2.0.0
+    - numpy-typing-compat==20250818.2.0
+    - optype==0.14.0
+    - packaging==25.0
+    - partd==1.4.2
+    - pyyaml==6.0.3
+    - scipy==1.16.3
+    - scipy-stubs==1.16.3.2
+    - toolz==1.1.0
+    - zarr==3.1.5
 ci:
   skip: [mypy]  # too big

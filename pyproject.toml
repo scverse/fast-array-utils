@@ -27,23 +27,23 @@ dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
-optional-dependencies.doc = [
-  "furo>=2024.8.6",
-  "pytest>=8.4",
-  "scanpydoc>=0.15.4",
-  "sphinx>=8.2.3",
-  "sphinx-autodoc-typehints>=3.2",
-  "sphinx-autofixture>=0.4.1",
-]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
-optional-dependencies.test = [
+optional-dependencies.testing = [ "packaging" ]
+urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
+urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
+urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
+entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
+
+[dependency-groups]
+test = [
   "anndata",
-  "fast-array-utils[accel,test-min]",
-  "numcodecs<0.16",                   # zarr 2 needs this
-  "zarr<3",                           # anndata needs this
+  "fast-array-utils[accel]",
+  "scikit-learn",
+  "zarr",
+  { include-group = "test-min" },
 ]
-optional-dependencies.test-min = [
+test-min = [
   "coverage[toml]",
   "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
   "pytest",
@@ -51,12 +51,15 @@ optional-dependencies.test-min = [
   "pytest-doctestplus",
   "pytest-xdist",
 ]
-optional-dependencies.testing = [ "packaging" ]
-urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
-urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
-urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
-
-entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
+doc = [
+  "furo>=2024.8.6",
+  "pytest>=8.4",
+  "scanpydoc>=0.15.4",
+  "sphinx>=8.2.3",
+  "sphinx-autodoc-typehints>=3.2",
+  "sphinx-autofixture>=0.4.1",
+]
+mypy = [ "fast-array-utils[full]", "scipy-stubs" ] # for update-mypy-hook
 
 [tool.hatch.version]
 source = "vcs"
@@ -78,23 +81,21 @@ packages = [ "src/testing", "src/fast_array_utils" ]
 installer = "uv"
 
 [tool.hatch.envs.docs]
-features = [ "doc" ]
+dependency-groups = [ "doc" ]
 scripts.build = "sphinx-build -M html docs docs/_build"
 scripts.clean = "git clean -fdX docs"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 
 [tool.hatch.envs.hatch-test]
 default-args = [  ]
-features = [ "test-min" ]
+dependency-groups = [ "test-min" ]
 extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
-  { if = [ "full" ], value = "test" },
 ]
-overrides.matrix.extras.dependencies = [
-  { if = [ "full" ], value = "scipy-stubs" },
-  { if = [ "full" ], value = "scikit-learn" },
+overrides.matrix.extras.dependency-groups = [
+  { if = [ "full" ], value = "test" },
 ]
 overrides.matrix.resolution.features = [
   { if = [ "lowest" ], value = "min-reqs" }, # feature added by hatch-min-requirements
