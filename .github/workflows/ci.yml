@@ -100,11 +100,7 @@ jobs:
       - run: python -c 'import testing.fast_array_utils as tfau; print(tfau.ArrayType("numpy", "ndarray"))'
   check:
     name: Static Checks
-    needs: get-environments
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ${{ fromJSON(needs.get-environments.outputs.pythons) }}
     env:
       SKIP: no-commit-to-branch  # this CI runs on the main branch
     steps:
@@ -112,7 +108,7 @@ jobs:
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.13'
       - uses: pre-commit/action@v3.0.1
   pass:
     name: All Checks
