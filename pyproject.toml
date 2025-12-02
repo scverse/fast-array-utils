@@ -87,7 +87,8 @@ scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 [tool.hatch.envs.hatch-test]
 default-args = [  ]
 dependency-groups = [ "test-min" ]
-extra-dependencies = [ "ipykernel", "ipycytoscape" ]
+# TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
+extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
