@@ -114,5 +114,5 @@ repos:
 ci:
   skip:
   - mypy  # too big
-  
+
   - update-mypy-hook  # https://github.com/H4rryK4ne/update-mypy-hook/pull/9
