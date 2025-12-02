@@ -47,7 +47,7 @@ jobs:
         with:
           enable-cache: true  # "auto" is `false` on non-GitHub runners
       - name: Install package
-        run: uv pip install --system -e .[test,full] cupy-cuda12x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
+        run: uv pip install --system --group=test -e .[full] cupy-cuda12x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
       - name: List installed packages
         run: uv pip list
       - name: Run tests
