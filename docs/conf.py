@@ -43,8 +43,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    # "scanpydoc.definition_list_typed_field",
-    "scanpydoc.elegant_typehints",
     "sphinx_autofixture",
 ]
 

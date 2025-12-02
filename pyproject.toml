@@ -53,9 +53,7 @@ test-min = [
 doc = [
   "furo>=2024.8.6",
   "pytest>=8.4",
-  "scanpydoc>=0.15.4",
-  "sphinx>=8.2.3",
-  "sphinx-autodoc-typehints>=3.2",
+  "sphinx>=9.0.1",
   "sphinx-autofixture>=0.4.1",
 ]
 # for update-mypy-hook
@@ -118,6 +116,9 @@ extras = [ "full", "min" ]
 python = [ "3.12" ]
 extras = [ "full" ]
 resolution = [ "lowest" ]
+
+[tool.uv]
+override-dependencies = [ "sphinx>=9.0.1" ]
 
 [tool.ruff]
 line-length = 160
