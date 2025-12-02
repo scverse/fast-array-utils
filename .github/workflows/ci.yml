@@ -18,7 +18,7 @@ jobs:
       envs: ${{ steps.get-envs.outputs.envs }}
       pythons: ${{ steps.get-pythons.outputs.pythons }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: astral-sh/setup-uv@v7
       - name: Get test environments
@@ -50,7 +50,7 @@ jobs:
               python: "3.13"
             os: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: astral-sh/setup-uv@v7
         with:
@@ -73,7 +73,7 @@ jobs:
     name: CPU Benchmarks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v6
         with:
@@ -88,7 +88,7 @@ jobs:
     name: Import Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v6
         with:
@@ -104,12 +104,9 @@ jobs:
     env:
       SKIP: no-commit-to-branch  # this CI runs on the main branch
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - uses: pre-commit/action@v3.0.1
+      - uses: j178/prek-action@v1
   pass:
     name: All Checks
     if: always()
