@@ -33,27 +33,85 @@ repos:
     pass_filenames: false
     language_version: '3.13'
     additional_dependencies:
+    - accessible-pygments==0.0.5
+    - alabaster==1.0.0
+    - anndata==0.12.6
+    - array-api-compat==1.12.0
+    - babel==2.17.0
+    - beautifulsoup4==4.14.3
+    - certifi==2025.11.12
+    - cffi==2.0.0
+    - charset-normalizer==3.4.4
     - click==8.3.1
     - cloudpickle==3.1.2
     - colorama==0.4.6 ; sys_platform == 'win32'
+    - coverage==7.12.0
     - dask==2025.11.0
+    - docutils==0.21.2
+    - domdf-python-tools==3.10.0
     - donfig==0.8.1.post1
+    - execnet==2.1.2
     - fsspec==2025.10.0
+    - furo==2025.9.25
     - google-crc32c==1.7.1
     - h5py==3.15.1
+    - idna==3.11
+    - imagesize==1.4.1
+    - iniconfig==2.3.0
+    - jinja2==3.1.6
+    - joblib==1.5.2
+    - legacy-api-wrap==1.5
     - llvmlite==0.45.1
     - locket==1.0.0
+    - markdown-it-py==4.0.0
+    - markupsafe==3.0.3
+    - mdurl==0.1.2
+    - natsort==8.4.0
     - numba==0.62.1
     - numcodecs==0.16.5
-    - numpy==2.0.0
-    - numpy-typing-compat==20250818.2.0
+    - numpy==2.3.5
+    - numpy-typing-compat==20250818.2.3
     - optype==0.14.0
     - packaging==25.0
+    - pandas==2.3.3
     - partd==1.4.2
+    - pluggy==1.6.0
+    - pycparser==2.23 ; implementation_name != 'PyPy'
+    - pygments==2.19.2
+    - pytest==9.0.1
+    - pytest-codspeed==4.2.0
+    - pytest-doctestplus==1.6.0
+    - pytest-xdist==3.8.0
+    - python-dateutil==2.9.0.post0
+    - pytz==2025.2
     - pyyaml==6.0.3
+    - requests==2.32.5
+    - rich==14.2.0
+    - roman-numerals-py==3.1.0
+    - scanpydoc==0.16
+    - scikit-learn==1.7.2
     - scipy==1.16.3
     - scipy-stubs==1.16.3.2
+    - six==1.17.0
+    - snowballstemmer==3.0.1
+    - soupsieve==2.8
+    - sphinx==8.2.3
+    - sphinx-autodoc-typehints==3.5.2
+    - sphinx-autofixture==0.4.1
+    - sphinx-basic-ng==1.0.0b2
+    - sphinx-jinja2-compat==0.4.1
+    - sphinxcontrib-applehelp==2.0.0
+    - sphinxcontrib-devhelp==2.0.0
+    - sphinxcontrib-htmlhelp==2.1.0
+    - sphinxcontrib-jsmath==1.0.1
+    - sphinxcontrib-qthelp==2.0.0
+    - sphinxcontrib-serializinghtml==2.0.0
+    - standard-imghdr==3.10.14 ; python_full_version >= '3.13'
+    - threadpoolctl==3.6.0
     - toolz==1.1.0
+    - types-docutils==0.22.3.20251115
+    - tzdata==2025.2
+    - urllib3==2.5.0
     - zarr==3.1.5
 ci:
   skip: [mypy]  # too big

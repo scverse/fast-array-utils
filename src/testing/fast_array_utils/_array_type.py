@@ -264,7 +264,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
         return ctx.hdf5_file.create_dataset("data", arr.shape, arr.dtype, data=arr)
 
     @classmethod
-    def _to_zarr_array(cls, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray:
+    def _to_zarr_array(cls, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.ZarrArray[Any]:
         """Convert to a zarr array."""
         import zarr
 

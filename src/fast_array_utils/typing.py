@@ -25,5 +25,5 @@ GpuArray: TypeAlias = types.CupyArray | types.CupyCSMatrix  # noqa: UP040
 """Arrays and matrices stored in GPU memory."""
 
 # TODO(flying-sheep): types.CSDataset  # noqa: TD003
-DiskArray: TypeAlias = types.H5Dataset | types.ZarrArray  # noqa: UP040
+DiskArray: TypeAlias = types.H5Dataset | types.ZarrArray[Any]  # noqa: UP040
 """Arrays and matrices stored on disk."""

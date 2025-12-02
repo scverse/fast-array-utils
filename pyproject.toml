@@ -58,7 +58,14 @@ doc = [
   "sphinx-autodoc-typehints>=3.2",
   "sphinx-autofixture>=0.4.1",
 ]
-mypy = [ "fast-array-utils[full]", "scipy-stubs" ] # for update-mypy-hook
+# for update-mypy-hook
+mypy = [
+  "fast-array-utils[full]",
+  "scipy-stubs",
+  "types-docutils",
+  { include-group = "doc" },
+  { include-group = "test" },
+]
 
 [tool.hatch.version]
 source = "vcs"
