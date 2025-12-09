@@ -43,12 +43,12 @@ repos:
     - click==8.3.1
     - cloudpickle==3.1.2
     - colorama==0.4.6 ; sys_platform == 'win32'
-    - coverage==7.12.0
+    - coverage==7.13.0
     - dask==2025.11.0
     - docutils==0.22.3
     - donfig==0.8.1.post1
     - execnet==2.1.2
-    - fsspec==2025.10.0
+    - fsspec==2025.12.0
     - google-crc32c==1.7.1
     - h5py==3.15.1
     - idna==3.11
@@ -57,24 +57,24 @@ repos:
     - jinja2==3.1.6
     - joblib==1.5.2
     - legacy-api-wrap==1.5
-    - llvmlite==0.45.1
+    - llvmlite==0.46.0
     - locket==1.0.0
     - markdown-it-py==4.0.0
     - markupsafe==3.0.3
     - mdurl==0.1.2
     - natsort==8.4.0
-    - numba==0.62.1
+    - numba==0.63.0
     - numcodecs==0.16.5
     - numpy==2.3.5
-    - numpy-typing-compat==20250818.2.3
-    - optype==0.14.0
+    - numpy-typing-compat==20251206.2.3
+    - optype==0.15.0
     - packaging==25.0
     - pandas==2.3.3
     - partd==1.4.2
     - pluggy==1.6.0
     - pycparser==2.23 ; implementation_name != 'PyPy'
     - pygments==2.19.2
-    - pytest==9.0.1
+    - pytest==9.0.2
     - pytest-codspeed==4.2.0
     - pytest-doctestplus==1.6.0
     - pytest-xdist==3.8.0
@@ -86,10 +86,10 @@ repos:
     - roman-numerals==3.1.0
     - scikit-learn==1.7.2
     - scipy==1.16.3
-    - scipy-stubs==1.16.3.2
+    - scipy-stubs==1.16.3.3
     - six==1.17.0
     - snowballstemmer==3.0.1
-    - sphinx==9.0.1
+    - sphinx==9.0.4
     - sphinxcontrib-applehelp==2.0.0
     - sphinxcontrib-devhelp==2.0.0
     - sphinxcontrib-htmlhelp==2.1.0
@@ -100,9 +100,10 @@ repos:
     - toolz==1.1.0
     - types-docutils==0.22.3.20251115
     - tzdata==2025.2
-    - urllib3==2.5.0
+    - urllib3==2.6.1
     - zarr==3.1.5
 ci:
+  autoupdate_commit_msg: 'ci: pre-commit autoupdate'
   skip:
   - mypy  # too big
   - update-mypy-hook  # offline?
