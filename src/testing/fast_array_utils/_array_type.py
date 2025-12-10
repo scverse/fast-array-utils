@@ -243,15 +243,14 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
         import dask.array as da
 
         assert self.inner is not None
-        if TYPE_CHECKING:
-            assert isinstance(self.inner, ArrayType[CpuArray | GpuArray, None])  # type: ignore[misc]
+        inner = cast("ArrayType[CpuArray | GpuArray, None]", self.inner)
 
         if isinstance(x, types.DaskArray):
-            if isinstance(x._meta, self.inner.cls):  # noqa: SLF001
+            if isinstance(x._meta, inner.cls):  # noqa: SLF001
                 return x
-            return x.map_blocks(self.inner, dtype=dtype, meta=self.inner([[1]], dtype=dtype or x.dtype))
+            return x.map_blocks(inner, dtype=dtype, meta=inner([[1]], dtype=dtype or x.dtype))
 
-        arr = self.inner(x, dtype=dtype)
+        arr = inner(x, dtype=dtype)
         return da.from_array(arr, _half_chunk_size(arr.shape))
 
     def _to_h5py_dataset(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.H5Dataset:
