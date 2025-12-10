@@ -63,7 +63,7 @@ repos:
     - markupsafe==3.0.3
     - mdurl==0.1.2
     - natsort==8.4.0
-    - numba==0.63.0
+    - numba==0.63.1
     - numcodecs==0.16.5
     - numpy==2.3.5
     - numpy-typing-compat==20251206.2.3
@@ -84,7 +84,7 @@ repos:
     - requests==2.32.5
     - rich==14.2.0
     - roman-numerals==3.1.0
-    - scikit-learn==1.7.2
+    - scikit-learn==1.8.0
     - scipy==1.16.3
     - scipy-stubs==1.16.3.3
     - six==1.17.0
