@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import enum
-import sys
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial
 from importlib.metadata import version
@@ -74,10 +73,12 @@ class ConversionContext:
     hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
-if TYPE_CHECKING or sys.version_info >= (3, 13):
-    # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
-    Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
-    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
+if TYPE_CHECKING:
+    # TODO(flying-sheep): Python 3.13: move vars into type parameter syntax  # noqa: TD003
+    import typing_extensions as te
+
+    Arr = te.TypeVar("Arr", bound="ExtendedArray", default="Array")
+    Inner = te.TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
 else:
     Arr = TypeVar("Arr")
     Inner = TypeVar("Inner")
@@ -106,7 +107,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
     _: KW_ONLY
 
-    inner: Inner = None  # type: ignore[assignment]
+    inner: Inner = None
     """Inner array type (e.g. for dask)."""
     conversion_context: ConversionContext | None = field(default=None, compare=False)
     """Conversion context required for converting to h5py."""
@@ -146,7 +147,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
                 return cast("type[Arr]", zarr.Array)
             case "anndata.abc", ("CSCDataset" | "CSRDataset") as cls_name, _:
-                import anndata.abc  # type: ignore[import-untyped]
+                import anndata.abc
 
                 return cast("type[Arr]", getattr(anndata.abc, cls_name))
             case _:
@@ -191,7 +192,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
                 return cast(
                     "Arr",
                     arr.map_blocks(
-                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),  # type: ignore[attr-defined]
+                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),
                         dtype=dtype,
                     ),
                 )
@@ -277,7 +278,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
     def _to_cs_dataset(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
         """Convert to a scipy sparse dataset."""
-        import anndata.io  # type: ignore[import-untyped]
+        import anndata.io
         from scipy.sparse import csc_array, csr_array
 
         assert self.inner is not None
@@ -317,7 +318,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
             x = to_dense(x, to_cpu_memory=True)
 
         cls = cast("type[types.CSBase]", cls or self.cls)
-        return cls(x, dtype=dtype)  # type: ignore[arg-type]
+        return cls(x, dtype=dtype)
 
     def _to_cupy_array(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CupyArray:
         import cupy as cu
@@ -341,7 +342,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
         if not isinstance(x, types.spmatrix | types.sparray | types.CupyArray | types.CupySpMatrix):
             x = self._to_cupy_array(x, dtype=dtype)
 
-        return self.cls(x)  # type: ignore[call-arg,arg-type, return-value]
+        return self.cls(x)
 
 
 def random_array(
@@ -355,7 +356,7 @@ def random_array(
     f: MkArray
     match np.dtype(dtype or "f").kind:
         case "f":
-            f = rng.random  # type: ignore[assignment]
+            f = rng.random
         case "i" | "u":
             f = partial(rng.integers, 0, 10_000)
         case _:

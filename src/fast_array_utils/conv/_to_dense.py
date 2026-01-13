@@ -47,7 +47,7 @@ def _to_dense_dask(x: types.DaskArray, /, *, order: Literal["K", "A", "C", "F"] 
         msg = f"{order=!r} will probably be ignored: Dask can not be made to emit F-contiguous arrays reliably."
         warnings.warn(msg, RuntimeWarning, stacklevel=4)
     x = x.map_blocks(partial(to_dense, order=order, to_cpu_memory=to_cpu_memory))
-    return x.compute() if to_cpu_memory else x  # type: ignore[return-value]
+    return x.compute() if to_cpu_memory else x
 
 
 @to_dense_.register(types.CSDataset)

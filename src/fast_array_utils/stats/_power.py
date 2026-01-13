@@ -21,23 +21,23 @@ if TYPE_CHECKING:
 def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
     """Take array or matrix to a power."""
     # This wrapper is necessary because TypeVars can’t be used in `singledispatch` functions
-    return _power(x, n, dtype=dtype)  # type: ignore[return-value]
+    return _power(x, n, dtype=dtype)
 
 
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[operator]
+    return x**n if dtype is None else np.power(x, n, dtype=dtype)
 
 
 @_power.register(types.CSBase | types.CupyCSMatrix)
 def _power_cs[Mat: types.CSBase | types.CupyCSMatrix](x: Mat, n: int, /, dtype: DTypeLike | None = None) -> Mat:
     new_data = power(x.data, n, dtype=dtype)
-    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[call-overload,return-value]
+    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)
 
 
 @_power.register(types.DaskArray)
 def _power_dask(x: types.DaskArray, n: int, /, dtype: DTypeLike | None = None) -> types.DaskArray:
     meta = x._meta.astype(dtype or x.dtype)  # noqa: SLF001
-    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype, meta=meta)  # type: ignore[type-var,arg-type]
+    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype, meta=meta)

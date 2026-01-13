@@ -20,5 +20,5 @@ type GpuArray = types.CupyArray | types.CupyCSMatrix
 """Arrays and matrices stored in GPU memory."""
 
 # TODO(flying-sheep): types.CSDataset  # noqa: TD003
-type DiskArray = types.H5Dataset | types.ZarrArray  # type: ignore[type-arg]
+type DiskArray = types.H5Dataset | types.ZarrArray
 """Arrays and matrices stored on disk."""

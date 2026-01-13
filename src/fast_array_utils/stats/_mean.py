@@ -24,6 +24,6 @@ def mean_(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
 ) -> NDArray[np.number[Any]] | np.number[Any] | types.DaskArray:
-    total = sum(x, axis=axis, dtype=dtype)  # type: ignore[misc,arg-type]
+    total = sum(x, axis=axis, dtype=dtype)
     n = np.prod(x.shape) if axis is None else x.shape[axis]
-    return total / n  # type: ignore[no-any-return]
+    return total / n

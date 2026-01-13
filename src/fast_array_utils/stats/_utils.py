@@ -52,9 +52,9 @@ def _dask_inner(x: types.DaskArray, op: Ops, /, *, axis: Literal[0, 1] | None, d
     def to_scalar(a: types.CupyArray | NDArray[Any]) -> np.number[Any]:
         if isinstance(a, types.CupyArray):
             a = a.get()
-        return a.reshape(())[()]  # type: ignore[return-value]
+        return a.reshape(())[()]
 
-    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
+    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))
 
 
 def _dask_block(
@@ -75,7 +75,7 @@ def _dask_block(
     fns = {fn.__name__: fn for fn in (min, max, sum)}
 
     axis = _normalize_axis(axis, a.ndim)
-    rv = fns[op](a, axis=axis, keep_cupy_as_array=True, **_dtype_kw(dtype, op))  # type: ignore[call-overload]
+    rv = fns[op](a, axis=axis, keep_cupy_as_array=True, **_dtype_kw(dtype, op))
     shape = _get_shape(rv, axis=axis, keepdims=keepdims)
     return cast("NDArray[Any] | types.CupyArray", rv.reshape(shape))
 
@@ -90,7 +90,7 @@ def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
         case (0, 1) | (1, 0):
             axis = None
         case _:  # pragma: no cover
-            raise AxisError(axis, ndim)  # type: ignore[call-overload]
+            raise AxisError(axis, ndim)
     if axis == 0 and ndim == 1:
         return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
     return axis

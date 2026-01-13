@@ -92,7 +92,7 @@ def _is_constant_dask(a: types.DaskArray, /, *, axis: Literal[0, 1] | None = Non
         (a == a[0, 0].compute()).all()
         if isinstance(a._meta, np.ndarray)  # noqa: SLF001
         else da.map_overlap(
-            lambda a: np.array([[is_constant(a)]]),  # type: ignore[arg-type]
+            lambda a: np.array([[is_constant(a)]]),
             a,
             # use asymmetric overlaps to avoid unnecessary computation
             depth=dict.fromkeys(range(a.ndim), (0, 1)),

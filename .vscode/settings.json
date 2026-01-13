@@ -17,4 +17,5 @@
     },
     "python.testing.pytestArgs": ["-vv", "--color=yes", "-m", "not benchmark"],
     "python.testing.pytestEnabled": true,
+    "python.languageServer": "None", // ty instead
 }

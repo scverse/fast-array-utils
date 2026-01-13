@@ -64,10 +64,10 @@ def test_to_dense_extra(coo_matrix_type: ArrayType[types.COOBase | types.CupyCOO
 
 
 def assert_expected_cls(orig: ExtendedArray, converted: Array, *, to_cpu_memory: bool) -> None:
-    match (to_cpu_memory, orig):
+    match to_cpu_memory, orig:
         case False, types.DaskArray():
             assert isinstance(converted, types.DaskArray)
-            assert_expected_cls(orig.compute(), converted.compute(), to_cpu_memory=to_cpu_memory)
+            assert_expected_cls(orig.compute(), converted.compute(), to_cpu_memory=to_cpu_memory)  # ty:ignore[possibly-missing-attribute]: https://github.com/astral-sh/ty/issues/561
         case False, types.CupyArray() | types.CupySpMatrix():
             assert isinstance(converted, types.CupyArray)
         case _:
@@ -77,7 +77,7 @@ def assert_expected_cls(orig: ExtendedArray, converted: Array, *, to_cpu_memory:
 def assert_expected_order(orig: ExtendedArray, converted: Array, *, order: Literal["K", "C", "F"]) -> None:
     match converted:
         case types.CupyArray() | np.ndarray():
-            orders = {order_exp: converted.flags[f"{order_exp}_CONTIGUOUS"] for order_exp in (get_orders(orig) if order == "K" else {order})}  # type: ignore[index]
+            orders = {order_exp: converted.flags[order_exp] for order_exp in (get_orders(orig) if order == "K" else (order,))}
             assert any(orders.values()), orders
         case types.DaskArray():
             assert_expected_order(orig, converted.compute(), order=order)

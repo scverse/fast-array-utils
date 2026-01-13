@@ -26,9 +26,12 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pytest_codspeed import BenchmarkFixture
 
-    from fast_array_utils.stats._typing import Array, DTypeIn, DTypeOut, NdAndAx, StatFunNoDtype
+    from fast_array_utils.stats._typing import DTypeIn, DTypeOut, NdAndAx, StatFunNoDtype
+    from fast_array_utils.types import CSBase, CupyCSMatrix
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
+
+    type ArrayNoSparseDS = CpuArray | GpuArray | DiskArray | types.DaskArray
 
 
 pytestmark = [pytest.mark.skipif(not find_spec("numba"), reason="numba not installed")]
@@ -64,7 +67,7 @@ def ndim(ndim_and_axis: NdAndAx, array_type: ArrayType) -> Literal[1, 2]:
     return check_ndim(array_type, ndim_and_axis[0])
 
 
-def check_ndim(array_type: ArrayType, ndim: Literal[1, 2]) -> Literal[1, 2]:
+def check_ndim(array_type: ArrayType[Any], ndim: Literal[1, 2]) -> Literal[1, 2]:
     inner_cls = array_type.inner.cls if array_type.inner else array_type.cls
     if ndim != 2 and issubclass(inner_cls, types.CSMatrix | types.CupyCSMatrix):
         pytest.skip("CSMatrix only supports 2D")
@@ -94,9 +97,9 @@ def dtype_arg(request: pytest.FixtureRequest) -> type[DTypeOut] | None:
 
 @pytest.fixture
 def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
-    np_arr = cast("NDArray[DTypeIn]", np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in))
+    np_arr = np.array([[1, 0], [3, 0], [5, 6]], dtype=dtype_in)
     if np.dtype(dtype_in).kind == "f":
-        np_arr /= 4  # type: ignore[misc]
+        np_arr /= 4
     np_arr.flags.writeable = False
     if ndim == 1:
         np_arr = np_arr.flatten()
@@ -104,23 +107,24 @@ def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
 
 
 def to_np_dense_checked(
-    stat: NDArray[DTypeOut] | np.number[Any] | types.DaskArray, axis: Literal[0, 1] | None, arr: CpuArray | GpuArray | DiskArray | types.DaskArray
+    stat: NDArray[DTypeOut] | np.number[Any] | types.DaskArray[NDArray[DTypeOut]], axis: Literal[0, 1] | None, arr: ArrayNoSparseDS
 ) -> NDArray[DTypeOut] | np.number[Any]:
     match axis, arr:
         case _, types.DaskArray():
             assert isinstance(stat, types.DaskArray), type(stat)
-            stat = stat.compute()  # type: ignore[assignment]
-            return to_np_dense_checked(stat, axis, arr.compute())
+            stat = cast("NDArray[DTypeOut] | np.number[Any]", stat.compute())
+            return to_np_dense_checked(stat, axis, arr.compute())  # ty:ignore[possibly-missing-attribute]: https://github.com/astral-sh/ty/issues/561
         case None, _:
             assert isinstance(stat, np.floating | np.integer), type(stat)
+            return stat
         case 0 | 1, types.CupyArray() | types.CupyCSRMatrix() | types.CupyCSCMatrix() | types.CupyCOOMatrix():
             assert isinstance(stat, types.CupyArray), type(stat)
-            return to_np_dense_checked(stat.get(), axis, arr.get())
+            return to_np_dense_checked(stat.get(), axis, arr.get())  # ty:ignore[possibly-missing-attribute]: https://github.com/astral-sh/ty/issues/561
         case 0 | 1, _:
             assert isinstance(stat, np.ndarray), type(stat)
+            return cast("NDArray[DTypeOut] | np.number[Any]", stat)
         case _:
             pytest.fail(f"Unhandled case axis {axis} for {type(arr)}: {type(stat)}")
-    return stat
 
 
 @pytest.fixture(scope="session")
@@ -142,7 +146,7 @@ def pbmc64k_reduced_raw() -> sps.csr_array[np.float32]:
 @pytest.mark.parametrize("func", STAT_FUNCS)
 @pytest.mark.parametrize(("ndim", "axis"), [(1, 0), (2, 3), (2, -1)], ids=["1d-ax0", "2d-ax3", "2d-axneg"])
 def test_ndim_error(
-    request: pytest.FixtureRequest, array_type: ArrayType[Array], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None
+    request: pytest.FixtureRequest, array_type: ArrayType[ArrayNoSparseDS], func: StatFunNoDtype, ndim: Literal[1, 2], axis: Literal[0, 1] | None
 ) -> None:
     request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     check_ndim(array_type, ndim)
@@ -159,7 +163,7 @@ def test_ndim_error(
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
     request: pytest.FixtureRequest,
-    array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray],
+    array_type: ArrayType[ArrayNoSparseDS],
     dtype_in: type[DTypeIn],
     dtype_arg: type[DTypeOut] | None,
     axis: Literal[0, 1] | None,
@@ -173,7 +177,7 @@ def test_sum(
     assert arr.dtype == dtype_in
 
     sum_ = stats.sum(arr, axis=axis, dtype=dtype_arg)
-    sum_ = to_np_dense_checked(sum_, axis, arr)  # type: ignore[arg-type]
+    sum_ = to_np_dense_checked(sum_, axis, arr)
 
     assert sum_.shape == () if axis is None else arr.shape[axis], (sum_.shape, arr.shape)
 
@@ -203,7 +207,7 @@ def test_sum_to_int(array_type: ArrayType[CpuArray | DiskArray | types.DaskArray
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 @pytest.mark.parametrize("func", [stats.min, stats.max])
-def test_min_max(array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray], axis: Literal[0, 1] | None, func: StatFunNoDtype) -> None:
+def test_min_max(array_type: ArrayType[ArrayNoSparseDS], axis: Literal[0, 1] | None, func: StatFunNoDtype) -> None:
     rng = np.random.default_rng(0)
     np_arr = rng.random((100, 100))
     arr = array_type(np_arr)
@@ -237,11 +241,13 @@ def test_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1]
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
-def test_mean(request: pytest.FixtureRequest, array_type: ArrayType[Array], axis: Literal[0, 1] | None, np_arr: NDArray[DTypeIn], ndim: Literal[1, 2]) -> None:
+def test_mean(
+    request: pytest.FixtureRequest, array_type: ArrayType[ArrayNoSparseDS], axis: Literal[0, 1] | None, np_arr: NDArray[DTypeIn], ndim: Literal[1, 2]
+) -> None:
     request.applymarker(_xfail_if_old_scipy(array_type, ndim))
     arr = array_type(np_arr)
 
-    result = stats.mean(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
+    result = stats.mean(arr, axis=axis)
     if isinstance(result, types.DaskArray):
         result = result.compute()
     if isinstance(result, types.CupyArray | types.CupyCSMatrix):
@@ -264,14 +270,16 @@ def test_mean_var(
 
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
     if isinstance(mean, types.DaskArray) and isinstance(var, types.DaskArray):
-        mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
+        mean, var = mean.compute(), var.compute()
     if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
         mean, var = mean.get(), var.get()
+    assert isinstance(mean, np.ndarray | np.floating)
+    assert isinstance(var, np.ndarray | np.floating)
 
     mean_expected = np.mean(np_arr, axis=axis)
     var_expected = np.var(np_arr, axis=axis, ddof=1)
     np.testing.assert_array_equal(mean, mean_expected)
-    np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
+    np.testing.assert_array_almost_equal(var, var_expected)  # ty:ignore[invalid-argument-type]: can’t derive element type
 
 
 @pytest.mark.skipif(not find_spec("sklearn"), reason="sklearn not installed")
@@ -312,7 +320,9 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray], subtests: pyte
 
 
 @pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
-def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
+def test_mean_var_pbmc_dask(
+    array_type: ArrayType[types.DaskArray[CSBase | CupyCSMatrix], ArrayType[CSBase | CupyCSMatrix, None]], pbmc64k_reduced_raw: sps.csr_array[np.float32]
+) -> None:
     """Test float32 precision for bigger data.
 
     This test is flaky for sparse-in-dask for some reason.
@@ -373,7 +383,7 @@ def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: Ar
 
     result = stats.is_constant(x, axis=None)
     dask_viz(result)
-    assert result.compute() is False  # type: ignore[comparison-overlap]
+    assert result.compute() is False
 
 
 @pytest.mark.benchmark

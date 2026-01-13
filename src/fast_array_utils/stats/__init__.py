@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from ._generic_ops import Ops
     from ._typing import NoDtypeOps, StatFunDtype, StatFunNoDtype
 
-
 __all__ = ["is_constant", "max", "mean", "mean_var", "min", "sum"]
 
 
@@ -87,9 +86,9 @@ def mean(x: CpuArray | GpuArray | DiskArray, /, *, axis: None = None, dtype: DTy
 @overload
 def mean(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> NDArray[np.number[Any]]: ...
 @overload
-def mean(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> types.CupyArray: ...
+def mean(x: GpuArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None) -> types.CupyArray: ...
 @overload
-def mean(x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None) -> types.DaskArray: ...
+def mean(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: ToDType[Any] | None = None) -> types.DaskArray: ...
 
 
 def mean(
@@ -157,7 +156,7 @@ def mean_var(
     tuple[np.float64, np.float64]
     | tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[types.CupyArray, types.CupyArray]
-    | tuple[types.DaskArray, types.DaskArray]
+    | tuple[types.DaskArray[NDArray[np.float64]], types.DaskArray[NDArray[np.float64]]]
 ):
     """Mean and variance over both or one axis.
 
@@ -201,7 +200,7 @@ def mean_var(
     from ._mean_var import mean_var_
 
     validate_axis(x.ndim, axis)
-    return mean_var_(x, axis=axis, correction=correction)  # type: ignore[no-any-return]
+    return mean_var_(x, axis=axis, correction=correction)
 
 
 @overload

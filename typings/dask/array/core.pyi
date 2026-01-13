@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Any, Literal, Never, override
+from typing import Any, Literal, Never
 
 import cupy
 import cupyx.scipy.sparse
@@ -30,23 +30,22 @@ class BlockView:
     def __getitem__(self, index: object) -> Array: ...
     def ravel(self) -> list[Array]: ...
 
-class Array:
+class Array[C: _Array = _Array]:
     # array methods and attrs
     ndim: int
     shape: tuple[int, ...]
     dtype: np.dtype[Any]
-    @override
-    def __eq__(self, value: object, /) -> Array: ...  # type: ignore[override]
+    def __eq__(self, value: object, /) -> Array: ...  # ty:ignore[invalid-method-override]
     def __getitem__(self, index: object) -> Array: ...
     def all(self) -> Array: ...
 
     # dask methods and attrs
-    _meta: _Array
+    _meta: C
     blocks: BlockView
     chunks: tuple[tuple[int, ...], ...]
     chunksize: tuple[int, ...]
 
-    def compute(self) -> _Array: ...
+    def compute(self) -> C: ...
     def visualize(
         self,
         filename: str = "mydask",
@@ -60,10 +59,9 @@ class Array:
         verbose: bool = False,
         engine: str = "ipycytoscape",
     ) -> object: ...
-    def map_blocks(
+    def map_blocks[C2: _Array](
         self,
-        # TODO(flying-sheep): make this generic, _Array the default  # noqa: TD003
-        func: Callable[[object], object],
+        func: Callable[[C], C2],
         *args: Never,
         name: str | None = None,
         token: str | None = None,
@@ -72,24 +70,23 @@ class Array:
         drop_axis: Sequence[int] | int | None = None,
         new_axis: Sequence[int] | int | None = None,
         enforce_ndim: bool = False,
-        meta: _Array | None = None,
+        meta: C2 | None = None,
         **kwargs: object,
     ) -> Array: ...
 
-def from_array(
-    x: _Array,
+def from_array[C: _Array = _Array](
+    x: C,
     chunks: _Chunks | str | Literal["auto"] = "auto",  # noqa: PYI051
     name: str | None = None,
     lock: bool | SerializableLock = False,
     asarray: bool | None = None,
     fancy: bool = True,
     getitem: object = None,  # undocumented
-    meta: _Array | None = None,
+    meta: C | None = None,
     inline_array: bool = False,
 ) -> Array: ...
-def map_blocks(
-    # TODO(flying-sheep): make this generic, _Array the default  # noqa: TD003
-    func: Callable[[object], object],
+def map_blocks[C: _Array = _Array](
+    func: Callable[[object], C],
     *args: Array,
     name: str | None = None,
     token: str | None = None,
@@ -100,4 +97,4 @@ def map_blocks(
     enforce_ndim: bool = False,
     meta: object | None = None,
     **kwargs: object,
-) -> Array: ...
+) -> Array[C]: ...

@@ -88,7 +88,7 @@ def _generic_op_cs(
     if TYPE_CHECKING:  # scipy-stubs thinks e.g. "int64" is invalid, which isn’t true
         assert isinstance(dtype, np.dtype | type | None)
     # convert to array so dimensions collapse as expected
-    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **_dtype_kw(dtype, op))  # type: ignore[arg-type]
+    x = (sp.csr_array if x.format == "csr" else sp.csc_array)(x, **_dtype_kw(dtype, op))
     rv = cast("NDArray[Any] | types.coo_array | np.number[Any]", getattr(x, op)(axis=axis))
     # old scipy versions’ sparray.{max,min}() return a 1×n/n×1 sparray here, so we squeeze
     return rv.toarray().squeeze() if isinstance(rv, types.coo_array) else rv

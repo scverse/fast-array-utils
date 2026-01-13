@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "astral-sh.ty",
+        "biomejs.biome",
+        "tamasfe.even-better-toml",
+        "charliermarsh.ruff",
+    ],
+}
