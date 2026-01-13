@@ -34,7 +34,7 @@ class ndarray:
     def __getitem__(  # never returns scalars
         self, index: int | slice | EllipsisType | tuple[int | slice | EllipsisType | None, ...]
     ) -> Self: ...
-    def __eq__(self, value: object) -> ndarray: ...  # type: ignore[override]
+    def __eq__(self, value: object) -> ndarray: ...  # ty:ignore[invalid-method-override]
     def __power__(self, other: int) -> Self: ...
 
     # methods

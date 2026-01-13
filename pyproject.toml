@@ -56,14 +56,9 @@ doc = [
   "sphinx>=9.0.1",
   "sphinx-autofixture>=0.4.1",
 ]
-# for update-mypy-hook
-mypy = [
-  "fast-array-utils[full]",
+typing = [
   "scipy-stubs",
-  # TODO: replace sphinx with this: { include-group = "doc" },
-  "sphinx",
   "types-docutils",
-  { include-group = "test" },
 ]
 
 [tool.hatch.version]
@@ -84,15 +79,21 @@ packages = [ "src/testing", "src/fast_array_utils" ]
 [tool.hatch.envs.default]
 installer = "uv"
 
+[tool.hatch.envs.typecheck]
+dependencies = [ "ty" ]
+features = [ "full" ]
+dependency-groups = [ "test", "doc", "typing" ]
+scripts.run = "ty check"
+
 [tool.hatch.envs.docs]
-dependency-groups = [ "doc" ]
+dependency-groups = [ "doc", "typing" ]
 scripts.build = "sphinx-build -M html docs docs/_build"
 scripts.clean = "git clean -fdX docs"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 
 [tool.hatch.envs.hatch-test]
 default-args = [  ]
-dependency-groups = [ "test-min" ]
+dependency-groups = [ "test-min", "typing" ]
 # TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
 extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
 env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
@@ -161,6 +162,9 @@ lint.isort.lines-after-imports = 2
 lint.pydocstyle.convention = "numpy"
 lint.future-annotations = true
 
+# Override the project-wide Python version for a developer scripts directory:
+per-file-target-version."**/*.pyi" = "py313"
+
 [tool.pytest]
 strict = true
 addopts = [
@@ -194,13 +198,9 @@ html.directory = "test-data/htmlcov"
 run.omit = [ "src/testing/*", "tests/*" ]
 report.exclude_also = [ "if TYPE_CHECKING:", "@numba[.]njit", "[.]{3}" ]
 
-[tool.mypy]
-strict = true
-# https://github.com/dask/dask/issues/8853
-implicit_reexport = true
-explicit_package_bases = true
-mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
-
 [tool.pyright]
 stubPath = "./typings"
 reportPrivateUsage = false
+
+[tool.ty.environment]
+extra-paths = [ "typings" ]

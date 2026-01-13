@@ -145,7 +145,7 @@ class CC(ConversionContext):
         self._request = request
 
     @property  # This is intentionally not cached and creates a new file on each access
-    def hdf5_file(self) -> h5py.File:  # type: ignore[override]
+    def hdf5_file(self) -> h5py.File:
         import h5py
 
         try:  # If we’re being called in a test or function-scoped fixture, use the test `tmp_path`

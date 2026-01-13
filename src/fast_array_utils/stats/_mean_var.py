@@ -29,7 +29,7 @@ def mean_var_(
     tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[types.CupyArray, types.CupyArray]
     | tuple[np.float64, np.float64]
-    | tuple[types.DaskArray, types.DaskArray]
+    | tuple[types.DaskArray[NDArray[np.float64]], types.DaskArray[NDArray[np.float64]]]
 ):
     from . import mean
 
