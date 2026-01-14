@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
-    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray  # noqa: UP040 https://github.com/astral-sh/ty/issues/2104
+    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray  # noqa: UP040 https://github.com/astral-sh/ty/issues/2488
     type ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
 
 
