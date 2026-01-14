@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Any, Literal, Never
+from typing import Any, Concatenate, Literal
 
 import cupy
 import cupyx.scipy.sparse
@@ -59,10 +59,10 @@ class Array[C: _Array = _Array]:
         verbose: bool = False,
         engine: str = "ipycytoscape",
     ) -> object: ...
-    def map_blocks[C2: _Array](
+    def map_blocks[C2: _Array, **P](
         self,
-        func: Callable[[C], C2],
-        *args: Never,
+        func: Callable[Concatenate[C, P], C2],
+        *args: P.args,
         name: str | None = None,
         token: str | None = None,
         dtype: DTypeLike | None = None,
@@ -71,7 +71,7 @@ class Array[C: _Array = _Array]:
         new_axis: Sequence[int] | int | None = None,
         enforce_ndim: bool = False,
         meta: C2 | None = None,
-        **kwargs: object,
+        **kwargs: P.kwargs,
     ) -> Array: ...
 
 def from_array[C: _Array = _Array](

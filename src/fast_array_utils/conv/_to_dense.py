@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import warnings
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -58,7 +58,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, order: Literal["K", "A", "C", "F"] =
         msg = "to_cpu_memory must be True if x is an CS{R,C}Dataset"
         raise ValueError(msg)
     # TODO(flying-sheep): why is to_memory of type Any?  # noqa: TD003
-    return to_dense(cast("types.CSBase", x.to_memory()), order=sparse_order(x, order=order))
+    return to_dense(x.to_memory(), order=sparse_order(x, order=order))
 
 
 @to_dense_.register(types.CupyArray | types.CupySpMatrix)
@@ -77,4 +77,4 @@ def sparse_order(x: types.spmatrix | types.sparray | types.CupySpMatrix | types.
 
     if order in {"K", "A"}:
         order = "F" if x.format == "csc" else "C"
-    return cast("Literal['C', 'F']", order)
+    return order

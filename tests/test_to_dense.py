@@ -14,12 +14,12 @@ from fast_array_utils.conv import to_dense
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal
+    from typing import Literal, TypeAlias
 
     from fast_array_utils.typing import CpuArray, DiskArray, GpuArray
     from testing.fast_array_utils import ArrayType
 
-    type Array = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray
+    Array: TypeAlias = CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray  # noqa: UP040 https://github.com/astral-sh/ty/issues/2104
     type ExtendedArray = Array | types.COOBase | types.CupyCOOMatrix
 
 
