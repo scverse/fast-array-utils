@@ -12,8 +12,9 @@ from numpy.typing import DTypeLike, NDArray
 from ..utils import SerializableLock
 
 type _Chunks = tuple[int, ...] | tuple[tuple[int, ...], ...]
-type _Array = (
+type _Chunk = (
     NDArray[Any]
+    | np.number[Any]
     | scipy.sparse.csr_array
     | scipy.sparse.csc_array
     | scipy.sparse.csr_matrix
@@ -30,7 +31,7 @@ class BlockView:
     def __getitem__(self, index: object) -> Array: ...
     def ravel(self) -> list[Array]: ...
 
-class Array[C: _Array = _Array]:
+class Array[C: _Chunk = _Chunk]:
     # array methods and attrs
     ndim: int
     shape: tuple[int, ...]
@@ -59,7 +60,7 @@ class Array[C: _Array = _Array]:
         verbose: bool = False,
         engine: str = "ipycytoscape",
     ) -> object: ...
-    def map_blocks[C2: _Array, **P](
+    def map_blocks[C2: _Chunk, **P](
         self,
         func: Callable[Concatenate[C, P], C2],
         *args: P.args,
@@ -74,7 +75,7 @@ class Array[C: _Array = _Array]:
         **kwargs: P.kwargs,
     ) -> Array: ...
 
-def from_array[C: _Array = _Array](
+def from_array[C: _Chunk = _Chunk](
     x: C,
     chunks: _Chunks | str | Literal["auto"] = "auto",  # noqa: PYI051
     name: str | None = None,
@@ -85,7 +86,7 @@ def from_array[C: _Array = _Array](
     meta: C | None = None,
     inline_array: bool = False,
 ) -> Array: ...
-def map_blocks[C: _Array = _Array](
+def map_blocks[C: _Chunk = _Chunk](
     func: Callable[[object], C],
     *args: Array,
     name: str | None = None,

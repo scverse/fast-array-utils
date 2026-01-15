@@ -51,8 +51,8 @@ def test_conv_other(array_type: ArrayType, other_array_type: ArrayType) -> None:
 
 @pytest.mark.array_type(skip=Flags.Dask | Flags.Disk | Flags.Gpu)
 def test_conv_extra(
-    array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase],
-    coo_matrix_type: ArrayType[types.COOBase | types.CupyCOOMatrix],
+    array_type: ArrayType[NDArray[np.number[Any]] | types.CSBase, None],
+    coo_matrix_type: ArrayType[types.COOBase | types.CupyCOOMatrix, None],
 ) -> None:
     src_arr = array_type(np.arange(12).reshape(3, 4), dtype=np.float32)
     arr = coo_matrix_type(src_arr)

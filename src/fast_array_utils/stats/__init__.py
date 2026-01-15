@@ -143,7 +143,17 @@ def mean_var(x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tup
 @overload
 def mean_var(x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
-def mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, correction: int = 0) -> tuple[types.DaskArray, types.DaskArray]: ...
+def mean_var(
+    x: types.DaskArray[CpuArray | GpuArray], /, *, axis: None = None, correction: int = 0
+) -> tuple[types.DaskArray[np.float64], types.DaskArray[np.float64]]: ...
+@overload
+def mean_var(
+    x: types.DaskArray[CpuArray], /, *, axis: Literal[0, 1], correction: int = 0
+) -> tuple[types.DaskArray[NDArray[np.float64]], types.DaskArray[NDArray[np.float64]]]: ...
+@overload
+def mean_var(
+    x: types.DaskArray[GpuArray], /, *, axis: Literal[0, 1], correction: int = 0
+) -> tuple[types.DaskArray[types.CupyArray], types.DaskArray[types.CupyArray]]: ...
 
 
 def mean_var(
@@ -156,6 +166,7 @@ def mean_var(
     tuple[np.float64, np.float64]
     | tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[types.CupyArray, types.CupyArray]
+    | tuple[types.DaskArray[np.float64], types.DaskArray[np.float64]]
     | tuple[types.DaskArray[NDArray[np.float64]], types.DaskArray[NDArray[np.float64]]]
 ):
     """Mean and variance over both or one axis.

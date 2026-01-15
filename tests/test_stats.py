@@ -44,7 +44,7 @@ ATS_SPARSE_DS = {at for at in SUPPORTED_TYPES if at.mod == "anndata.abc"}
 ATS_CUPY_SPARSE = {at for at in SUPPORTED_TYPES if "cupyx.scipy" in str(at)}
 
 
-def _xfail_if_old_scipy(array_type: ArrayType[Any], ndim: Literal[1, 2]) -> pytest.MarkDecorator:
+def _xfail_if_old_scipy(array_type: ArrayType[Any, Any], ndim: Literal[1, 2]) -> pytest.MarkDecorator:
     cond = ndim == 1 and bool(array_type.flags & Flags.Sparse) and Version(version("scipy")) < Version("1.14")
     return pytest.mark.xfail(cond, reason="Sparse matrices don’t support 1d arrays")
 
@@ -67,7 +67,7 @@ def ndim(ndim_and_axis: NdAndAx, array_type: ArrayType) -> Literal[1, 2]:
     return check_ndim(array_type, ndim_and_axis[0])
 
 
-def check_ndim(array_type: ArrayType[Any], ndim: Literal[1, 2]) -> Literal[1, 2]:
+def check_ndim(array_type: ArrayType[Any, Any], ndim: Literal[1, 2]) -> Literal[1, 2]:
     inner_cls = array_type.inner.cls if array_type.inner else array_type.cls
     if ndim != 2 and issubclass(inner_cls, types.CSMatrix | types.CupyCSMatrix):
         pytest.skip("CSMatrix only supports 2D")
@@ -321,7 +321,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray], subtests: pyte
 
 @pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
 def test_mean_var_pbmc_dask(
-    array_type: ArrayType[types.DaskArray[CSBase | CupyCSMatrix], ArrayType[CSBase | CupyCSMatrix, None]], pbmc64k_reduced_raw: sps.csr_array[np.float32]
+    array_type: ArrayType[types.DaskArray[CSBase | CupyCSMatrix], CSBase | CupyCSMatrix], pbmc64k_reduced_raw: sps.csr_array[np.float32]
 ) -> None:
     """Test float32 precision for bigger data.
 
@@ -374,7 +374,7 @@ def test_is_constant(
 
 
 @pytest.mark.array_type(Flags.Dask, skip=ATS_CUPY_SPARSE)
-def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray, Any]) -> None:
+def test_dask_constant_blocks(dask_viz: Callable[[object], None], array_type: ArrayType[types.DaskArray]) -> None:
     """Tests if is_constant works if each chunk is individually constant."""
     x_np = np.repeat(np.repeat(np.arange(4, dtype=np.float64).reshape(2, 2), 2, axis=0), 2, axis=1)
     x = array_type(x_np)

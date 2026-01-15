@@ -78,7 +78,7 @@ if TYPE_CHECKING:
     import typing_extensions as te
 
     Arr = te.TypeVar("Arr", bound="ExtendedArray", default="Array")
-    Inner = te.TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
+    Inner = te.TypeVar("Inner", bound="InnerArray | None", default="InnerArray")
 else:
     Arr = TypeVar("Arr")
     Inner = TypeVar("Inner")
@@ -107,7 +107,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
     _: KW_ONLY
 
-    inner: Inner = None
+    inner: ArrayType[Inner, None] = None  # ty:ignore[invalid-assignment,invalid-type-arguments]: can’t do `if Inner extends None`
     """Inner array type (e.g. for dask)."""
     conversion_context: ConversionContext | None = field(default=None, compare=False)
     """Conversion context required for converting to h5py."""

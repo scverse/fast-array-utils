@@ -5,16 +5,16 @@ from typing import Any, Protocol, overload
 
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
-from .core import Array, _Array
+from .core import Array, _Chunk
 
 class _Chunk(Protocol):
     @overload
-    def __call__(self, x_chunk: _Array, /, *, weights_chunk: NDArray[Any] | None = None, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
+    def __call__(self, x_chunk: _Chunk, /, *, weights_chunk: NDArray[Any] | None = None, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Chunk: ...
     @overload
-    def __call__(self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
+    def __call__(self, x_chunk: _Chunk, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Chunk: ...
 
 class _CB(Protocol):
-    def __call__(self, x_chunk: _Array, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Array: ...
+    def __call__(self, x_chunk: _Chunk, /, *, axis: tuple[int, ...], keepdims: bool, **kwargs: object) -> _Chunk: ...
 
 def reduction(
     x: Array,
@@ -30,6 +30,6 @@ def reduction(
     out: Array | None = None,
     concatenate: bool = True,
     output_size: int = 1,
-    meta: _Array | None = None,
+    meta: _Chunk | None = None,
     weights: ArrayLike | None = None,
 ) -> Array: ...

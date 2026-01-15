@@ -52,7 +52,7 @@ def test_to_dense(array_type: ArrayType[Array], *, order: Literal["K", "C", "F"]
 
 @pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
 @pytest.mark.parametrize("order", argvalues=["K", "C", "F"])  # “A” behaves like “K”
-def test_to_dense_extra(coo_matrix_type: ArrayType[types.COOBase | types.CupyCOOMatrix], *, order: Literal["K", "C", "F"], to_cpu_memory: bool) -> None:
+def test_to_dense_extra(coo_matrix_type: ArrayType[types.COOBase | types.CupyCOOMatrix, None], *, order: Literal["K", "C", "F"], to_cpu_memory: bool) -> None:
     src_mtx = coo_matrix_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
 
     with WARNS_NUMBA if not find_spec("numba") else nullcontext():

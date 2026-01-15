@@ -43,5 +43,5 @@ COO_PARAMS = [
 
 
 @pytest.fixture(scope="session", params=COO_PARAMS)
-def coo_matrix_type(request: pytest.FixtureRequest) -> ArrayType[types.COOBase | types.CupyCOOMatrix]:
-    return cast("ArrayType[types.COOBase | types.CupyCOOMatrix]", request.param)
+def coo_matrix_type(request: pytest.FixtureRequest) -> ArrayType[types.COOBase | types.CupyCOOMatrix, None]:
+    return request.param
