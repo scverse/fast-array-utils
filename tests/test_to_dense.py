@@ -63,7 +63,7 @@ def test_to_dense_extra(coo_matrix_type: ArrayType[types.COOBase | types.CupyCOO
     assert_expected_order(src_mtx, arr, order=order)
 
 
-def assert_expected_cls(orig: ExtendedArray, converted: Array, *, to_cpu_memory: bool) -> None:
+def assert_expected_cls(orig: ExtendedArray | np.number, converted: Array | np.number, *, to_cpu_memory: bool) -> None:
     match to_cpu_memory, orig:
         case False, types.DaskArray():
             assert isinstance(converted, types.DaskArray)
@@ -74,9 +74,9 @@ def assert_expected_cls(orig: ExtendedArray, converted: Array, *, to_cpu_memory:
             assert isinstance(converted, np.ndarray)
 
 
-def assert_expected_order(orig: ExtendedArray, converted: Array, *, order: Literal["K", "C", "F"]) -> None:
+def assert_expected_order(orig: ExtendedArray | np.number, converted: Array | np.number, *, order: Literal["K", "C", "F"]) -> None:
     match converted:
-        case types.CupyArray() | np.ndarray():
+        case types.CupyArray() | np.ndarray() | np.number():
             orders = {order_exp: converted.flags[order_exp] for order_exp in (get_orders(orig) if order == "K" else (order,))}
             assert any(orders.values()), orders
         case types.DaskArray():
@@ -85,14 +85,14 @@ def assert_expected_order(orig: ExtendedArray, converted: Array, *, order: Liter
             pytest.fail(f"Unsupported array type: {type(converted)}")
 
 
-def get_orders(orig: ExtendedArray) -> Iterable[Literal["C", "F"]]:
+def get_orders(orig: ExtendedArray | np.number) -> Iterable[Literal["C", "F"]]:
     """Get the orders of an array.
 
     Numpy arrays with at most one axis of a length >1 are valid in both orders.
     So are COO sparse matrices/arrays.
     """
     match orig:
-        case np.ndarray() | types.CupyArray():
+        case np.ndarray() | types.CupyArray() | np.number():
             if orig.flags.c_contiguous:
                 yield "C"
             if orig.flags.f_contiguous:

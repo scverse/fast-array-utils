@@ -260,7 +260,7 @@ def test_mean(
 @pytest.mark.array_type(skip=Flags.Disk)
 def test_mean_var(
     request: pytest.FixtureRequest,
-    array_type: ArrayType[CpuArray | GpuArray | types.DaskArray],
+    array_type: ArrayType[CpuArray | GpuArray, None] | ArrayType[types.DaskArray[CpuArray | GpuArray], CpuArray | GpuArray],
     axis: Literal[0, 1] | None,
     np_arr: NDArray[DTypeIn],
     ndim: Literal[1, 2],
@@ -331,6 +331,7 @@ def test_mean_var_pbmc_dask(
     arr = array_type(mat)
 
     mean_mat, var_mat = stats.mean_var(mat, axis=0, correction=1)
+    # partial reproducer in case it’s not fixed in the next release: https://play.ty.dev/9eb8530f-fadc-4019-863f-ebf3096c0f3c
     mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
 
     rtol = 1.0e-5 if array_type.flags & Flags.Gpu else 1.0e-7

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # pyright: reportIncompatibleMethodOverride=false
 from collections.abc import Callable, Sequence
-from typing import Any, Concatenate, Literal
+from typing import Any, Concatenate, Generic, Literal, TypeVar
 
 import cupy
 import cupyx.scipy.sparse
@@ -24,14 +24,17 @@ type _Chunk = (
     | cupyx.scipy.sparse.csc_matrix
 )
 
-class BlockView:
+# https://github.com/astral-sh/ty/issues/2104
+C = TypeVar("C", bound=_Chunk, default=_Chunk)  # noqa: PYI001
+
+class BlockView(Generic[C]):
     size: int
     shape: tuple[int, ...]
 
-    def __getitem__(self, index: object) -> Array: ...
-    def ravel(self) -> list[Array]: ...
+    def __getitem__(self, index: object) -> Array[C]: ...
+    def ravel(self) -> list[Array[C]]: ...
 
-class Array[C: _Chunk = _Chunk]:
+class Array(Generic[C]):
     # array methods and attrs
     ndim: int
     shape: tuple[int, ...]
@@ -42,7 +45,7 @@ class Array[C: _Chunk = _Chunk]:
 
     # dask methods and attrs
     _meta: C
-    blocks: BlockView
+    blocks: BlockView[C]
     chunks: tuple[tuple[int, ...], ...]
     chunksize: tuple[int, ...]
 
@@ -73,9 +76,9 @@ class Array[C: _Chunk = _Chunk]:
         enforce_ndim: bool = False,
         meta: C2 | None = None,
         **kwargs: P.kwargs,
-    ) -> Array: ...
+    ) -> Array[C2]: ...
 
-def from_array[C: _Chunk = _Chunk](
+def from_array[C: _Chunk](
     x: C,
     chunks: _Chunks | str | Literal["auto"] = "auto",  # noqa: PYI051
     name: str | None = None,
@@ -85,8 +88,8 @@ def from_array[C: _Chunk = _Chunk](
     getitem: object = None,  # undocumented
     meta: C | None = None,
     inline_array: bool = False,
-) -> Array: ...
-def map_blocks[C: _Chunk = _Chunk](
+) -> Array[C]: ...
+def map_blocks[C: _Chunk](
     func: Callable[[object], C],
     *args: Array,
     name: str | None = None,
