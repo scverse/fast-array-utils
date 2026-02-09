@@ -94,6 +94,7 @@ envs.hatch-test.matrix = [
   { python = [ "3.13", "3.12" ], extras = [ "full", "min" ] },
   { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
 ]
+metadata.hooks.docstring-description = {}
 metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
 metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
 version.source = "vcs"
