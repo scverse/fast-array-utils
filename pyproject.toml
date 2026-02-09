@@ -29,9 +29,9 @@ optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.testing = [ "packaging" ]
-urls.'Documentation' = "https://icb-fast-array-utils.readthedocs-hosted.com/"
-urls.'Issue Tracker' = "https://github.com/scverse/fast-array-utils/issues"
-urls.'Source Code' = "https://github.com/scverse/fast-array-utils"
+urls."Documentation" = "https://icb-fast-array-utils.readthedocs-hosted.com/"
+urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
+urls."Source Code" = "https://github.com/scverse/fast-array-utils"
 entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 
 [dependency-groups]
@@ -41,14 +41,6 @@ test = [
   "scikit-learn",
   "zarr",
   { include-group = "test-min" },
-]
-test-min = [
-  "coverage[toml]",
-  "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
-  "pytest",
-  "pytest-codspeed",
-  "pytest-doctestplus",
-  "pytest-xdist",
 ]
 doc = [
   "furo>=2024.8.6",
@@ -65,58 +57,47 @@ mypy = [
   "types-docutils",
   { include-group = "test" },
 ]
+test-min = [
+  "coverage[toml]",
+  "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
+  "pytest",
+  "pytest-codspeed",
+  "pytest-doctestplus",
+  "pytest-xdist",
+]
 
-[tool.hatch.build.targets.wheel]
-packages = [ "src/testing", "src/fast_array_utils" ]
-
-[tool.hatch.envs.default]
-installer = "uv"
-
-[tool.hatch.envs.docs]
-dependency-groups = [ "doc" ]
-scripts.build = "sphinx-build -M html docs docs/_build"
-scripts.clean = "git clean -fdX docs"
-scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
-
-[tool.hatch.envs.hatch-test]
-default-args = [  ]
-dependency-groups = [ "test-min" ]
+[tool.hatch]
+build.targets.wheel.packages = [ "src/testing", "src/fast_array_utils" ]
+envs.default.installer = "uv"
+envs.docs.dependency-groups = [ "doc" ]
+envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
+envs.docs.scripts.clean = "git clean -fdX docs"
+envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
+envs.hatch-test.default-args = []
+envs.hatch-test.dependency-groups = [ "test-min" ]
 # TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
-extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
-env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
-overrides.matrix.extras.features = [
+envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
+envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
+envs.hatch-test.overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
 ]
-overrides.matrix.extras.dependency-groups = [
+envs.hatch-test.overrides.matrix.extras.dependency-groups = [
   { if = [ "full" ], value = "test" },
 ]
-overrides.matrix.resolution.dependencies = [
+envs.hatch-test.overrides.matrix.resolution.dependencies = [
   # TODO: move to `min-reqs` feature once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/11
   { if = [ "lowest" ], value = "numpy==2" },
   { if = [ "lowest" ], value = "dask==2023.6.1" },
   { if = [ "lowest" ], value = "scipy==1.13.0" },
 ]
-
-[[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.13", "3.12" ]
-extras = [ "full", "min" ]
-
-[[tool.hatch.envs.hatch-test.matrix]]
-python = [ "3.12" ]
-extras = [ "full" ]
-resolution = [ "lowest" ]
-
-[tool.hatch.metadata.hooks.docstring-description]
-
-[tool.hatch.metadata.hooks.fancy-pypi-readme]
-content-type = "text/x-rst"
-[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
-path = "README.rst"
-start-after = ".. begin"
-
-[tool.hatch.version]
-source = "vcs"
-raw-options = { local_scheme = "no-local-version" } # be able to publish dev version
+envs.hatch-test.matrix = [
+  { python = [ "3.13", "3.12" ], extras = [ "full", "min" ] },
+  { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
+]
+metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
+metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
+version.source = "vcs"
+version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
 
 [tool.uv]
 override-dependencies = [ "sphinx>=9.0.1" ]
@@ -141,8 +122,8 @@ lint.ignore = [
   "S101",    # asserts are fine
   "TID252",  # relative imports are fine
 ]
-lint.per-file-ignores."docs/**/*.py" = [ "INP001" ] # No __init__.py in docs
-lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ] # Shadows builtins like `sum`
+lint.per-file-ignores."docs/**/*.py" = [ "INP001" ]
+lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ]
 lint.per-file-ignores."tests/**/*.py" = [
   "D100",    # tests need no module docstrings
   "D103",    # tests need no function docstrings
@@ -150,11 +131,11 @@ lint.per-file-ignores."tests/**/*.py" = [
   "PLR2004", # tests use magic values
   "S101",    # tests use `assert`
 ]
-lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ] # Stubs don’t follow name conventions
+lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ]
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
-lint.flake8-type-checking.exempt-modules = [  ]
+lint.flake8-type-checking.exempt-modules = []
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
@@ -189,10 +170,10 @@ markers = [
 
 [tool.coverage]
 run.data_file = "test-data/.coverage"
-xml.output = "test-data/coverage.xml"
-html.directory = "test-data/htmlcov"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "if TYPE_CHECKING:", "@numba[.]njit", "[.]{3}" ]
+report.exclude_also = [ "@numba[.]njit", "[.]{3}", "if TYPE_CHECKING:" ]
+html.directory = "test-data/htmlcov"
+xml.output = "test-data/coverage.xml"
 
 [tool.mypy]
 strict = true
