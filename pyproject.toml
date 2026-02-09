@@ -123,7 +123,9 @@ lint.ignore = [
   "S101",    # asserts are fine
   "TID252",  # relative imports are fine
 ]
+# No __init__.py in docs
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ]
+# Shadows builtins like `sum`
 lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ]
 lint.per-file-ignores."tests/**/*.py" = [
   "D100",    # tests need no module docstrings
@@ -132,6 +134,7 @@ lint.per-file-ignores."tests/**/*.py" = [
   "PLR2004", # tests use magic values
   "S101",    # tests use `assert`
 ]
+# Stubs don’t follow name conventions
 lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ]
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
