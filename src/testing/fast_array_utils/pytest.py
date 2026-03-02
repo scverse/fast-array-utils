@@ -89,6 +89,23 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
 SUPPORTED_TYPE_PARAMS = [pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES]
 
 
+@pytest.fixture(autouse=True)
+def dask_single_threaded() -> Generator[None]:
+    """Switch to a single-threaded scheduler for tests since numba crashes otherwise."""
+    if not find_spec("dask"):
+        yield
+        return
+
+    import dask.config
+
+    prev_scheduler = dask.config.get("scheduler", "threads")
+    dask.config.set(scheduler="single-threaded")
+    try:
+        yield
+    finally:
+        dask.config.set(scheduler=prev_scheduler)
+
+
 @pytest.fixture(scope="session", params=SUPPORTED_TYPE_PARAMS)
 def array_type(request: pytest.FixtureRequest) -> ArrayType:
     """Fixture for a supported :class:`~testing.fast_array_utils.ArrayType`.

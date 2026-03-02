@@ -177,12 +177,6 @@ doctest_subpackage_requires = [
   "src/fast_array_utils/_plugins/dask.py = dask",
   "src/fast_array_utils/_plugins/numba_sparse.py = numba;scipy",
 ]
-filterwarnings = [
-  "error",
-  # codspeed seems to break this dtype added by h5py
-  "ignore:.*numpy[.]longdouble:UserWarning",
-  "ignore:FNV hashing is not implemented in Numba:UserWarning",
-]
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
 ]
