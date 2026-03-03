@@ -46,4 +46,3 @@ ci:
   autoupdate_commit_msg: 'ci: pre-commit autoupdate'
   skip:
   - mypy  # too big
-  - update-mypy-hook  # offline?

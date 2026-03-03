@@ -48,15 +48,6 @@ doc = [
   "sphinx>=9.0.1",
   "sphinx-autofixture>=0.4.1",
 ]
-# for update-mypy-hook
-mypy = [
-  "fast-array-utils[full]",
-  "scipy-stubs",
-  # TODO: replace sphinx with this: { include-group = "doc" },
-  "sphinx",
-  "types-docutils",
-  { include-group = "test" },
-]
 test-min = [
   "coverage[toml]",
   "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
