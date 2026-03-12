@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, no_type_check
 import numba
 import numpy as np
 
+from fast_array_utils.utils import njit
+
 from .. import types
 from ._power import power
 
@@ -79,7 +81,7 @@ def _sparse_mean_var(mtx: types.CSBase, /, *, axis: Literal[0, 1]) -> tuple[NDAr
     )
 
 
-@numba.njit(cache=True)
+@njit
 def sparse_mean_var_minor_axis(
     x: types.CSBase,
     *,
@@ -109,7 +111,7 @@ def sparse_mean_var_minor_axis(
     return means, variances
 
 
-@numba.njit(cache=True)
+@njit
 def sparse_mean_var_major_axis(
     x: types.CSBase,
     *,
