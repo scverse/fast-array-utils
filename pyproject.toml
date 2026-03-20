@@ -29,9 +29,9 @@ optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.testing = [ "packaging" ]
-urls."Documentation" = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
 urls."Source Code" = "https://github.com/scverse/fast-array-utils"
+urls.Documentation = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 
 [dependency-groups]
