@@ -42,13 +42,20 @@ def generic_op(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
+) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:  # switch to Any later
     del keep_cupy_as_array
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
         assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
         # np supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(x, types.ZarrArray | types.H5Dataset)
+
+    # doing array_api_compat first
+    import array_api_compat
+
+    if array_api_compat.is_array_api_obj(x):
+        xp = array_api_compat.array_namespace(x)
+        return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
     return cast("NDArray[Any] | np.number[Any]", _run_numpy_op(x, op, axis=axis, dtype=dtype))
 
 
