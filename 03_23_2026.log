@@ -3321,7 +3321,7 @@ array_type = numpy.ndarray
             with pytest.raises(ValueError, match=r"to_cpu_memory must be True if x is an CS\{R,C\}Dataset"):
                 to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
             return
-    
+
         with (
             pytest.warns(RuntimeWarning, match="Dask can not be made to emit F-contiguous arrays")
             if (order == "F" and array_type.cls is types.DaskArray)
@@ -3329,15 +3329,15 @@ array_type = numpy.ndarray
             WARNS_NUMBA if issubclass(array_type.cls, types.CSBase) and not find_spec("numba") else nullcontext(),
         ):
             arr = to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
-    
+
         assert_expected_cls(x, arr, to_cpu_memory=to_cpu_memory)
         assert arr.shape == (2, 3)
         # Dask is unreliable: for explicit “F”, we emit a warning (tested above), for “K” we just ignore the result
         if not (array_type.cls is types.DaskArray and order in {"F", "K"}):
 >           assert_expected_order(x, arr, order=order)
 
-tests/test_to_dense.py:50: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_to_dense.py:50:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 orig = array([[1., 2., 3.],
        [4., 5., 6.]], dtype=float32)
