@@ -27,6 +27,13 @@ def to_dense_(
     order: Literal["K", "A", "C", "F"] = "K",
     to_cpu_memory: bool = False,
 ) -> NDArray[Any] | types.CupyArray | types.DaskArray:
+    import array_api_compat
+
+    if not isinstance(x, np.ndarray) and array_api_compat.is_array_api_obj(x):
+        if to_cpu_memory:
+            return np.asarray(x, order=order)
+        return x  # already dense
+
     del to_cpu_memory  # it already is
     return np.asarray(x, order=order)
 

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
+# checking if all values in an array are the same
+
 
 @singledispatch
 def is_constant_(
@@ -22,7 +24,20 @@ def is_constant_(
     /,
     *,
     axis: Literal[0, 1] | None = None,
-) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:  # pragma: no cover
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:  # switch to Any later
+
+    import array_api_compat
+
+    if array_api_compat.is_array_api_obj(a):
+        xp = array_api_compat.array_namespace(a)
+        match axis:
+            case None:
+                return bool((a == xp.reshape(a, (-1,))[0]).all())
+            case 0:
+                return is_constant_(a.T, axis=1)  # reusing axis = 1
+            case 1:
+                b = xp.broadcast_to(a[:, 0:1], a.shape)
+                return (a == b).all(axis=1)
     raise NotImplementedError
 
 
