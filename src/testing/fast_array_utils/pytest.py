@@ -96,9 +96,11 @@ def dask_single_threaded() -> Generator[None]:
     if not find_spec("dask"):
         yield
         return
-    try:  # if a safe threading layer is available, we use that
+    try:
         _numba_threading_layer("threadsafe")
     except ValueError:
+        pass
+    else:  # if a safe threading layer is available, we use that
         yield
         return
 
