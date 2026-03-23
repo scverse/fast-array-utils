@@ -175,3 +175,6 @@ mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
 [tool.pyright]
 stubPath = "./typings"
 reportPrivateUsage = false
+
+[tool.ty]
+environment.extra-paths = [ "./typings" ]

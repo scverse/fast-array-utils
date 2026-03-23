@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+"""Numba utilities."""
+
 from __future__ import annotations
 
 import sys
@@ -22,7 +25,7 @@ LAYERS: dict[LayerType, set[Layer]] = {
 
 
 @cache
-def _numba_threading_layer() -> Layer:
+def _numba_threading_layer(layer_name: Layer | LayerType | None = None) -> Layer:
     """Get numba’s threading layer.
 
     This function implements the algorithm as described in
@@ -32,12 +35,14 @@ def _numba_threading_layer() -> Layer:
 
     import numba
 
-    if (available := LAYERS.get(numba.config.THREADING_LAYER)) is None:
-        # given by direct name
-        return numba.config.THREADING_LAYER
+    if layer_name is None:
+        layer_name = numba.config.THREADING_LAYER
+
+    if (available := LAYERS.get(layer_name)) is None:  # type: ignore[arg-type]
+        return cast("Layer", layer_name)  # given by direct name
 
     # given by layer type (safe, …)
-    for layer in cast("list[Layer]", numba.config.THREADING_LAYER_PRIORITY):
+    for layer in numba.config.THREADING_LAYER_PRIORITY:
         if layer not in available:
             continue
         if layer != "workqueue":

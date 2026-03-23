@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, no_type_check
 import numba
 import numpy as np
 
-from fast_array_utils.utils import njit
+from fast_array_utils._numba import njit
 
 from .. import types
 from ._power import power

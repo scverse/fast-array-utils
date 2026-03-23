@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 from fast_array_utils import types
+from fast_array_utils._numba import _numba_threading_layer
 from testing.fast_array_utils import SUPPORTED_TYPES, ArrayType, ConversionContext, Flags
 
 
@@ -87,6 +88,28 @@ def _skip_if_unimportable(array_type: ArrayType) -> pytest.MarkDecorator:
 
 
 SUPPORTED_TYPE_PARAMS = [pytest.param(t, id=str(t), marks=_skip_if_unimportable(t)) for t in SUPPORTED_TYPES]
+
+
+@pytest.fixture(autouse=True)
+def dask_single_threaded() -> Generator[None]:
+    """Switch to a single-threaded scheduler for tests on macOS since numba crashes otherwise."""
+    if not find_spec("dask"):
+        yield
+        return
+    try:  # if a safe threading layer is available, we use that
+        _numba_threading_layer("threadsafe")
+    except ValueError:
+        yield
+        return
+
+    import dask.config
+
+    prev_scheduler = dask.config.get("scheduler", "threads")
+    dask.config.set(scheduler="single-threaded")
+    try:
+        yield
+    finally:
+        dask.config.set(scheduler=prev_scheduler)
 
 
 @pytest.fixture(scope="session", params=SUPPORTED_TYPE_PARAMS)
