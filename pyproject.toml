@@ -24,7 +24,7 @@ classifiers = [
 ]
 dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=2" ]
-optional-dependencies.accel = [ "numba>=0.57", "tbb" ]
+optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
@@ -50,11 +50,12 @@ doc = [
 ]
 test-min = [
   "coverage[toml]",
-  "fast-array-utils[sparse,testing]", # include sparse for testing numba-less to_dense
+  "fast-array-utils[sparse,testing]",                      # include sparse for testing numba-less to_dense
   "pytest",
   "pytest-codspeed",
   "pytest-doctestplus",
   "pytest-xdist",
+  "tbb; sys_platform=='linux' or sys_platform=='windows'", # robust tests
 ]
 
 [tool.hatch]
