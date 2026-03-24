@@ -138,6 +138,20 @@ lint.isort.lines-after-imports = 2
 lint.pydocstyle.convention = "numpy"
 lint.future-annotations = true
 
+[tool.mypy]
+strict = true
+# https://github.com/dask/dask/issues/8853
+implicit_reexport = true
+explicit_package_bases = true
+mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+
+[tool.pyright]
+stubPath = "./typings"
+reportPrivateUsage = false
+
+[tool.ty]
+environment.extra-paths = [ "./typings" ]
+
 [tool.pytest]
 strict = true
 addopts = [
@@ -164,17 +178,3 @@ run.omit = [ "src/testing/*", "tests/*" ]
 report.exclude_also = [ "@numba[.]njit", "[.]{3}", "if TYPE_CHECKING:" ]
 html.directory = "test-data/htmlcov"
 xml.output = "test-data/coverage.xml"
-
-[tool.mypy]
-strict = true
-# https://github.com/dask/dask/issues/8853
-implicit_reexport = true
-explicit_package_bases = true
-mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
-
-[tool.pyright]
-stubPath = "./typings"
-reportPrivateUsage = false
-
-[tool.ty]
-environment.extra-paths = [ "./typings" ]
