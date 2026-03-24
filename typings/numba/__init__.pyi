@@ -3,7 +3,7 @@ from collections.abc import Callable, Iterable
 from typing import Literal, SupportsIndex, overload
 
 from .core import config as config
-from .core.types import *
+from .core.types import Type
 
 type __Signature = str | Type
 type _Signature = str | Type | tuple[__Signature, ...]

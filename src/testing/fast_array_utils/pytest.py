@@ -92,7 +92,7 @@ SUPPORTED_TYPE_PARAMS = [pytest.param(t, id=str(t), marks=_skip_if_unimportable(
 
 @pytest.fixture(autouse=True)
 def dask_single_threaded() -> Generator[None]:
-    """Switch to a single-threaded scheduler for tests on macOS since numba crashes otherwise."""
+    """Switch to a single-threaded scheduler when no threadsafe threading layer is available."""
     if not find_spec("dask"):
         yield
         return
@@ -100,7 +100,7 @@ def dask_single_threaded() -> Generator[None]:
         _numba_threading_layer("threadsafe")
     except ValueError:
         pass
-    else:  # if a safe threading layer is available, we use that
+    else:  # if a threadsafe threading layer is available, we use that
         yield
         return
 

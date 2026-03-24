@@ -50,12 +50,15 @@ doc = [
 ]
 test-min = [
   "coverage[toml]",
-  "fast-array-utils[sparse,testing]",                      # include sparse for testing numba-less to_dense
+  # include sparse for testing numba-less to_dense
+  "fast-array-utils[sparse,testing]",
   "pytest",
   "pytest-codspeed",
   "pytest-doctestplus",
   "pytest-xdist",
-  "tbb; sys_platform=='linux' or sys_platform=='windows'", # robust tests
+  # `tbb` allows for safe parallel-numba-in-dask,
+  # but isn’t available on macOS: https://github.com/uxlfoundation/oneTBB/issues/1972
+  "tbb; sys_platform=='linux' or sys_platform=='windows'",
 ]
 
 [tool.hatch]
