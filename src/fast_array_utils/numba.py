@@ -51,7 +51,7 @@ def threading_layer(layer_or_category: ThreadingLayer | TheadingCategory | None 
     if priority is None:
         priority = numba.config.THREADING_LAYER_PRIORITY
 
-    return _threading_layer(layer_or_category, priority)  # type: ignore[arg-type]
+    return _threading_layer(layer_or_category, priority)  # type: ignore[arg-type]  # https://github.com/python/typeshed/issues/11280
 
 
 @cache
@@ -81,7 +81,7 @@ def _is_in_unsafe_thread_pool() -> bool:
 
     current_thread = threading.current_thread()
     # ThreadPoolExecutor threads typically have names like 'ThreadPoolExecutor-0_1'
-    return current_thread.name.startswith("ThreadPoolExecutor") and _threading_layer() not in LAYERS["threadsafe"]
+    return current_thread.name.startswith("ThreadPoolExecutor") and threading_layer() not in LAYERS["threadsafe"]
 
 
 @overload
