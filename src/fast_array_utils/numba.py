@@ -63,7 +63,7 @@ def _threading_layer(layer_or_category: ThreadingLayer | TheadingCategory, /, pr
 
     # given by layer type (safe, …)
     for layer in priority:
-        if layer not in available:
+        if layer not in available:  # pragma: no cover
             continue
         if layer != "workqueue":
             try:  # `importlib.util.find_spec` doesn’t work here
@@ -72,8 +72,8 @@ def _threading_layer(layer_or_category: ThreadingLayer | TheadingCategory, /, pr
                 continue
         # the layer has been found
         return layer
-    msg = f"No threading layer matching {layer_or_category!r} ({available=}, {priority=})"
-    raise ValueError(msg)
+    msg = f"No threading layer matching {layer_or_category!r} ({available=}, {priority=})"  # pragma: no cover
+    raise ValueError(msg)  # pragma: no cover
 
 
 def _is_in_unsafe_thread_pool() -> bool:
