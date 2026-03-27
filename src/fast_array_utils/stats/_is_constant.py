@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING, cast
 import numba
 import numpy as np
 
-from fast_array_utils._numba import njit
-
 from .. import types
+from ..numba import njit
 
 
 if TYPE_CHECKING:

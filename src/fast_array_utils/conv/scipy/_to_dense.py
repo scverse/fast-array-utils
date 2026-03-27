@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import numba
 
-from fast_array_utils._numba import njit
+from ...numba import njit
 
 
 if TYPE_CHECKING:
