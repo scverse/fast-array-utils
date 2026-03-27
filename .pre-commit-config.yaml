@@ -27,7 +27,6 @@ repos:
   - id: mypy
     args: [--config-file=pyproject.toml, .]
     pass_filenames: false
-    language_version: '3.13'
     additional_dependencies:
     - anndata>=0.12
     - array-api-compat>=1.13
