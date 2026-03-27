@@ -178,6 +178,6 @@ markers = [
 [tool.coverage]
 run.data_file = "test-data/.coverage"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "@numba[.]njit", "[.]{3}", "if TYPE_CHECKING:" ]
+report.exclude_also = [ "@(numba[.])?njit", "if TYPE_CHECKING:" ]
 html.directory = "test-data/htmlcov"
 xml.output = "test-data/coverage.xml"
