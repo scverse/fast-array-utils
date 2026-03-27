@@ -51,7 +51,7 @@ def threading_layer(layer_or_category: ThreadingLayer | TheadingCategory | None 
     if priority is None:
         priority = numba.config.THREADING_LAYER_PRIORITY
 
-    return _threading_layer(layer_or_category, priority)  # type: ignore[arg-type]  # https://github.com/python/typeshed/issues/11280
+    return _threading_layer(layer_or_category, tuple(priority))
 
 
 @cache
@@ -101,6 +101,7 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
 
         assert isinstance(f, FunctionType)
 
+        # use distinct names so numba doesn’t reuse the wrong version’s cache
         fns: dict[bool, Callable[P, R]] = {
             parallel: numba.njit(_copy_function(f, __qualname__=f"{f.__qualname__}-{'parallel' if parallel else 'serial'}"), cache=True, parallel=parallel)
             for parallel in (True, False)
