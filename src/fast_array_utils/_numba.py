@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import sys
 import warnings
-from functools import cache, wraps
+from functools import cache, update_wrapper, wraps
+from types import FunctionType
 from typing import TYPE_CHECKING, Literal, cast, overload
 
 
@@ -80,7 +81,11 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
     def decorator(f: Callable[P, R], /) -> Callable[P, R]:
         import numba
 
-        fns: dict[bool, Callable[P, R]] = {parallel: numba.njit(f, cache=True, parallel=parallel) for parallel in (True, False)}
+        assert isinstance(f, FunctionType)
+
+        fns: dict[bool, Callable[P, R]] = {
+            parallel: numba.njit(copy_function(f, __qualname__=f"{f.__qualname__}-{parallel}"), cache=True, parallel=parallel) for parallel in (True, False)
+        }
 
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -93,3 +98,12 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
         return wrapper
 
     return decorator if fn is None else decorator(fn)
+
+
+def copy_function[F: FunctionType](f: F, **overrides: object) -> F:
+    new = FunctionType(code=f.__code__, globals=f.__globals__, name=f.__name__, argdefs=f.__defaults__, closure=f.__closure__)
+    new.__kwdefaults__ = f.__kwdefaults__
+    new = cast("F", update_wrapper(new, f))
+    for key, value in overrides.items():
+        setattr(new, key, value)
+    return new

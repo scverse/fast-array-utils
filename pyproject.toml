@@ -56,9 +56,6 @@ test-min = [
   "pytest-codspeed",
   "pytest-doctestplus",
   "pytest-xdist",
-  # `tbb` allows for safe parallel-numba-in-dask,
-  # but isn’t available on macOS: https://github.com/uxlfoundation/oneTBB/issues/1972
-  "tbb; sys_platform=='linux' or sys_platform=='windows'",
 ]
 
 [tool.hatch]
