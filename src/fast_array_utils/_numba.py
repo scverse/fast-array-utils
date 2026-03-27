@@ -38,7 +38,7 @@ def _numba_threading_layer(layer_name: Layer | LayerType | None = None) -> Layer
     if layer_name is None:
         layer_name = numba.config.THREADING_LAYER
 
-    if (available := LAYERS.get(layer_name)) is None:  # type: ignore[arg-type]
+    if (available := LAYERS.get(layer_name)) is None:  # type: ignore[arg-type]  # pragma: no cover
         return cast("Layer", layer_name)  # given by direct name
 
     # given by layer type (safe, …)
@@ -85,7 +85,7 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             parallel = not _is_in_unsafe_thread_pool()
-            if not parallel:
+            if not parallel:  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
                 warnings.warn(msg, UserWarning, stacklevel=2)
             return fns[parallel](*args, **kwargs)
