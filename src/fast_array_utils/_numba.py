@@ -84,7 +84,8 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
         assert isinstance(f, FunctionType)
 
         fns: dict[bool, Callable[P, R]] = {
-            parallel: numba.njit(copy_function(f, __qualname__=f"{f.__qualname__}-{parallel}"), cache=True, parallel=parallel) for parallel in (True, False)
+            parallel: numba.njit(copy_function(f, __qualname__=f"{f.__qualname__}-{'parallel' if parallel else 'serial'}"), cache=True, parallel=parallel)
+            for parallel in (True, False)
         }
 
         @wraps(f)
