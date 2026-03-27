@@ -82,7 +82,7 @@ envs.hatch-test.overrides.matrix.resolution.dependencies = [
   { if = [ "lowest" ], value = "scipy==1.13.0" },
 ]
 envs.hatch-test.matrix = [
-  { python = [ "3.13", "3.12" ], extras = [ "full", "min" ] },
+  { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
   { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
 ]
 metadata.hooks.docstring-description = {}
@@ -177,6 +177,6 @@ markers = [
 [tool.coverage]
 run.data_file = "test-data/.coverage"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "@numba[.]njit", "[.]{3}", "if TYPE_CHECKING:" ]
+report.exclude_also = [ "@(numba[.])?njit", "[.]{3}", "if TYPE_CHECKING:" ]
 html.directory = "test-data/htmlcov"
 xml.output = "test-data/coverage.xml"
