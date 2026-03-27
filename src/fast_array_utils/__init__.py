@@ -8,6 +8,9 @@
     This submodule requires :doc:`numba <numba:index>` to be installed
     and contains statistics utilities.
 
+:mod:`fast_array_utils.numba`
+    This submodule contains numba utilities.
+
 :mod:`fast_array_utils.typing` and :mod:`fast_array_utils.types`
     These submodules contain types for annotations and checks, respectively.
     Stubs for these types are available even if the respective packages are not installed.
@@ -15,10 +18,10 @@
 
 from __future__ import annotations
 
-from . import _plugins, conv, stats, types
+from . import _plugins, conv, numba, stats, types
 
 
-__all__ = ["conv", "stats", "types"]
+__all__ = ["conv", "numba", "stats", "types"]
 
 _plugins.patch_dask()
 _plugins.register_numba_sparse()

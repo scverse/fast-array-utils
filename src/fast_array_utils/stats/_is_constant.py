@@ -8,6 +8,7 @@ import numba
 import numpy as np
 
 from .. import types
+from ..numba import njit
 
 
 if TYPE_CHECKING:
@@ -64,7 +65,7 @@ def _is_constant_cs(a: types.CSBase, /, *, axis: Literal[0, 1] | None = None) ->
     return _is_constant_cs_major(a, shape)
 
 
-@numba.njit(cache=True)
+@njit
 def _is_constant_cs_major(a: types.CSBase, shape: tuple[int, int]) -> NDArray[np.bool]:
     n = len(a.indptr) - 1
     result = np.ones(n, dtype=np.bool)

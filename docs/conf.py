@@ -71,6 +71,8 @@ intersphinx_mapping = dict(
     zarr=("https://zarr.readthedocs.io/en/stable/", None),
 )
 nitpick_ignore = [
+    ("py:class", "P"),
+    ("py:class", "R"),
     ("py:class", "Arr"),
     ("py:class", "Array"),
     ("py:class", "ToDType"),

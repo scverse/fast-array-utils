@@ -7,6 +7,7 @@
    fast-array-utils <self>
    conv
    stats
+   numba
    typing
    testing
 
