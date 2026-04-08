@@ -137,21 +137,19 @@ def _loaded_relevant_parallel_runtime_probe_modules() -> tuple[str, ...]:
 
 def _parallel_runtime_probe_code(modules: tuple[str, ...]) -> str:
     lines = [*(f"import {module}" for module in modules), "import numba", "import numpy as np", ""]
-    lines.extend(
-        [
-            "@numba.njit(parallel=True, cache=False)",
-            "def _probe(values):",
-            "    total = 0.0",
-            "    for i in numba.prange(values.shape[0]):",
-            "        total += values[i]",
-            "    return total",
-            "",
-            "values = np.arange(32, dtype=np.float64)",
-            "assert _probe(values) == np.sum(values)",
-            f"print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r})",
-            "",
-        ]
-    )
+    lines.extend([
+        "@numba.njit(parallel=True, cache=False)",
+        "def _probe(values):",
+        "    total = 0.0",
+        "    for i in numba.prange(values.shape[0]):",
+        "        total += values[i]",
+        "    return total",
+        "",
+        "values = np.arange(32, dtype=np.float64)",
+        "assert _probe(values) == np.sum(values)",
+        f"print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r})",
+        "",
+    ])
     return "\n".join(lines)
 
 
