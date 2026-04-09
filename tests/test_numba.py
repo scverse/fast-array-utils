@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 import subprocess
+import threading
 import warnings
 from typing import TYPE_CHECKING
 
@@ -39,6 +40,68 @@ def _sum_prange(values: NDArray[np.float64]) -> float:
 @pytest.fixture(autouse=True)
 def clear_probe_cache() -> None:
     fa_numba._parallel_numba_runtime_is_safe_cached.cache_clear()
+    fa_numba._threading_layer.cache_clear()
+
+
+def test_threading_layer_uses_numba_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(numba.config, "THREADING_LAYER", "threadsafe")
+    monkeypatch.setattr(numba.config, "THREADING_LAYER_PRIORITY", ["omp", "tbb"])
+    calls: list[tuple[fa_numba.ThreadingLayer | fa_numba.TheadingCategory, tuple[fa_numba.ThreadingLayer, ...]]] = []
+
+    def fake_threading_layer(
+        layer_or_category: fa_numba.ThreadingLayer | fa_numba.TheadingCategory, priority: tuple[fa_numba.ThreadingLayer, ...]
+    ) -> fa_numba.ThreadingLayer:
+        calls.append((layer_or_category, priority))
+        return "omp"
+
+    monkeypatch.setattr(fa_numba, "_threading_layer", fake_threading_layer)
+
+    assert fa_numba.threading_layer() == "omp"
+    assert calls == [("threadsafe", ("omp", "tbb"))]
+
+
+def test_threading_layer_resolves_available_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    original_import_module = importlib.import_module
+    calls: list[str] = []
+
+    def import_module(name: str, package: str | None = None) -> object:
+        calls.append(name)
+        if name.endswith("tbbpool"):
+            raise ImportError
+        if name.endswith("omppool"):
+            return object()
+        return original_import_module(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", import_module)
+
+    assert fa_numba.threading_layer("threadsafe", ("workqueue", "tbb", "omp")) == "omp"
+    assert calls == ["numba.np.ufunc.tbbpool", "numba.np.ufunc.omppool"]
+
+    fa_numba._threading_layer.cache_clear()
+    calls.clear()
+
+    assert fa_numba.threading_layer("default", ("workqueue", "omp")) == "workqueue"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("name", "layer", "expected"),
+    [
+        pytest.param("ThreadPoolExecutor-0_1", "workqueue", True, id="executor-unsafe"),
+        pytest.param("ThreadPoolExecutor-0_1", "omp", False, id="executor-threadsafe"),
+        pytest.param("MainThread", "workqueue", False, id="not-executor"),
+    ],
+)
+def test_is_in_unsafe_thread_pool(
+    monkeypatch: pytest.MonkeyPatch, name: str, layer: fa_numba.ThreadingLayer, *, expected: bool
+) -> None:
+    def current_thread() -> object:
+        return type("FakeThread", (), {"name": name})()
+
+    monkeypatch.setattr(threading, "current_thread", current_thread)
+    monkeypatch.setattr(fa_numba, "threading_layer", lambda: layer)
+
+    assert fa_numba._is_in_unsafe_thread_pool() is expected
 
 
 def _set_runtime(
