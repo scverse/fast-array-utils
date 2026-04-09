@@ -1,13 +1,21 @@
 # SPDX-License-Identifier: MPL-2.0
+# ruff: noqa: SLF001
+
 from __future__ import annotations
 
 import importlib
 import subprocess
 import warnings
-from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from numpy.typing import NDArray
 
 
 pytest.importorskip("numba")
@@ -21,7 +29,7 @@ def _return_true() -> bool:
     return True
 
 
-def _sum_prange(values: np.ndarray[Any, Any]) -> float:
+def _sum_prange(values: NDArray[np.float64]) -> float:
     total = 0.0
     for i in numba.prange(values.shape[0]):
         total += values[i]
@@ -56,10 +64,10 @@ def _set_runtime(
 
 
 def _install_fake_njit(monkeypatch: pytest.MonkeyPatch, calls: list[bool]) -> None:
-    def fake_njit(fn: object, /, *, cache: bool, parallel: bool) -> Any:
+    def fake_njit(_fn: object, /, *, cache: bool, parallel: bool) -> Callable[..., bool]:
         assert cache is True
 
-        def compiled(*args: object, **kwargs: object) -> bool:
+        def compiled(*_args: object, **_kwargs: object) -> bool:
             calls.append(parallel)
             return parallel
 
@@ -99,6 +107,7 @@ def test_probe_needed(
     layer: fa_numba.ThreadingLayer | fa_numba.TheadingCategory,
     priority: tuple[fa_numba.ThreadingLayer, ...],
     layers: dict[fa_numba.TheadingCategory, set[fa_numba.ThreadingLayer]] | None,
+    *,
     expected: bool,
 ) -> None:
     _set_runtime(monkeypatch, platform_name=platform_name, machine=machine, loaded=loaded, layer=layer, priority=priority, layers=layers)
@@ -188,7 +197,7 @@ def test_probe_failure(
 ) -> None:
     _set_runtime(monkeypatch)
 
-    def run(cmd: list[str], /, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def run(_cmd: list[str], /, **_kwargs: object) -> subprocess.CompletedProcess[str]:
         if error is not None:
             raise error
         assert result is not None
@@ -210,6 +219,7 @@ def test_probe_failure(
 )
 def test_njit_chooses_version(
     monkeypatch: pytest.MonkeyPatch,
+    *,
     unsafe_pool: bool,
     needs_probe: bool | None,
     probe_safe: bool | None,
@@ -246,13 +256,11 @@ def test_serial_fallback() -> None:
     values = np.arange(10, dtype=np.float64)
     wrapped = fa_numba.njit(_sum_prange)
 
-    with (
-        pytest.MonkeyPatch().context() as monkeypatch,
-        pytest.warns(UserWarning, match="unsupported numba parallel runtime"),
-    ):
+    with pytest.MonkeyPatch().context() as monkeypatch:
         monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: False)
         monkeypatch.setattr(fa_numba, "_needs_parallel_runtime_probe", lambda: True)
         monkeypatch.setattr(fa_numba, "_parallel_numba_runtime_is_safe", lambda: False)
-        result = wrapped(values)
+        with pytest.warns(UserWarning, match="unsupported numba parallel runtime"):
+            result = wrapped(values)
 
     assert result == pytest.approx(np.sum(values))

@@ -175,7 +175,9 @@ def _build_parallel_runtime_probe_env(key: _ParallelRuntimeProbeKey | None = Non
 @cache
 def _parallel_numba_runtime_is_safe_cached(key: _ParallelRuntimeProbeKey) -> bool:
     try:
-        result = subprocess.run(
+        # The probe command is built from `sys.executable` plus a generated script
+        # that only imports modules from a fixed whitelist.
+        result = subprocess.run(  # noqa: S603
             [key[0], "-c", _parallel_runtime_probe_code(key[3])],
             capture_output=True,
             check=False,
@@ -183,7 +185,8 @@ def _parallel_numba_runtime_is_safe_cached(key: _ParallelRuntimeProbeKey) -> boo
             text=True,
             timeout=_PARALLEL_RUNTIME_PROBE_TIMEOUT,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
+        # Any probe failure should conservatively disable the parallel fast-path.
         return False
     return result.returncode == 0 and _PARALLEL_RUNTIME_PROBE_SENTINEL in result.stdout
 
