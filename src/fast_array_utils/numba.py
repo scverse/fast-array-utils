@@ -105,7 +105,7 @@ def _configured_threading_layer_or_category_without_probing() -> ThreadingLayer 
     import numba
 
     # Avoid `threading_layer()` here: resolving backends may import pool modules.
-    return cast("ThreadingLayer | TheadingCategory", numba.config.THREADING_LAYER)
+    return numba.config.THREADING_LAYER
 
 
 def _configured_explicit_threading_layer_without_probing() -> ThreadingLayer | None:
