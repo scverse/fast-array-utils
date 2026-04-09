@@ -24,6 +24,7 @@ pytest.importorskip("numba")
 import numba
 
 from fast_array_utils import numba as fa_numba
+from fast_array_utils.numba import _parallel_runtime as probe
 
 
 def _return_true() -> bool:
@@ -39,7 +40,7 @@ def _sum_prange(values: NDArray[np.float64]) -> float:
 
 @pytest.fixture(autouse=True)
 def clear_probe_cache() -> None:
-    fa_numba._parallel_numba_runtime_is_safe_cached.cache_clear()
+    probe._parallel_numba_runtime_is_safe_cached.cache_clear()
     fa_numba._threading_layer.cache_clear()
 
 
@@ -112,16 +113,16 @@ def _set_runtime(
     priority: tuple[fa_numba.ThreadingLayer, ...] = ("tbb", "omp", "workqueue"),
     layers: dict[fa_numba.TheadingCategory, set[fa_numba.ThreadingLayer]] | None = None,
 ) -> None:
-    monkeypatch.setattr(fa_numba.sys, "platform", platform_name)
-    monkeypatch.setattr(fa_numba.platform, "machine", lambda: machine)
+    monkeypatch.setattr(probe.sys, "platform", platform_name)
+    monkeypatch.setattr(probe.platform, "machine", lambda: machine)
     for module in ("torch", "sklearn", "scanpy"):
-        monkeypatch.delitem(fa_numba.sys.modules, module, raising=False)
+        monkeypatch.delitem(probe.sys.modules, module, raising=False)
     for module in loaded:
-        monkeypatch.setitem(fa_numba.sys.modules, module, object())
+        monkeypatch.setitem(probe.sys.modules, module, object())
     monkeypatch.setattr(numba.config, "THREADING_LAYER", layer)
     monkeypatch.setattr(numba.config, "THREADING_LAYER_PRIORITY", list(priority))
     if layers is not None:
-        monkeypatch.setattr(fa_numba, "LAYERS", layers)
+        monkeypatch.setattr(probe, "LAYERS", layers)
 
 
 def _install_fake_njit(monkeypatch: pytest.MonkeyPatch, calls: list[bool]) -> None:
@@ -172,7 +173,7 @@ def test_probe_needed(
     expected: bool,
 ) -> None:
     _set_runtime(monkeypatch, platform_name=platform_name, machine=machine, loaded=loaded, layer=layer, priority=priority, layers=layers)
-    assert fa_numba._needs_parallel_runtime_probe() is expected
+    assert probe._needs_parallel_runtime_probe() is expected
 
 
 def test_probe_check_is_lazy(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -188,26 +189,26 @@ def test_probe_check_is_lazy(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(importlib, "import_module", import_module)
 
-    assert fa_numba._needs_parallel_runtime_probe() is True
+    assert probe._needs_parallel_runtime_probe() is True
 
 
 def test_probe_uses_torch_context(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_runtime(monkeypatch, loaded=(), layer="threadsafe", priority=("omp", "tbb"))
 
-    first = fa_numba._parallel_runtime_probe_key()
-    monkeypatch.setitem(fa_numba.sys.modules, "sklearn", object())
-    monkeypatch.setitem(fa_numba.sys.modules, "scanpy", object())
-    second = fa_numba._parallel_runtime_probe_key()
-    monkeypatch.setitem(fa_numba.sys.modules, "torch", object())
-    third = fa_numba._parallel_runtime_probe_key()
+    first = probe._parallel_runtime_probe_key()
+    monkeypatch.setitem(probe.sys.modules, "sklearn", object())
+    monkeypatch.setitem(probe.sys.modules, "scanpy", object())
+    second = probe._parallel_runtime_probe_key()
+    monkeypatch.setitem(probe.sys.modules, "torch", object())
+    third = probe._parallel_runtime_probe_key()
 
-    assert fa_numba._loaded_relevant_parallel_runtime_probe_modules() == ("torch",)
+    assert probe._loaded_relevant_parallel_runtime_probe_modules() == ("torch",)
     assert first == second
     assert first[3] == ()
     assert third[3] == ("torch",)
 
-    env = fa_numba._build_parallel_runtime_probe_env(third)
-    code = fa_numba._parallel_runtime_probe_code(third[3])
+    env = probe._build_parallel_runtime_probe_env(third)
+    code = probe._parallel_runtime_probe_code(third[3])
 
     assert env["NUMBA_THREADING_LAYER"] == "threadsafe"
     assert env["NUMBA_THREADING_LAYER_PRIORITY"] == "omp tbb"
@@ -222,21 +223,21 @@ def test_probe_result(monkeypatch: pytest.MonkeyPatch) -> None:
 
     def run(cmd: list[str], /, **kwargs: object) -> subprocess.CompletedProcess[str]:
         calls.append((cmd, kwargs))
-        return subprocess.CompletedProcess(cmd, 0, stdout=f"{fa_numba._PARALLEL_RUNTIME_PROBE_SENTINEL}\n", stderr="")
+        return subprocess.CompletedProcess(cmd, 0, stdout=f"{probe._PARALLEL_RUNTIME_PROBE_SENTINEL}\n", stderr="")
 
-    monkeypatch.setattr(fa_numba.subprocess, "run", run)
+    monkeypatch.setattr(probe.subprocess, "run", run)
 
-    assert fa_numba._parallel_numba_runtime_is_safe() is True
-    assert fa_numba._parallel_numba_runtime_is_safe() is True
+    assert probe._parallel_numba_runtime_is_safe() is True
+    assert probe._parallel_numba_runtime_is_safe() is True
     assert calls == [
         (
-            [fa_numba.sys.executable, "-c", fa_numba._parallel_runtime_probe_code(("torch",))],
+            [probe.sys.executable, "-c", probe._parallel_runtime_probe_code(("torch",))],
             {
                 "capture_output": True,
                 "check": False,
-                "env": fa_numba._build_parallel_runtime_probe_env(),
+                "env": probe._build_parallel_runtime_probe_env(),
                 "text": True,
-                "timeout": fa_numba._PARALLEL_RUNTIME_PROBE_TIMEOUT,
+                "timeout": probe._PARALLEL_RUNTIME_PROBE_TIMEOUT,
             },
         )
     ]
@@ -264,9 +265,9 @@ def test_probe_failure(
         assert result is not None
         return result
 
-    monkeypatch.setattr(fa_numba.subprocess, "run", run)
+    monkeypatch.setattr(probe.subprocess, "run", run)
 
-    assert fa_numba._parallel_numba_runtime_is_safe() is False
+    assert probe._parallel_numba_runtime_is_safe() is False
 
 
 @pytest.mark.parametrize(
@@ -292,13 +293,13 @@ def test_njit_chooses_version(
 
     monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: unsafe_pool)
     if needs_probe is None:
-        monkeypatch.setattr(fa_numba, "_needs_parallel_runtime_probe", lambda: pytest.fail("probe should not be consulted"))
+        monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: pytest.fail("probe should not be consulted"))
     else:
-        monkeypatch.setattr(fa_numba, "_needs_parallel_runtime_probe", lambda: needs_probe)
+        monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: needs_probe)
     if probe_safe is None:
-        monkeypatch.setattr(fa_numba, "_parallel_numba_runtime_is_safe", lambda: pytest.fail("probe should not run"))
+        monkeypatch.setattr(probe, "_parallel_numba_runtime_is_safe", lambda: pytest.fail("probe should not run"))
     else:
-        monkeypatch.setattr(fa_numba, "_parallel_numba_runtime_is_safe", lambda: probe_safe)
+        monkeypatch.setattr(probe, "_parallel_numba_runtime_is_safe", lambda: probe_safe)
 
     wrapped = fa_numba.njit(_return_true)
 
@@ -313,15 +314,14 @@ def test_njit_chooses_version(
     assert calls == [expected]
 
 
-def test_serial_fallback() -> None:
+def test_serial_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     values = np.arange(10, dtype=np.float64)
+    monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: False)
+    monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: True)
+    monkeypatch.setattr(probe, "_parallel_numba_runtime_is_safe", lambda: False)
     wrapped = fa_numba.njit(_sum_prange)
 
-    with pytest.MonkeyPatch().context() as monkeypatch:
-        monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: False)
-        monkeypatch.setattr(fa_numba, "_needs_parallel_runtime_probe", lambda: True)
-        monkeypatch.setattr(fa_numba, "_parallel_numba_runtime_is_safe", lambda: False)
-        with pytest.warns(UserWarning, match="unsupported numba parallel runtime"):
-            result = wrapped(values)
+    with pytest.warns(UserWarning, match="unsupported numba parallel runtime"):
+        result = wrapped(values)
 
     assert result == pytest.approx(np.sum(values))
