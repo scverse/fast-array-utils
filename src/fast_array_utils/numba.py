@@ -217,18 +217,17 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
 
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            msg = None
             if _is_in_unsafe_thread_pool():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
-                warnings.warn(msg, UserWarning, stacklevel=2)
-                return fns[False](*args, **kwargs)
             if _needs_parallel_runtime_probe() and not _parallel_numba_runtime_is_safe():
                 msg = (
                     f"Detected an unsupported numba parallel runtime. Running {f.__name__} in serial mode as a workaround. "
                     "Set `NUMBA_THREADING_LAYER=workqueue` or install `tbb` to avoid this fallback."
                 )
+            if not (run_parallel := msg is None):
                 warnings.warn(msg, UserWarning, stacklevel=2)
-                return fns[False](*args, **kwargs)
-            return fns[True](*args, **kwargs)
+            return fns[run_parallel](*args, **kwargs)
 
         return wrapper
 
