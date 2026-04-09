@@ -92,9 +92,7 @@ def test_threading_layer_resolves_available_backend(monkeypatch: pytest.MonkeyPa
         pytest.param("MainThread", "workqueue", False, id="not-executor"),
     ],
 )
-def test_is_in_unsafe_thread_pool(
-    monkeypatch: pytest.MonkeyPatch, name: str, layer: fa_numba.ThreadingLayer, *, expected: bool
-) -> None:
+def test_is_in_unsafe_thread_pool(monkeypatch: pytest.MonkeyPatch, name: str, layer: fa_numba.ThreadingLayer, *, expected: bool) -> None:
     def current_thread() -> object:
         return type("FakeThread", (), {"name": name})()
 
