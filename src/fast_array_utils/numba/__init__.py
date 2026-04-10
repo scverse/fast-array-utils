@@ -92,12 +92,14 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
     """Jit-compile a function using numba.
 
     On call, this function dispatches to a parallel or serial numba function,
-    depending on if it has been called from a thread pool.
+    depending on the current threading environment.
     """
     # See https://github.com/numbagg/numbagg/pull/201/files#r1409374809
 
     def decorator(f: Callable[P, R], /) -> Callable[P, R]:
         import numba
+
+        from ._parallel_runtime import _needs_parallel_runtime_probe, _parallel_numba_runtime_is_safe
 
         assert isinstance(f, FunctionType)
 
@@ -109,11 +111,17 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
 
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            parallel = not _is_in_unsafe_thread_pool()
-            if not parallel:  # pragma: no cover
+            msg = None
+            if _is_in_unsafe_thread_pool():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
+            elif _needs_parallel_runtime_probe() and not _parallel_numba_runtime_is_safe():
+                msg = (
+                    f"Detected an unsupported numba parallel runtime. Running {f.__name__} in serial mode as a workaround. "
+                    "Set `NUMBA_THREADING_LAYER=workqueue` or install `tbb` to avoid this fallback."
+                )
+            if not (run_parallel := msg is None):
                 warnings.warn(msg, UserWarning, stacklevel=2)
-            return fns[parallel](*args, **kwargs)
+            return fns[run_parallel](*args, **kwargs)
 
         return wrapper
 
