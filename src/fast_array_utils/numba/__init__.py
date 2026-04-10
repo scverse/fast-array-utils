@@ -114,7 +114,6 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
             msg = None
             if _is_in_unsafe_thread_pool():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
-
             elif _needs_parallel_runtime_probe() and not _parallel_numba_runtime_is_safe():
                 msg = (
                     f"Detected an unsupported numba parallel runtime. Running {f.__name__} in serial mode as a workaround. "
