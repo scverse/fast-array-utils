@@ -48,7 +48,10 @@ def _is_apple_silicon() -> bool:
     return sys.platform == "darwin" and platform.machine() == "arm64"
 
 
-def _could_select_omp_from_threading_config_without_probing() -> bool:
+def _needs_parallel_runtime_probe() -> bool:
+    if not _is_apple_silicon() or "torch" not in sys.modules:
+        return False
+
     match numba.config.THREADING_LAYER:
         case "omp":
             return True
@@ -56,14 +59,6 @@ def _could_select_omp_from_threading_config_without_probing() -> bool:
             return False
         case "default" | "safe" | "threadsafe" | "forksafe" as category:
             return "omp" in LAYERS[category]
-
-
-def _needs_parallel_runtime_probe() -> bool:
-    if not _is_apple_silicon() or "torch" not in sys.modules:
-        return False
-    if numba.config.THREADING_LAYER in {"workqueue", "tbb"}:
-        return False
-    return _could_select_omp_from_threading_config_without_probing()
 
 
 def _loaded_relevant_parallel_runtime_probe_modules() -> tuple[str, ...]:
