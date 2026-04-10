@@ -18,12 +18,30 @@ if TYPE_CHECKING:
     from . import TheadingCategory, ThreadingLayer
 
 
+__all__ = ["_needs_parallel_runtime_probe", "_parallel_numba_runtime_is_safe"]
+
+
 type _ParallelRuntimeProbeKey = tuple[str, ThreadingLayer | TheadingCategory, tuple[ThreadingLayer, ...], tuple[str, ...]]
 
 
 _PARALLEL_RUNTIME_PROBE_SENTINEL = "FAST_ARRAY_UTILS_NUMBA_PROBE_OK"
 _PARALLEL_RUNTIME_PROBE_TIMEOUT = 20
 _PARALLEL_RUNTIME_PROBE_MODULE_WHITELIST = ("torch",)
+_PARALLEL_RUNTIME_PROBE_CODE = f"""
+import numba
+import numpy as np
+
+@numba.njit(parallel=True, cache=False)
+def _probe(values):
+    total = 0.0
+    for i in numba.prange(values.shape[0]):
+        total += values[i]
+    return total
+
+values = np.arange(32, dtype=np.float64)
+assert _probe(values) == np.sum(values)
+print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r})
+"""
 
 
 def _is_apple_silicon() -> bool:
@@ -53,21 +71,7 @@ def _loaded_relevant_parallel_runtime_probe_modules() -> tuple[str, ...]:
 
 
 def _parallel_runtime_probe_code(modules: tuple[str, ...]) -> str:
-    lines = [*(f"import {module}" for module in modules), "import numba", "import numpy as np", ""]
-    lines.extend([
-        "@numba.njit(parallel=True, cache=False)",
-        "def _probe(values):",
-        "    total = 0.0",
-        "    for i in numba.prange(values.shape[0]):",
-        "        total += values[i]",
-        "    return total",
-        "",
-        "values = np.arange(32, dtype=np.float64)",
-        "assert _probe(values) == np.sum(values)",
-        f"print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r})",
-        "",
-    ])
-    return "\n".join(lines)
+    return "\n".join(f"import {module}" for module in modules) + _PARALLEL_RUNTIME_PROBE_CODE
 
 
 def _parallel_runtime_probe_key() -> _ParallelRuntimeProbeKey:
