@@ -31,13 +31,21 @@ def mean_var_(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
+    import array_api_compat
+
     from . import mean
+
+    if array_api_compat.is_array_api_obj(x):
+        xp = array_api_compat.array_namespace(x)
+        float64 = xp.float64
+    else:
+        float64 = np.float64
 
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
-        mean_ = mean(x, axis=axis, dtype=np.float64)
-        mean_sq = mean(power(x, 2, dtype=np.float64), axis=axis) if isinstance(x, types.DaskArray) else mean(power(x, 2), axis=axis, dtype=np.float64)
+        mean_ = mean(x, axis=axis, dtype=float64)
+        mean_sq = mean(power(x, 2, dtype=float64), axis=axis) if isinstance(x, types.DaskArray) else mean(power(x, 2), axis=axis, dtype=float64)
         var = mean_sq - mean_**2
     if correction:  # R convention == 1 (unbiased estimator)
         n = np.prod(x.shape) if axis is None else x.shape[axis]

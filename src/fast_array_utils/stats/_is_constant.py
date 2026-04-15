@@ -24,7 +24,7 @@ def is_constant_(
     /,
     *,
     axis: Literal[0, 1] | None = None,
-) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:  # switch to Any later
+) -> Any:  # noqa: ANN401
 
     import array_api_compat
 

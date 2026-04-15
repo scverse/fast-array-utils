@@ -22,17 +22,6 @@ if TYPE_CHECKING:
     type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
-def _run_numpy_op(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    op: Ops,
-    *,
-    axis: Literal[0, 1] | None = None,
-    dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    arr = cast("NDArray[Any] | np.number[Any] | types.CupyArray | types.CupyCOOMatrix | types.DaskArray", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
-    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
-
-
 @singledispatch
 def generic_op(
     x: CpuArray | GpuArray | DiskArray | types.DaskArray,
@@ -42,21 +31,41 @@ def generic_op(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:  # switch to Any later
+) -> Any:  # Fallback handles arbitrary array-api-compatible types, so return type can't be narrowed  # noqa: ANN401
     del keep_cupy_as_array
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
         assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
         # np supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(x, types.ZarrArray | types.H5Dataset)
-
-    # doing array_api_compat first
+    # Catch array-api-compat-wrapped types that lack __array_namespace__ (i.e. PyTorch)
     import array_api_compat
 
     if array_api_compat.is_array_api_obj(x):
         xp = array_api_compat.array_namespace(x)
         return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
-    return cast("NDArray[Any] | np.number[Any]", _run_numpy_op(x, op, axis=axis, dtype=dtype))
+
+    arr = getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
+    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
+
+
+@generic_op.register(types.HasArrayNamespace)
+def _generic_op_array_api(
+    x: types.HasArrayNamespace,
+    /,
+    op: Ops,
+    *,
+    axis: Literal[0, 1] | None = None,
+    dtype: DTypeLike | None = None,
+    keep_cupy_as_array: bool = False,
+) -> Any:  # noqa: ANN401
+    """Handle arrays with native array API support."""
+    del keep_cupy_as_array
+
+    import array_api_compat
+
+    xp = array_api_compat.array_namespace(x)
+    return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
 
 
 @generic_op.register(types.CupyArray | types.CupyCSMatrix)
@@ -69,7 +78,7 @@ def _generic_op_cupy(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.CupyArray | np.number[Any]:
-    arr = cast("types.CupyArray", _run_numpy_op(x, op, axis=axis, dtype=dtype))
+    arr = cast("types.CupyArray", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
     return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 

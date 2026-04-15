@@ -25,14 +25,14 @@ if find_spec("jax"):
 
 
 @pytest.fixture
-def jax_arr() -> Any:
+def jax_arr() -> Any:  # noqa: ANN401
     import jax.numpy as jnp
 
     return jnp.array([[1, 0], [2, 0], [3, 0]], dtype=jnp.float32)
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_sum(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_sum(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     result = stats.sum(jax_arr, axis=axis)
@@ -50,7 +50,7 @@ def test_min(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_max(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_max(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     result = stats.max(jax_arr, axis=axis)
@@ -59,7 +59,7 @@ def test_max(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_mean(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     result = stats.mean(jax_arr, axis=axis)
@@ -95,7 +95,7 @@ def test_is_constant(axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean_var(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_mean_var(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     mean, var = stats.mean_var(jax_arr, axis=axis, correction=1)
@@ -108,14 +108,14 @@ def test_mean_var(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
     assert jnp.allclose(var, var_expected)
 
 
-def test_to_dense(jax_arr: Any) -> None:
+def test_to_dense(jax_arr: Any) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     result = to_dense(jax_arr)
     assert jnp.array_equal(result, jax_arr)
 
 
-def test_to_dense_to_cpu(jax_arr: Any) -> None:
+def test_to_dense_to_cpu(jax_arr: Any) -> None:  # noqa: ANN401
     result = to_dense(jax_arr, to_cpu_memory=True)
     assert isinstance(result, np.ndarray)
     np.testing.assert_array_equal(result, np.asarray(jax_arr))

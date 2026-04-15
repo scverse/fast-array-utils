@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 
 __all__ = [
@@ -37,6 +37,8 @@ __all__ = [
 
 # scipy sparse
 if TYPE_CHECKING:
+    from types import ModuleType
+
     from scipy.sparse import coo_array, coo_matrix, csc_array, csc_matrix, csr_array, csr_matrix, sparray, spmatrix
 else:
     try:  # cs?_array isn’t available in older scipy versions
@@ -116,3 +118,10 @@ else:  # pragma: no cover
         CSRDataset.__module__ = CSCDataset.__module__ = "anndata.abc"
 CSDataset = CSRDataset | CSCDataset
 """Anndata sparse out-of-core matrices."""
+
+
+@runtime_checkable
+class HasArrayNamespace(Protocol):
+    """An array object compatible with the Python array API standard."""
+
+    def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType: ...
