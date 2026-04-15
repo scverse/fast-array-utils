@@ -34,7 +34,7 @@ def test_sum(torch_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN40
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_min(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_min(torch_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import torch
 
     result = stats.min(torch_arr, axis=axis)
@@ -43,7 +43,7 @@ def test_min(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_max(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_max(torch_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import torch
 
     result = stats.max(torch_arr, axis=axis)
@@ -52,7 +52,7 @@ def test_max(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_mean(torch_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import torch
 
     result = stats.mean(torch_arr, axis=axis)
@@ -88,7 +88,7 @@ def test_is_constant(axis: Literal[0, 1] | None) -> None:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean_var(torch_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_mean_var(torch_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import torch
 
     mean, var = stats.mean_var(torch_arr, axis=axis, correction=1)
