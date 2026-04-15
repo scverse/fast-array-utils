@@ -35,11 +35,16 @@ def mean_var_(
 
     from . import mean
 
-    if array_api_compat.is_array_api_obj(x):
-        xp = array_api_compat.array_namespace(x)
-        float64 = xp.float64
-    else:
+    if isinstance(x, np.ndarray | types.CSBase):
         float64 = np.float64
+    else:
+        import array_api_compat
+
+        if array_api_compat.is_array_api_obj(x):
+            xp = array_api_compat.array_namespace(x)
+            float64 = xp.float64
+        else:
+            float64 = np.float64
 
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)

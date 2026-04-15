@@ -27,7 +27,7 @@ def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
 
 
 @singledispatch
-def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Any:
+def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Any:  # noqa: ANN401
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
 
