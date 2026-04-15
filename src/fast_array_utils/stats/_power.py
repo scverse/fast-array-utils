@@ -10,7 +10,9 @@ from .. import types
 
 
 if TYPE_CHECKING:
-    from numpy.typing import Any, DTypeLike
+    from typing import Any
+
+    from numpy.typing import DTypeLike
 
     from fast_array_utils.typing import CpuArray, GpuArray
 
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
     """Take array or matrix to a power."""
     # This wrapper is necessary because TypeVars can’t be used in `singledispatch` functions
-    return _power(x, n, dtype=dtype)  # type: ignore[return-value]
+    return _power(x, n, dtype=dtype)  # type: ignore[no-any-return]
 
 
 @singledispatch

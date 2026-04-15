@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 @singledispatch
 def generic_op(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     op: Ops,
     *,
