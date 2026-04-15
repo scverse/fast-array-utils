@@ -21,7 +21,7 @@ if find_spec("jax"):
     # problem as mean_var passes dtype= np.float64 internally, which crashes without this fix
     import jax
 
-    jax.config.update("jax_enable_x64", True)
+    jax.config.update("jax_enable_x64", True)  # noqa: FBT003
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def test_sum(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_min(jax_arr: Any, axis: Literal[0, 1] | None) -> None:
+def test_min(jax_arr: Any, axis: Literal[0, 1] | None) -> None:  # noqa: ANN401
     import jax.numpy as jnp
 
     result = stats.min(jax_arr, axis=axis)
