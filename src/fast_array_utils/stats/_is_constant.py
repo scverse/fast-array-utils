@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import partial, singledispatch
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-# checking if all values in an array are the same
-
 
 @singledispatch
 def is_constant_(
@@ -26,27 +24,21 @@ def is_constant_(
     axis: Literal[0, 1] | None = None,
 ) -> Any:  # noqa: ANN401
 
+    # Catch types that lack __array_namespace like PyTorch
     import array_api_compat
 
     if array_api_compat.is_array_api_obj(a):
-        xp = array_api_compat.array_namespace(a)
-        match axis:
-            case None:
-                return bool((a == xp.reshape(a, (-1,))[0]).all())
-            case 0:
-                return is_constant_(a.T, axis=1)  # reusing axis = 1
-            case 1:
-                b = xp.broadcast_to(a[:, 0:1], a.shape)
-                return (a == b).all(axis=1)
+        return _is_constant_ndarray(a, axis=axis)
     raise NotImplementedError
 
 
-@is_constant_.register(np.ndarray | types.CupyArray)
+@is_constant_.register(np.ndarray | types.CupyArray | types.HasArrayNamespace)
 def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
+
     match axis:
         case None:
-            return bool((a == a.flat[0]).all())
+            return bool((a == a.reshape(-1)[0]).all())
         case 0:
             return _is_constant_rows(a.T)
         case 1:
@@ -54,8 +46,8 @@ def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[
 
 
 def _is_constant_rows(a: NDArray[Any] | types.CupyArray) -> NDArray[np.bool] | types.CupyArray:
-    b = np.broadcast_to(a[:, 0][:, np.newaxis], a.shape)
-    return cast("NDArray[np.bool]", (a == b).all(axis=1))
+    # broadcasts without needing np.broadcast_to
+    return (a == a[:, 0:1]).all(axis=1)
 
 
 @is_constant_.register(types.CSBase)
