@@ -4,6 +4,7 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import TYPE_CHECKING
 
+import array_api_compat
 import numpy as np
 
 from .. import types
@@ -30,8 +31,6 @@ def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Any:  # noqa: ANN401
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-
-    import array_api_compat
 
     if array_api_compat.is_array_api_obj(x):
         xp = array_api_compat.array_namespace(x)

@@ -4,6 +4,7 @@ from __future__ import annotations
 from functools import partial, singledispatch
 from typing import TYPE_CHECKING
 
+import array_api_compat
 import numba
 import numpy as np
 
@@ -23,10 +24,7 @@ def is_constant_(
     *,
     axis: Literal[0, 1] | None = None,
 ) -> Any:  # noqa: ANN401
-
     # Catch types that lack __array_namespace like PyTorch
-    import array_api_compat
-
     if array_api_compat.is_array_api_obj(a):
         return _is_constant_ndarray(a, axis=axis)
     raise NotImplementedError
@@ -35,7 +33,6 @@ def is_constant_(
 @is_constant_.register(np.ndarray | types.CupyArray | types.HasArrayNamespace)
 def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
-
     match axis:
         case None:
             return bool((a == a.reshape(-1)[0]).all())

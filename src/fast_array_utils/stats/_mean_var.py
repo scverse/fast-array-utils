@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, no_type_check
 
+import array_api_compat
 import numba
 import numpy as np
 
@@ -31,16 +32,9 @@ def mean_var_(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
-    import array_api_compat
-
     from . import mean
 
-    if isinstance(x, np.ndarray | types.CSBase):
-        xp = np
-    else:
-        import array_api_compat
-
-        xp = array_api_compat.array_namespace(x) if array_api_compat.is_array_api_obj(x) else np
+    xp = np if isinstance(x, types.CSBase) else array_api_compat.array_namespace(x)
 
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)

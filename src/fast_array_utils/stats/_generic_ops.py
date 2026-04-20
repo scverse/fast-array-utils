@@ -4,6 +4,7 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import TYPE_CHECKING, cast, get_args
 
+import array_api_compat
 import numpy as np
 
 from .. import types
@@ -39,8 +40,6 @@ def generic_op(
         # np supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(x, types.ZarrArray | types.H5Dataset)
     # Catch array-api-compat-wrapped types that lack __array_namespace__ (i.e. PyTorch)
-    import array_api_compat
-
     if array_api_compat.is_array_api_obj(x):
         xp = array_api_compat.array_namespace(x)
         return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
@@ -61,8 +60,6 @@ def _generic_op_array_api(
 ) -> Any:  # noqa: ANN401
     """Handle arrays with native array API support."""
     del keep_cupy_as_array
-
-    import array_api_compat
 
     xp = array_api_compat.array_namespace(x)
     return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))

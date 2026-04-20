@@ -5,6 +5,7 @@ import warnings
 from functools import partial, singledispatch
 from typing import TYPE_CHECKING, cast
 
+import array_api_compat
 import numpy as np
 
 from .. import types
@@ -27,8 +28,6 @@ def to_dense_(
     order: Literal["K", "A", "C", "F"] = "K",
     to_cpu_memory: bool = False,
 ) -> Any:  # noqa: ANN401
-    import array_api_compat
-
     if not isinstance(x, np.ndarray) and array_api_compat.is_array_api_obj(x):
         if to_cpu_memory:
             return np.asarray(x, order=order)
