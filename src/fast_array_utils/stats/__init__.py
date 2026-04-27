@@ -214,13 +214,13 @@ def _mk_generic_op(op: DtypeOps) -> StatFunDtype: ...
 # https://github.com/scverse/fast-array-utils/issues/52
 def _mk_generic_op(op: Ops) -> StatFunNoDtype | StatFunDtype:
     def _generic_op(
-        x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+        x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
         /,
         *,
         axis: Literal[0, 1] | None = None,
         dtype: DTypeLike | None = None,
         keep_cupy_as_array: bool = False,
-    ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
+    ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray | types.HasArrayNamespace:
         from ._generic_ops import generic_op
 
         assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation {op!r}"
@@ -359,14 +359,16 @@ def sum(x: GpuArray, /, *, axis: None = None, dtype: DTypeLike | None = None, ke
 def sum(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 @overload
 def sum(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+@overload
+def sum[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None, keep_cupy_as_array: bool = False) -> A: ...
 def sum(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
-) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray:
+) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray | types.HasArrayNamespace:
     """Sum over both or one axis.
 
     Parameters

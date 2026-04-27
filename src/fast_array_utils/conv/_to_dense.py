@@ -47,7 +47,7 @@ def _to_dense_numpy(x: np.ndarray, /, *, order: Literal["K", "A", "C", "F"] = "K
 
 
 @to_dense_.register(types.HasArrayNamespace)
-def _to_dense_array_api(x: types.HasArrayNamespace, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> Any:  # noqa: ANN401
+def _to_dense_array_api[A: types.HasArrayNamespace](x: A, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> A | np.ndarray:
     if to_cpu_memory:
         return np.asarray(x, order=order)
     return x
