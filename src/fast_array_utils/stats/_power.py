@@ -21,14 +21,14 @@ if TYPE_CHECKING:
 def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
     """Take array or matrix to a power."""
     # This wrapper is necessary because TypeVars can’t be used in `singledispatch` functions
-    return _power(x, n, dtype=dtype)  # type: ignore[no-any-return]
+    return _power(x, n, dtype=dtype)  # type: ignore[return-value]
 
 
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[operator]
+    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[arg-type]
 
 
 @_power.register(np.ndarray)
@@ -42,7 +42,7 @@ def _power_array_api(x: types.HasArrayNamespace, n: int, /, dtype: DTypeLike | N
     import array_api_compat
 
     xp = array_api_compat.array_namespace(x)
-    return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)
+    return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)  # type: ignore[no-any-return]
 
 
 @_power.register(types.CSBase | types.CupyCSMatrix)

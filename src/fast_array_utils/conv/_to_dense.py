@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix | types.HasArrayNamespace,
     /,
     *,
     order: Literal["K", "A", "C", "F"] = "K",
