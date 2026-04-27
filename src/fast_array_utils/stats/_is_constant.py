@@ -29,7 +29,6 @@ def is_constant_(
 @is_constant_.register(np.ndarray | types.CupyArray | types.HasArrayNamespace)
 def _is_constant_ndarray(a: NDArray[Any] | types.CupyArray, /, *, axis: Literal[0, 1] | None = None) -> bool | NDArray[np.bool] | types.CupyArray:
     # Should eventually support nd, not now.
-
     match axis:
         case None:
             return bool((a == a.reshape(-1)[0]).all())
