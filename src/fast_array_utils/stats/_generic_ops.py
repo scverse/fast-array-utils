@@ -55,8 +55,7 @@ def _generic_op_numpy(
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any]:
     del keep_cupy_as_array
-    arr = getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
-    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr  # type: ignore[return-value]
+    return getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
 
 
 @generic_op.register(types.HasArrayNamespace)
