@@ -84,7 +84,7 @@ envs.hatch-test.overrides.matrix.resolution.dependencies = [
   { if = [ "lowest" ], value = "scipy==1.13.0" },
 ]
 envs.hatch-test.matrix = [
-  { python = [ "3.13", "3.12" ], extras = [ "full", "min" ] },
+  { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
   { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
 ]
 metadata.hooks.docstring-description = {}
@@ -139,6 +139,20 @@ lint.isort.lines-after-imports = 2
 lint.pydocstyle.convention = "numpy"
 lint.future-annotations = true
 
+[tool.mypy]
+strict = true
+# https://github.com/dask/dask/issues/8853
+implicit_reexport = true
+explicit_package_bases = true
+mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+
+[tool.pyright]
+stubPath = "./typings"
+reportPrivateUsage = false
+
+[tool.ty]
+environment.extra-paths = [ "./typings" ]
+
 [tool.pytest]
 strict = true
 addopts = [
@@ -151,15 +165,10 @@ testpaths = [ "./tests", "fast_array_utils" ]
 doctest_subpackage_requires = [
   "src/fast_array_utils/conv/scipy/* = scipy",
   "src/fast_array_utils/conv/scipy/_to_dense.py = numba",
+  "src/fast_array_utils/numba/* = numba",
   "src/fast_array_utils/stats/* = numba",
   "src/fast_array_utils/_plugins/dask.py = dask",
   "src/fast_array_utils/_plugins/numba_sparse.py = numba;scipy",
-]
-filterwarnings = [
-  "error",
-  # codspeed seems to break this dtype added by h5py
-  "ignore:.*numpy[.]longdouble:UserWarning",
-  "ignore:FNV hashing is not implemented in Numba:UserWarning",
 ]
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
@@ -168,21 +177,6 @@ markers = [
 [tool.coverage]
 run.data_file = "test-data/.coverage"
 run.omit = [ "src/testing/*", "tests/*" ]
-report.exclude_also = [ "@numba[.]njit", "[.]{3}", "if TYPE_CHECKING:" ]
+report.exclude_also = [ "@(numba[.])?njit", "[.]{3}", "if TYPE_CHECKING:" ]
 html.directory = "test-data/htmlcov"
 xml.output = "test-data/coverage.xml"
-
-[tool.mypy]
-strict = true
-# https://github.com/dask/dask/issues/8853
-implicit_reexport = true
-explicit_package_bases = true
-mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
-
-[[tool.mypy.overrides]]
-module = [ "jax", "jax.*" ]
-ignore_missing_imports = true
-
-[tool.pyright]
-stubPath = "./typings"
-reportPrivateUsage = false

@@ -90,7 +90,7 @@ def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
         case (0, 1) | (1, 0):
             axis = None
         case _:  # pragma: no cover
-            raise AxisError(axis, ndim)  # type: ignore[call-overload]
+            raise AxisError(axis, ndim)
     if axis == 0 and ndim == 1:
         return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
     return axis
