@@ -73,4 +73,4 @@ def to_dense(
     Dense form of ``x``
 
     """
-    return to_dense_(x, order=order, to_cpu_memory=to_cpu_memory)  # type: ignore[no-any-return]
+    return to_dense_(x, order=order, to_cpu_memory=to_cpu_memory)

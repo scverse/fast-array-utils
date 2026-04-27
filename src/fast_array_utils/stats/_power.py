@@ -28,7 +28,7 @@ def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     if TYPE_CHECKING:
         assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[arg-type]
+    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[operator]
 
 
 @_power.register(np.ndarray)

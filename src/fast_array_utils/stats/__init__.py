@@ -77,7 +77,7 @@ def is_constant(
     from ._is_constant import is_constant_
 
     validate_axis(x.ndim, axis)
-    return is_constant_(x, axis=axis)  # type: ignore[no-any-return]
+    return is_constant_(x, axis=axis)
 
 
 # TODO(flying-sheep): support CSDataset (TODO)
@@ -226,7 +226,7 @@ def _mk_generic_op(op: Ops) -> StatFunNoDtype | StatFunDtype:
         assert dtype is None or op in get_args(DtypeOps), f"`dtype` is not supported for operation {op!r}"
 
         validate_axis(x.ndim, axis)
-        return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)  # type: ignore[no-any-return]
+        return generic_op(x, op, axis=axis, keep_cupy_as_array=keep_cupy_as_array, dtype=dtype)
 
     _generic_op.__name__ = op
     return cast("StatFunNoDtype | StatFunDtype", _generic_op)
