@@ -64,7 +64,7 @@ envs.docs.dependency-groups = [ "doc" ]
 envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
 envs.docs.scripts.clean = "git clean -fdX docs"
 envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
-envs.hatch-test.default-args = [  ]
+envs.hatch-test.default-args = []
 envs.hatch-test.dependency-groups = [ "test-min" ]
 # TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
 envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
@@ -90,7 +90,7 @@ metadata.hooks.docstring-description = {}
 metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
 metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
 version.source = "vcs"
-version.raw-options = { local_scheme = "no-local-version" } # be able to publish dev version
+version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
 
 [tool.uv]
 override-dependencies = [ "sphinx>=9.0.1" ]
@@ -131,7 +131,7 @@ lint.per-file-ignores."typings/**/*.pyi" = [ "A002", "F403", "F405", "N801" ]
 lint.allowed-confusables = [ "×", "’" ]
 lint.flake8-bugbear.extend-immutable-calls = [ "testing.fast_array_utils.Flags" ]
 lint.flake8-copyright.notice-rgx = "SPDX-License-Identifier: MPL-2\\.0"
-lint.flake8-type-checking.exempt-modules = [  ]
+lint.flake8-type-checking.exempt-modules = []
 lint.flake8-type-checking.strict = true
 lint.isort.known-first-party = [ "fast_array_utils" ]
 lint.isort.lines-after-imports = 2
