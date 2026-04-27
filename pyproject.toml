@@ -145,10 +145,7 @@ strict = true
 implicit_reexport = true
 explicit_package_bases = true
 mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
-
-[[tool.mypy.overrides]]
-module = [ "jax", "jax.*" ]
-ignore_missing_imports = true
+overrides = [ { module = [ "jax", "jax.*" ], ignore_missing_imports = true } ]
 
 [tool.pyright]
 stubPath = "./typings"
