@@ -4,7 +4,6 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import TYPE_CHECKING
 
-import array_api_compat
 import numpy as np
 
 from .. import types
@@ -40,6 +39,7 @@ def _power_numpy(x: np.ndarray, n: int, /, dtype: DTypeLike | None = None) -> np
 
 @_power.register(types.HasArrayNamespace)
 def _power_array_api(x: types.HasArrayNamespace, n: int, /, dtype: DTypeLike | None = None) -> types.HasArrayNamespace:
+    import array_api_compat
 
     xp = array_api_compat.array_namespace(x)
     return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)

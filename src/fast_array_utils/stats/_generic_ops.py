@@ -4,7 +4,6 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import TYPE_CHECKING, cast, get_args
 
-import array_api_compat
 import numpy as np
 
 from .. import types
@@ -45,7 +44,7 @@ def generic_op(
 
 
 @generic_op.register(np.ndarray)
-# to avoid going array api path that would slow down the performance
+# register explicitly to avoid the array API path and performance slow down
 def _generic_op_numpy(
     x: np.ndarray,
     /,
@@ -72,6 +71,8 @@ def _generic_op_array_api(
 ) -> Any:  # noqa: ANN401
     """Handle arrays with native array API support."""
     del keep_cupy_as_array
+
+    import array_api_compat
 
     xp = array_api_compat.array_namespace(x)
     return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
