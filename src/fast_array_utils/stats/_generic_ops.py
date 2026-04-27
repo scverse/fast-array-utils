@@ -31,20 +31,30 @@ def generic_op(
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
-) -> Any:  # Fallback handles arbitrary array-api-compatible types, so return type can't be narrowed  # noqa: ANN401
+) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
     del keep_cupy_as_array
     if TYPE_CHECKING:
         # these are never passed to this fallback function, but `singledispatch` wants them
         assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
         # np supports these, but doesn’t know it. (TODO: test cupy)
         assert not isinstance(x, types.ZarrArray | types.H5Dataset)
-    # Catch array-api-compat-wrapped types that lack __array_namespace__ (i.e. PyTorch)
-    import array_api_compat
 
-    if array_api_compat.is_array_api_obj(x):
-        xp = array_api_compat.array_namespace(x)
-        return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))
+    arr = getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
+    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
 
+
+@generic_op.register(np.ndarray)
+# to avoid going array api path that would slow down the performance
+def _generic_op_numpy(
+    x: np.ndarray,
+    /,
+    op: Ops,
+    *,
+    axis: Literal[0, 1] | None = None,
+    dtype: DTypeLike | None = None,
+    keep_cupy_as_array: bool = False,
+) -> NDArray[Any] | np.number[Any]:
+    del keep_cupy_as_array
     arr = getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
     return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
 

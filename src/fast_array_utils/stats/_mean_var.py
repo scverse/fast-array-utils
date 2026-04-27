@@ -31,17 +31,17 @@ def mean_var_(
     | tuple[np.float64, np.float64]
     | tuple[types.DaskArray, types.DaskArray]
 ):
-    import array_api_compat
 
     from . import mean
 
     if isinstance(x, np.ndarray | types.CSBase):
         xp = np
-    else:
+    elif isinstance(x, types.HasArrayNamespace):
         import array_api_compat
 
-        xp = array_api_compat.array_namespace(x) if array_api_compat.is_array_api_obj(x) else np
-
+        xp = array_api_compat.array_namespace(x)
+    else:
+        xp = np
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:

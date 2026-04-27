@@ -26,14 +26,7 @@ def to_dense_(
     *,
     order: Literal["K", "A", "C", "F"] = "K",
     to_cpu_memory: bool = False,
-) -> Any:  # noqa: ANN401
-    import array_api_compat
-
-    if not isinstance(x, np.ndarray) and array_api_compat.is_array_api_obj(x):
-        if to_cpu_memory:
-            return np.asarray(x, order=order)
-        return x  # array API standard covers dense arrays; sparse types are handled by registered dispatches
-
+) -> NDArray[Any] | types.CupyArray | types.DaskArray:
     del to_cpu_memory  # it already is
     return np.asarray(x, order=order)
 
@@ -44,6 +37,20 @@ def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, order: Literal["K", "A
 
     del to_cpu_memory  # it already is
     return scipy.to_dense(x, order=sparse_order(x, order=order))
+
+
+@to_dense_.register(np.ndarray)
+def _to_dense_numpy(x: np.ndarray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> np.ndarray:
+    # to bypass the _to_dense_array_api path
+    del to_cpu_memory
+    return np.asarray(x, order=order)
+
+
+@to_dense_.register(types.HasArrayNamespace)
+def _to_dense_array_api(x: types.HasArrayNamespace, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> Any:  # noqa: ANN401
+    if to_cpu_memory:
+        return np.asarray(x, order=order)
+    return x
 
 
 @to_dense_.register(types.DaskArray)
