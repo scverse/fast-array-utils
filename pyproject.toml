@@ -27,6 +27,7 @@ dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
+optional-dependencies.jax = [ "jax", "jaxlib" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.testing = [ "packaging" ]
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
@@ -71,6 +72,7 @@ envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
 envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 envs.hatch-test.overrides.matrix.extras.features = [
   { if = [ "full" ], value = "full" },
+  { if = [ "full" ], value = "jax" },
 ]
 envs.hatch-test.overrides.matrix.extras.dependency-groups = [
   { if = [ "full" ], value = "test" },
@@ -143,6 +145,7 @@ strict = true
 implicit_reexport = true
 explicit_package_bases = true
 mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+overrides = [ { module = [ "jax", "jax.*" ], ignore_missing_imports = true } ]
 
 [tool.pyright]
 stubPath = "./typings"

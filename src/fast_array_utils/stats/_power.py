@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from fast_array_utils.typing import CpuArray, GpuArray
 
     # All supported array types except for disk ones and CSDataset
-    type Array = CpuArray | GpuArray | types.DaskArray
+    type Array = CpuArray | GpuArray | types.DaskArray | types.HasArrayNamespace
 
 
 def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
@@ -26,9 +26,21 @@ def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
 
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
-    if TYPE_CHECKING:
-        assert not isinstance(x, types.DaskArray | types.CSBase | types.CupyCSMatrix)
-    return x**n if dtype is None else np.power(x, n, dtype=dtype)  # type: ignore[operator]
+    raise NotImplementedError
+
+
+@_power.register(np.ndarray)
+def _power_numpy(x: np.ndarray, n: int, /, dtype: DTypeLike | None = None) -> np.ndarray:
+    # avoids slower xp.pow(xp.astype(...)) path
+    return x**n if dtype is None else np.power(x, n, dtype=dtype)
+
+
+@_power.register(types.HasArrayNamespace)
+def _power_array_api(x: types.HasArrayNamespace, n: int, /, dtype: DTypeLike | None = None) -> types.HasArrayNamespace:
+    import array_api_compat
+
+    xp = array_api_compat.array_namespace(x)
+    return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)  # type: ignore[no-any-return]
 
 
 @_power.register(types.CSBase | types.CupyCSMatrix)
