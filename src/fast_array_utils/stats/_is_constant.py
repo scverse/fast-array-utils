@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 @singledispatch
 def is_constant_(
-    a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
+    a: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def mean_(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,

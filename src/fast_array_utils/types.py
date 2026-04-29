@@ -124,4 +124,7 @@ CSDataset = CSRDataset | CSCDataset
 class HasArrayNamespace(Protocol):
     """An array object compatible with the Python array API standard."""
 
+    ndim: int
+    shape: tuple[int, ...]
+
     def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType: ...

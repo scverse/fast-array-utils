@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 @no_type_check  # mypy is extremely confused
 def mean_var_(
-    x: CpuArray | GpuArray | types.DaskArray,
+    x: CpuArray | GpuArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
