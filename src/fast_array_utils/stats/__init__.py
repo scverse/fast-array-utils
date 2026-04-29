@@ -37,14 +37,16 @@ def is_constant(x: NDArray[Any] | types.CSBase, /, *, axis: Literal[0, 1]) -> ND
 def is_constant(x: types.CupyArray, /, *, axis: Literal[0, 1]) -> types.CupyArray: ...
 @overload
 def is_constant(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None) -> types.DaskArray: ...
+@overload
+def is_constant[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None) -> bool | A: ...
 
 
 def is_constant(
-    x: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray,
+    x: NDArray[Any] | types.CSBase | types.CupyArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
-) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:
+) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray | types.HasArrayNamespace:
     """Check whether values in array are constant.
 
     Parameters
@@ -90,15 +92,17 @@ def mean(x: CpuArray | DiskArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | 
 def mean(x: GpuArray, /, *, axis: Literal[0, 1], dtype: DTypeLike | None = None) -> types.CupyArray: ...
 @overload
 def mean(x: types.DaskArray, /, *, axis: Literal[0, 1], dtype: ToDType[Any] | None = None) -> types.DaskArray: ...
+@overload
+def mean[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None, dtype: DTypeLike | None = None) -> A: ...
 
 
 def mean(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
     dtype: DTypeLike | None = None,
-) -> NDArray[np.number[Any]] | types.CupyArray | np.number[Any] | types.DaskArray:
+) -> NDArray[np.number[Any]] | types.CupyArray | np.number[Any] | types.DaskArray | types.HasArrayNamespace:
     """Mean over both or one axis.
 
     Parameters
@@ -145,10 +149,10 @@ def mean_var(x: CpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tup
 def mean_var(x: GpuArray, /, *, axis: Literal[0, 1], correction: int = 0) -> tuple[types.CupyArray, types.CupyArray]: ...
 @overload
 def mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, correction: int = 0) -> tuple[types.DaskArray, types.DaskArray]: ...
-
-
+@overload
+def mean_var[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None, correction: int = 0) -> tuple[A, A]: ...
 def mean_var(
-    x: CpuArray | GpuArray | types.DaskArray,
+    x: CpuArray | GpuArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
@@ -158,6 +162,7 @@ def mean_var(
     | tuple[NDArray[np.float64], NDArray[np.float64]]
     | tuple[types.CupyArray, types.CupyArray]
     | tuple[types.DaskArray, types.DaskArray]
+    | tuple[types.HasArrayNamespace, types.HasArrayNamespace]
 ):
     """Mean and variance over both or one axis.
 
@@ -249,8 +254,10 @@ def min(x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> typ
 def min(x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 @overload
 def min(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+@overload
+def min[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> A: ...
 def min(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
@@ -304,8 +311,10 @@ def max(x: GpuArray, /, *, axis: None, keep_cupy_as_array: Literal[True]) -> typ
 def max(x: GpuArray, /, *, axis: Literal[0, 1], keep_cupy_as_array: bool = False) -> types.CupyArray: ...
 @overload
 def max(x: types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> types.DaskArray: ...
+@overload
+def max[A: types.HasArrayNamespace](x: A, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False) -> A: ...
 def max(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
