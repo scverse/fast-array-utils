@@ -32,7 +32,7 @@ def generic_op(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    raise NotImplementedError
+    raise NotImplementedError  # pragma: no cover
 
 
 @generic_op.register(np.ndarray | types.H5Dataset | types.ZarrArray)

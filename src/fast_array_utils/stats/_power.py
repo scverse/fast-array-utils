@@ -26,7 +26,7 @@ def power[Arr: Array](x: Arr, n: int, /, dtype: DTypeLike | None = None) -> Arr:
 
 @singledispatch
 def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
-    raise NotImplementedError
+    raise NotImplementedError  # pragma: no cover
 
 
 @_power.register(np.ndarray | types.CupyArray)

@@ -24,7 +24,7 @@ def is_constant_(
     *,
     axis: Literal[0, 1] | None = None,
 ) -> bool | NDArray[np.bool] | types.CupyArray | types.DaskArray:  # pragma: no cover
-    raise NotImplementedError
+    raise NotImplementedError  # pragma: no cover
 
 
 @is_constant_.register(np.ndarray | types.CupyArray | types.HasArrayNamespace)
