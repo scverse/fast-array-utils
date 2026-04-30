@@ -29,8 +29,8 @@ def _power(x: Array, n: int, /, dtype: DTypeLike | None = None) -> Array:
     raise NotImplementedError
 
 
-@_power.register(np.ndarray)
-def _power_numpy(x: np.ndarray, n: int, /, dtype: DTypeLike | None = None) -> np.ndarray:
+@_power.register(np.ndarray | types.CupyArray)
+def _power_numpy_cupy(x: np.ndarray, n: int, /, dtype: DTypeLike | None = None) -> np.ndarray:
     # avoids slower xp.pow(xp.astype(...)) path
     return x**n if dtype is None else np.power(x, n, dtype=dtype)
 

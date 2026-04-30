@@ -32,15 +32,7 @@ def generic_op(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    del keep_cupy_as_array
-    if TYPE_CHECKING:
-        # these are never passed to this fallback function, but `singledispatch` wants them
-        assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
-        # np supports these, but doesn’t know it. (TODO: test cupy)
-        assert not isinstance(x, types.ZarrArray | types.H5Dataset)
-
-    arr = getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))
-    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
+    raise NotImplementedError
 
 
 @generic_op.register(np.ndarray)
@@ -87,7 +79,8 @@ def _generic_op_cupy(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.CupyArray | np.number[Any]:
-    arr = cast("types.CupyArray", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
+    arr = cast("types.CupyArray | types.CupyCOOMatrix", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
+    arr = arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
     return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 
