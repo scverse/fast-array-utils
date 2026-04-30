@@ -14,6 +14,7 @@ from fast_array_utils.conv import to_dense
 if TYPE_CHECKING:
     from typing import Literal
 
+
 pytestmark = pytest.mark.skipif(not find_spec("jax"), reason="jax not installed")
 
 if find_spec("jax"):

@@ -34,7 +34,7 @@ class StatFunNoDtype(Protocol):
         *,
         axis: Literal[0, 1] | None = None,
         keep_cupy_as_array: bool = False,
-    ) -> types.DaskArray | types.HasArrayNamespace: ...
+    ) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray | types.HasArrayNamespace: ...
 
 
 class StatFunDtype(Protocol):

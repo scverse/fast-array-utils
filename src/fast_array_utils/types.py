@@ -7,6 +7,10 @@ from importlib.util import find_spec
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 
+if TYPE_CHECKING:
+    from types import ModuleType
+
+
 __all__ = [
     "COOBase",
     "CSArray",
@@ -22,6 +26,7 @@ __all__ = [
     "DaskArray",
     "H5Dataset",
     "H5Group",
+    "HasArrayNamespace",
     "ZarrArray",
     "ZarrGroup",
     "coo_array",
@@ -37,8 +42,6 @@ __all__ = [
 
 # scipy sparse
 if TYPE_CHECKING:
-    from types import ModuleType
-
     from scipy.sparse import coo_array, coo_matrix, csc_array, csc_matrix, csr_array, csr_matrix, sparray, spmatrix
 else:
     try:  # cs?_array isn’t available in older scipy versions
@@ -124,7 +127,17 @@ CSDataset = CSRDataset | CSCDataset
 class HasArrayNamespace(Protocol):
     """An array object compatible with the Python array API standard."""
 
-    ndim: int
-    shape: tuple[int, ...]
+    @property
+    def ndim(self) -> int:
+        """The number of dimensions of the array."""
 
-    def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType: ...
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """The shape of the array."""
+
+    @property
+    def dtype(self) -> object:
+        """The data type of the array."""
+
+    def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType:
+        """Get Array API namespace."""

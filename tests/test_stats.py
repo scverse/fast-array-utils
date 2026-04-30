@@ -103,9 +103,11 @@ def np_arr(dtype_in: type[DTypeIn], ndim: Literal[1, 2]) -> NDArray[DTypeIn]:
     return np_arr
 
 
-def to_np_dense_checked(
-    stat: NDArray[DTypeOut] | np.number[Any] | types.DaskArray, axis: Literal[0, 1] | None, arr: CpuArray | GpuArray | DiskArray | types.DaskArray
-) -> NDArray[DTypeOut] | np.number[Any]:
+def to_np_dense_checked[DT: DTypeOut](
+    stat: NDArray[DT] | np.number[Any] | types.DaskArray | types.HasArrayNamespace,
+    axis: Literal[0, 1] | None,
+    arr: CpuArray | GpuArray | DiskArray | types.COOBase | types.DaskArray | types.HasArrayNamespace,
+) -> NDArray[DT] | np.number[Any]:
     match axis, arr:
         case _, types.DaskArray():
             assert isinstance(stat, types.DaskArray), type(stat)
@@ -208,7 +210,7 @@ def test_min_max(array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.D
     np_arr = rng.random((100, 100))
     arr = array_type(np_arr)
 
-    result = to_np_dense_checked(func(arr, axis=axis), axis, arr)
+    result = to_np_dense_checked(func(arr, axis=axis), axis, arr)  # type: ignore[arg-type]
 
     expected = (np.min if func is stats.min else np.max)(np_arr, axis=axis)
     np.testing.assert_array_equal(result, expected)
@@ -229,7 +231,7 @@ def test_dask_shapes(array_type: ArrayType[types.DaskArray], axis: Literal[0, 1]
     np_arr = np.array(data, dtype=np.float32)
     arr = array_type(np_arr)
     assert 1 in arr.chunksize, "This test is supposed to test 1×n and n×1 chunk sizes"
-    stat = cast("NDArray[Any] | types.CupyArray", func(arr, axis=axis).compute())
+    stat = cast("NDArray[Any] | types.CupyArray", func(arr, axis=axis).compute())  # type: ignore[union-attr]
     if isinstance(stat, types.CupyArray):
         stat = stat.get()
     np_func = getattr(np, func.__name__)
@@ -321,6 +323,8 @@ def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_redu
     arr = array_type(mat)
 
     mean_mat, var_mat = stats.mean_var(mat, axis=0, correction=1)
+    mean_arr: NDArray[Any] | np.number  # actually just NDArray, and mypy should be able to infer.
+    var_arr: NDArray[Any] | np.number
     mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
 
     rtol = 1.0e-5 if array_type.flags & Flags.Gpu else 1.0e-7
