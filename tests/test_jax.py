@@ -33,39 +33,18 @@ def jax_arr() -> jax.Array:
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_sum(jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
+@pytest.mark.parametrize("func", ["sum", "min", "max", "mean"])
+def test_simple_stat(jax_arr: jax.Array, func: Literal["sum", "min", "max", "mean"], axis: Literal[0, 1] | None) -> None:
     import jax.numpy as jnp
 
-    result = stats.sum(jax_arr, axis=axis)
-    expected = jnp.sum(jax_arr, axis=axis)
-    assert jnp.array_equal(result, expected)
+    result = getattr(stats, func)(jax_arr, axis=axis)
+    expected = getattr(jnp, func)(jax_arr, axis=axis)
 
-
-@pytest.mark.parametrize("axis", [None, 0, 1])
-def test_min(jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
-    import jax.numpy as jnp
-
-    result = stats.min(jax_arr, axis=axis)
-    expected = jnp.min(jax_arr, axis=axis)
-    assert jnp.array_equal(result, expected)
-
-
-@pytest.mark.parametrize("axis", [None, 0, 1])
-def test_max(jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
-    import jax.numpy as jnp
-
-    result = stats.max(jax_arr, axis=axis)
-    expected = jnp.max(jax_arr, axis=axis)
-    assert jnp.array_equal(result, expected)
-
-
-@pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean(jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
-    import jax.numpy as jnp
-
-    result = stats.mean(jax_arr, axis=axis)
-    expected = jnp.mean(jax_arr, axis=axis)
-    assert jnp.allclose(result, expected)
+    assert type(result) is type(expected)
+    if func == "mean":
+        assert jnp.allclose(result, expected)
+    else:
+        assert jnp.array_equal(result, expected)
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
@@ -86,37 +65,43 @@ def test_is_constant(axis: Literal[0, 1] | None) -> None:
     result = stats.is_constant(x, axis=axis)
 
     if axis is None:
-        assert bool(result) is False
+        assert not result
     elif axis == 0:
         expected = jnp.array([True, True, False, False])
+        assert type(result) is type(expected)
         assert jnp.array_equal(result, expected)
     else:
         expected = jnp.array([False, False, True, True, False, True])
+        assert type(result) is type(expected)
         assert jnp.array_equal(result, expected)
 
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_mean_var(jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
+def test_mean_var(subtests: pytest.Subtests, jax_arr: jax.Array, axis: Literal[0, 1] | None) -> None:
     import jax.numpy as jnp
 
     mean, var = stats.mean_var(jax_arr, axis=axis, correction=1)
 
-    mean_expected = jnp.mean(jax_arr, axis=axis)
-    n = jax_arr.size if axis is None else jax_arr.shape[axis]
-    var_expected = jnp.var(jax_arr, axis=axis) * n / (n - 1)
+    for name, result in dict(mean=mean, var=var).items():
+        if name == "mean":
+            expected = jnp.mean(jax_arr, axis=axis)
+        else:
+            n = jax_arr.size if axis is None else jax_arr.shape[axis]
+            expected = jnp.var(jax_arr, axis=axis) * n / (n - 1)
 
-    assert jnp.allclose(mean, mean_expected)
-    assert jnp.allclose(var, var_expected)
+        with subtests.test(name):
+            assert type(result) is type(expected)
+            assert jnp.allclose(result, expected)
 
 
-def test_to_dense(jax_arr: jax.Array) -> None:
+@pytest.mark.parametrize("to_cpu_memory", [True, False], ids=["to_cpu_memory", "not_to_cpu_memory"])
+def test_to_dense(*, jax_arr: jax.Array, to_cpu_memory: bool) -> None:
     import jax.numpy as jnp
 
-    result = to_dense(jax_arr)
+    result = to_dense(jax_arr, to_cpu_memory=to_cpu_memory)
+
+    if to_cpu_memory:
+        assert isinstance(result, np.ndarray)
+    else:
+        assert isinstance(result, jax.Array)
     assert jnp.array_equal(result, jax_arr)
-
-
-def test_to_dense_to_cpu(jax_arr: jax.Array) -> None:
-    result = to_dense(jax_arr, to_cpu_memory=True)
-    assert isinstance(result, np.ndarray)
-    np.testing.assert_array_equal(result, np.asarray(jax_arr))
