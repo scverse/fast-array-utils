@@ -25,9 +25,9 @@ classifiers = [
 dynamic = [ "description", "readme", "version" ]
 dependencies = [ "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
+optional-dependencies.array-api = [ "array-api-compat" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
-optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
-optional-dependencies.jax = [ "jax", "jaxlib" ]
+optional-dependencies.full = [ "fast-array-utils[accel,array-api,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.testing = [ "packaging" ]
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
@@ -38,7 +38,9 @@ entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 [dependency-groups]
 test = [
   "anndata",
-  "fast-array-utils[accel]",
+  "fast-array-utils[full]",
+  "jax",
+  "jaxlib",
   "scikit-learn",
   "zarr",
   { include-group = "test-min" },
@@ -70,10 +72,6 @@ envs.hatch-test.dependency-groups = [ "test-min" ]
 # TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
 envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
 envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
-envs.hatch-test.overrides.matrix.extras.features = [
-  { if = [ "full" ], value = "full" },
-  { if = [ "full" ], value = "jax" },
-]
 envs.hatch-test.overrides.matrix.extras.dependency-groups = [
   { if = [ "full" ], value = "test" },
 ]
