@@ -56,7 +56,7 @@ jobs:
         with:
           python-version: ${{ matrix.env.python }}
       - name: create environment
-        run: uvx hatch env create ${{ matrix.env.name }}
+        run: uvx hatch -v env create ${{ matrix.env.name }}
       - name: run tests with coverage
         run: |
           uvx hatch run ${{ matrix.env.name }}:run-cov

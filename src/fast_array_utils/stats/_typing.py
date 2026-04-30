@@ -28,8 +28,13 @@ class StatFunNoDtype(Protocol):
     __name__: str
 
     def __call__(
-        self, x: CpuArray | GpuArray | DiskArray | types.DaskArray, /, *, axis: Literal[0, 1] | None = None, keep_cupy_as_array: bool = False
-    ) -> types.DaskArray: ...
+        self,
+        x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
+        /,
+        *,
+        axis: Literal[0, 1] | None = None,
+        keep_cupy_as_array: bool = False,
+    ) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray | types.HasArrayNamespace: ...
 
 
 class StatFunDtype(Protocol):
@@ -37,13 +42,13 @@ class StatFunDtype(Protocol):
 
     def __call__(
         self,
-        x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+        x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
         /,
         *,
         axis: Literal[0, 1] | None = None,
         dtype: DTypeLike | None = None,
         keep_cupy_as_array: bool = False,
-    ) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray: ...
+    ) -> NDArray[Any] | types.CupyArray | np.number[Any] | types.DaskArray | types.HasArrayNamespace: ...
 
 
 NoDtypeOps = Literal["max", "min"]

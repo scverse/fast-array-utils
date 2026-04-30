@@ -22,20 +22,9 @@ if TYPE_CHECKING:
     type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
 
 
-def _run_numpy_op(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
-    op: Ops,
-    *,
-    axis: Literal[0, 1] | None = None,
-    dtype: DTypeLike | None = None,
-) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
-    arr = cast("NDArray[Any] | np.number[Any] | types.CupyArray | types.CupyCOOMatrix | types.DaskArray", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
-    return arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
-
-
 @singledispatch
 def generic_op(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.HasArrayNamespace,
     /,
     op: Ops,
     *,
@@ -43,13 +32,22 @@ def generic_op(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> NDArray[Any] | np.number[Any] | types.CupyArray | types.DaskArray:
+    raise NotImplementedError  # pragma: no cover
+
+
+@generic_op.register(np.ndarray | types.H5Dataset | types.ZarrArray)
+# register explicitly to avoid the array API path and performance slow down
+def _generic_op_numpy_disk(
+    x: np.ndarray | DiskArray,
+    /,
+    op: Ops,
+    *,
+    axis: Literal[0, 1] | None = None,
+    dtype: DTypeLike | None = None,
+    keep_cupy_as_array: bool = False,
+) -> NDArray[Any] | np.number[Any]:
     del keep_cupy_as_array
-    if TYPE_CHECKING:
-        # these are never passed to this fallback function, but `singledispatch` wants them
-        assert not isinstance(x, types.CSBase | types.DaskArray | types.CupyArray | types.CupyCSMatrix)
-        # np supports these, but doesn’t know it. (TODO: test cupy)
-        assert not isinstance(x, types.ZarrArray | types.H5Dataset)
-    return cast("NDArray[Any] | np.number[Any]", _run_numpy_op(x, op, axis=axis, dtype=dtype))
+    return getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
 
 
 @generic_op.register(types.CupyArray | types.CupyCSMatrix)
@@ -62,7 +60,8 @@ def _generic_op_cupy(
     dtype: DTypeLike | None = None,
     keep_cupy_as_array: bool = False,
 ) -> types.CupyArray | np.number[Any]:
-    arr = cast("types.CupyArray", _run_numpy_op(x, op, axis=axis, dtype=dtype))
+    arr = cast("types.CupyArray | types.CupyCOOMatrix", getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op)))
+    arr = arr.toarray() if isinstance(arr, types.CupyCOOMatrix) else arr
     return cast("np.number[Any]", arr.get()[()]) if not keep_cupy_as_array and axis is None else arr.squeeze()
 
 
@@ -109,3 +108,22 @@ def _generic_op_dask(
         dtype = getattr(np, op)(np.zeros(1, dtype=x.dtype)).dtype
 
     return _dask_inner(x, op, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
+
+
+@generic_op.register(types.HasArrayNamespace)
+def _generic_op_array_api[A: types.HasArrayNamespace](
+    x: A,
+    /,
+    op: Ops,
+    *,
+    axis: Literal[0, 1] | None = None,
+    dtype: DTypeLike | None = None,
+    keep_cupy_as_array: bool = False,
+) -> A:
+    """Handle arrays with native array API support."""
+    del keep_cupy_as_array
+
+    import array_api_compat
+
+    xp = array_api_compat.array_namespace(x)
+    return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]

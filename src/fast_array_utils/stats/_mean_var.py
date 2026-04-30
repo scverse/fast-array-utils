@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 @no_type_check  # mypy is extremely confused
 def mean_var_(
-    x: CpuArray | GpuArray | types.DaskArray,
+    x: CpuArray | GpuArray | types.DaskArray | types.HasArrayNamespace,
     /,
     *,
     axis: Literal[0, 1] | None = None,
@@ -34,11 +34,18 @@ def mean_var_(
 ):
     from . import mean
 
+    if isinstance(x, np.ndarray | types.CSBase) or not isinstance(x, types.HasArrayNamespace):
+        xp = np
+    else:
+        import array_api_compat
+
+        xp = array_api_compat.array_namespace(x)
+
     if axis is not None and isinstance(x, types.CSBase):
         mean_, var = _sparse_mean_var(x, axis=axis)
     else:
-        mean_ = mean(x, axis=axis, dtype=np.float64)
-        mean_sq = mean(power(x, 2, dtype=np.float64), axis=axis) if isinstance(x, types.DaskArray) else mean(power(x, 2), axis=axis, dtype=np.float64)
+        mean_ = mean(x, axis=axis, dtype=xp.float64)
+        mean_sq = mean(power(x, 2, dtype=xp.float64), axis=axis) if isinstance(x, types.DaskArray) else mean(power(x, 2), axis=axis, dtype=xp.float64)
         var = mean_sq - mean_**2
     if correction:  # R convention == 1 (unbiased estimator)
         n = np.prod(x.shape) if axis is None else x.shape[axis]

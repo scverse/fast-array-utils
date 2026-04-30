@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 __all__ = [
@@ -22,6 +26,7 @@ __all__ = [
     "DaskArray",
     "H5Dataset",
     "H5Group",
+    "HasArrayNamespace",
     "ZarrArray",
     "ZarrGroup",
     "coo_array",
@@ -116,3 +121,23 @@ else:  # pragma: no cover
         CSRDataset.__module__ = CSCDataset.__module__ = "anndata.abc"
 CSDataset = CSRDataset | CSCDataset
 """Anndata sparse out-of-core matrices."""
+
+
+@runtime_checkable
+class HasArrayNamespace(Protocol):
+    """An array object compatible with the Python array API standard."""
+
+    @property
+    def ndim(self) -> int:
+        """The number of dimensions of the array."""
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """The shape of the array."""
+
+    @property
+    def dtype(self) -> object:
+        """The data type of the array."""
+
+    def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType:
+        """Get Array API namespace."""

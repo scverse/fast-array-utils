@@ -38,13 +38,19 @@ def to_dense(x: GpuArray | types.CupySpMatrix, /, *, order: Literal["K", "A", "C
 def to_dense(x: GpuArray | types.CupySpMatrix, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
 
 
+@overload
+def to_dense[A: types.HasArrayNamespace](x: A, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[False] = False) -> A: ...
+@overload
+def to_dense[A: types.HasArrayNamespace](x: A, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: Literal[True]) -> NDArray[Any]: ...
+
+
 def to_dense(
-    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
+    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix | types.HasArrayNamespace,
     /,
     *,
     order: Literal["K", "A", "C", "F"] = "K",
     to_cpu_memory: bool = False,
-) -> NDArray[Any] | types.DaskArray | types.CupyArray:
+) -> NDArray[Any] | types.DaskArray | types.CupyArray | types.HasArrayNamespace:
     r"""Convert x to a dense array.
 
     If ``to_cpu_memory`` is :data:`False`, :class:`dask.array.Array`\ s and

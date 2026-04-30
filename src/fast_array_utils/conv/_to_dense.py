@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix,
+    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix | types.HasArrayNamespace,
     /,
     *,
     order: Literal["K", "A", "C", "F"] = "K",
@@ -37,6 +37,13 @@ def _to_dense_cs(x: types.spmatrix | types.sparray, /, *, order: Literal["K", "A
 
     del to_cpu_memory  # it already is
     return scipy.to_dense(x, order=sparse_order(x, order=order))
+
+
+@to_dense_.register(np.ndarray)
+def _to_dense_numpy(x: np.ndarray, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> np.ndarray:
+    # to bypass the _to_dense_array_api path
+    del to_cpu_memory
+    return np.asarray(x, order=order)
 
 
 @to_dense_.register(types.DaskArray)
@@ -67,6 +74,13 @@ def _to_dense_cupy(x: GpuArray, /, *, order: Literal["K", "A", "C", "F"] = "K", 
 
     x = x.toarray(sparse_order(x, order=order)) if isinstance(x, types.CupySpMatrix) else cu.asarray(x, order=order)
     return x.get(order="A") if to_cpu_memory else x
+
+
+@to_dense_.register(types.HasArrayNamespace)
+def _to_dense_array_api[A: types.HasArrayNamespace](x: A, /, *, order: Literal["K", "A", "C", "F"] = "K", to_cpu_memory: bool = False) -> A | np.ndarray:
+    if to_cpu_memory:
+        return np.asarray(x, order=order)
+    return x
 
 
 def sparse_order(x: types.spmatrix | types.sparray | types.CupySpMatrix | types.CSDataset, /, *, order: Literal["K", "A", "C", "F"]) -> Literal["C", "F"]:
