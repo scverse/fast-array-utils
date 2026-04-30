@@ -22,12 +22,11 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-dynamic = [ "description", "readme", "version" ]
-dependencies = [ "numpy>=2" ]
+dynamic = [ "version" ]
+dependencies = [ "array-api-compat", "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
-optional-dependencies.array-api = [ "array-api-compat" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
-optional-dependencies.full = [ "fast-array-utils[accel,array-api,dask,sparse]", "h5py", "zarr" ]
+optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
 optional-dependencies.sparse = [ "scipy>=1.13" ]
 optional-dependencies.testing = [ "packaging" ]
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
@@ -42,7 +41,6 @@ test = [
   "jax",
   "jaxlib",
   "scikit-learn",
-  "zarr",
   { include-group = "test-min" },
 ]
 doc = [
@@ -69,8 +67,7 @@ envs.docs.scripts.clean = "git clean -fdX docs"
 envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 envs.hatch-test.default-args = []
 envs.hatch-test.dependency-groups = [ "test-min" ]
-# TODO: remove scipy once https://github.com/pypa/hatch/pull/2127 is released
-envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape", "scipy" ]
+envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape" ]
 envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 envs.hatch-test.overrides.matrix.extras.dependency-groups = [
   { if = [ "full" ], value = "test" },
@@ -85,9 +82,10 @@ envs.hatch-test.matrix = [
   { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
   { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
 ]
-metadata.hooks.docstring-description = {}
-metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
-metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
+# TODO: re-activate incl. `dynamic = [ "description", "readme", ... ]` after https://github.com/pypa/hatch/issues/2252
+# metadata.hooks.docstring-description = {}
+# metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
+# metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
 version.source = "vcs"
 version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
 
