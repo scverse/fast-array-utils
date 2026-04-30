@@ -35,10 +35,10 @@ def generic_op(
     raise NotImplementedError
 
 
-@generic_op.register(np.ndarray)
+@generic_op.register(np.ndarray | types.H5Dataset | types.ZarrArray)
 # register explicitly to avoid the array API path and performance slow down
-def _generic_op_numpy(
-    x: np.ndarray,
+def _generic_op_numpy_disk(
+    x: np.ndarray | DiskArray,
     /,
     op: Ops,
     *,
@@ -48,25 +48,6 @@ def _generic_op_numpy(
 ) -> NDArray[Any] | np.number[Any]:
     del keep_cupy_as_array
     return getattr(np, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
-
-
-@generic_op.register(types.HasArrayNamespace)
-def _generic_op_array_api[A: types.HasArrayNamespace](
-    x: A,
-    /,
-    op: Ops,
-    *,
-    axis: Literal[0, 1] | None = None,
-    dtype: DTypeLike | None = None,
-    keep_cupy_as_array: bool = False,
-) -> A:
-    """Handle arrays with native array API support."""
-    del keep_cupy_as_array
-
-    import array_api_compat
-
-    xp = array_api_compat.array_namespace(x)
-    return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
 
 
 @generic_op.register(types.CupyArray | types.CupyCSMatrix)
@@ -127,3 +108,22 @@ def _generic_op_dask(
         dtype = getattr(np, op)(np.zeros(1, dtype=x.dtype)).dtype
 
     return _dask_inner(x, op, axis=axis, dtype=dtype, keep_cupy_as_array=keep_cupy_as_array)
+
+
+@generic_op.register(types.HasArrayNamespace)
+def _generic_op_array_api[A: types.HasArrayNamespace](
+    x: A,
+    /,
+    op: Ops,
+    *,
+    axis: Literal[0, 1] | None = None,
+    dtype: DTypeLike | None = None,
+    keep_cupy_as_array: bool = False,
+) -> A:
+    """Handle arrays with native array API support."""
+    del keep_cupy_as_array
+
+    import array_api_compat
+
+    xp = array_api_compat.array_namespace(x)
+    return getattr(xp, op)(x, axis=axis, **_dtype_kw(dtype, op))  # type: ignore[no-any-return]
