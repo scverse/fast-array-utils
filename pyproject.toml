@@ -59,35 +59,34 @@ test-min = [
 ]
 
 [tool.hatch]
-build.targets.wheel.packages = [ "src/testing", "src/fast_array_utils" ]
-envs.default.installer = "uv"
-envs.docs.dependency-groups = [ "doc" ]
-envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
-envs.docs.scripts.clean = "git clean -fdX docs"
-envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
-envs.hatch-test.default-args = []
-envs.hatch-test.dependency-groups = [ "test-min" ]
-envs.hatch-test.extra-dependencies = [ "ipykernel", "ipycytoscape" ]
-envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
-envs.hatch-test.overrides.matrix.extras.dependency-groups = [
-  { if = [ "full" ], value = "test" },
-]
-envs.hatch-test.overrides.matrix.resolution.dependencies = [
-  # TODO: move to `min-reqs` feature once this is fixed: https://github.com/tlambert03/hatch-min-requirements/issues/11
-  { if = [ "lowest" ], value = "numpy==2" },
-  { if = [ "lowest" ], value = "dask==2023.6.1" },
-  { if = [ "lowest" ], value = "scipy==1.13.0" },
-]
-envs.hatch-test.matrix = [
-  { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
-  { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
-]
 # TODO: re-activate incl. `dynamic = [ "description", "readme", ... ]` after https://github.com/pypa/hatch/issues/2252
 # metadata.hooks.docstring-description = {}
 # metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
 # metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
 version.source = "vcs"
 version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
+build.targets.wheel.packages = [ "src/fast_array_utils", "src/testing" ]
+envs.default.installer = "uv"
+envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
+envs.docs.scripts.clean = "git clean -fdX docs"
+envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
+envs.docs.dependency-groups = [ "doc" ]
+envs.hatch-test.extra-dependencies = [ "ipycytoscape", "ipykernel" ]
+envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
+envs.hatch-test.matrix = [
+  { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
+  { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
+]
+envs.hatch-test.overrides.matrix.extras.dependency-groups = [
+  { value = "test", if = [ "full" ] },
+]
+envs.hatch-test.overrides.matrix.resolution.dependencies = [
+  { value = "numpy==2", if = [ "lowest" ] },
+  { value = "dask==2023.6.1", if = [ "lowest" ] },
+  { value = "scipy==1.13.0", if = [ "lowest" ] },
+]
+envs.hatch-test.default-args = []
+envs.hatch-test.dependency-groups = [ "test-min" ]
 
 [tool.uv]
 override-dependencies = [ "sphinx>=9.0.1" ]
@@ -136,11 +135,11 @@ lint.pydocstyle.convention = "numpy"
 lint.future-annotations = true
 
 [tool.mypy]
-strict = true
+mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+explicit_package_bases = true
 # https://github.com/dask/dask/issues/8853
 implicit_reexport = true
-explicit_package_bases = true
-mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+strict = true
 
 [tool.pyright]
 stubPath = "./typings"
@@ -150,14 +149,12 @@ reportPrivateUsage = false
 environment.extra-paths = [ "./typings" ]
 
 [tool.pytest]
-strict = true
 addopts = [
   "--import-mode=importlib",
   "--doctest-modules",
   "--doctest-plus",
   "--pyargs",
 ]
-testpaths = [ "./tests", "fast_array_utils" ]
 doctest_subpackage_requires = [
   "src/fast_array_utils/conv/scipy/* = scipy",
   "src/fast_array_utils/conv/scipy/_to_dense.py = numba",
@@ -169,6 +166,8 @@ doctest_subpackage_requires = [
 markers = [
   "benchmark: marks tests as benchmark (to run with `--codspeed`)",
 ]
+strict = true
+testpaths = [ "./tests", "fast_array_utils" ]
 
 [tool.coverage]
 run.data_file = "test-data/.coverage"
