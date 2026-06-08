@@ -63,7 +63,7 @@ jobs:
           # https://github.com/codecov/codecov-cli/issues/648
           uvx hatch run ${{ matrix.env.name }}:coverage xml
           rm test-data/.coverage
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           name: ${{ matrix.env.name }}
           fail_ci_if_error: true
