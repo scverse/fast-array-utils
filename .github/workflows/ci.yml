@@ -73,6 +73,8 @@ jobs:
           use_oidc: true
   bench:
     name: CPU Benchmarks
+    permissions:
+      id-token: write  # for codspeed OIDC
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -82,10 +84,10 @@ jobs:
           python-version: '3.14'
       - uses: astral-sh/setup-uv@v8.2.0
       - run: uv pip install --system --group=test -e .[full]
-      - uses: CodSpeedHQ/action@v3
+      - uses: CodSpeedHQ/action@v4
         with:
+          mode: simulation
           run: pytest -m benchmark --codspeed -n auto
-          token: ${{ secrets.CODSPEED_TOKEN }}
   import:
     name: Import Tests
     runs-on: ubuntu-latest
