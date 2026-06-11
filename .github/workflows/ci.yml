@@ -113,6 +113,7 @@ jobs:
       - uses: j178/prek-action@v2
         with:
           working-directory: ${{ github.workspace }}
+          cache: false  # https://github.com/j178/prek-action/issues/146
   pass:
     name: All Checks
     if: always()
