@@ -35,12 +35,14 @@ urls.Documentation = "https://icb-fast-array-utils.readthedocs-hosted.com/"
 entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 
 [dependency-groups]
+dev = [ "types-array-api", "types-docutils" ]
 test = [
   "anndata",
   "fast-array-utils[full]",
   "jax",
   "jaxlib",
   "scikit-learn",
+  { include-group = "dev" },
   { include-group = "test-min" },
 ]
 doc = [

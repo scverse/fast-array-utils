@@ -40,6 +40,7 @@ repos:
     - scikit-learn>=1.8
     - scipy-stubs>=1.17
     - sphinx>=9
+    - types-array-api>=1.3
     - types-docutils>=0.22
     - zarr>=3.1
 ci:
