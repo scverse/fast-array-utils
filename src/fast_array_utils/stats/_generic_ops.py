@@ -14,6 +14,7 @@ from ._utils import _dask_inner, _dtype_kw
 if TYPE_CHECKING:
     from typing import Any, Literal
 
+    from array_api.latest import Array as AArray
     from numpy.typing import DTypeLike, NDArray
 
     from ..typing import CpuArray, DiskArray, GpuArray
@@ -111,7 +112,7 @@ def _generic_op_dask(
 
 
 @generic_op.register(types.HasArrayNamespace)
-def _generic_op_array_api[A: types.HasArrayNamespace](
+def _generic_op_array_api[A: AArray[object, object]](
     x: A,
     /,
     op: Ops,

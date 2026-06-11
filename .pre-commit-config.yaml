@@ -29,7 +29,7 @@ repos:
     pass_filenames: false
     additional_dependencies:
     - anndata>=0.12
-    - array-api-compat>=1.13
+    - array-api-compat>=1.13,!=1.15.0 # https://github.com/data-apis/array-api-compat/issues/436
     - dask>=2026.1
     - h5py>=3.15
     - jax>=0.10
