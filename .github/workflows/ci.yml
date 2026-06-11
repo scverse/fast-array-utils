@@ -39,6 +39,8 @@ jobs:
   test:
     name: Tests
     needs: get-environments
+    permissions:
+      id-token: write  # for codecov OIDC
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
