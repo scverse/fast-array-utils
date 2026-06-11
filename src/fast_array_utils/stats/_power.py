@@ -10,6 +10,7 @@ from .. import types
 
 
 if TYPE_CHECKING:
+    from array_api.latest import Array as AArray
     from numpy.typing import DTypeLike
 
     from fast_array_utils.typing import CpuArray, GpuArray
@@ -36,11 +37,11 @@ def _power_numpy_cupy(x: np.ndarray, n: int, /, dtype: DTypeLike | None = None) 
 
 
 @_power.register(types.HasArrayNamespace)
-def _power_array_api(x: types.HasArrayNamespace, n: int, /, dtype: DTypeLike | None = None) -> types.HasArrayNamespace:
+def _power_array_api[A: AArray[object, object]](x: A, n: int, /, dtype: DTypeLike | None = None) -> A:
     import array_api_compat
 
     xp = array_api_compat.array_namespace(x)
-    return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)  # type: ignore[no-any-return]
+    return xp.pow(x, n) if dtype is None else xp.pow(xp.astype(x, dtype), n)
 
 
 @_power.register(types.CSBase | types.CupyCSMatrix)

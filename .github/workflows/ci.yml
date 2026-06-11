@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.2.0
       - name: Get test environments
         id: get-envs
         run: |
@@ -39,6 +39,8 @@ jobs:
   test:
     name: Tests
     needs: get-environments
+    permissions:
+      id-token: write  # for codecov OIDC
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -52,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.2.0
         with:
           python-version: ${{ matrix.env.python }}
       - name: create environment
@@ -63,14 +65,16 @@ jobs:
           # https://github.com/codecov/codecov-cli/issues/648
           uvx hatch run ${{ matrix.env.name }}:coverage xml
           rm test-data/.coverage
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           name: ${{ matrix.env.name }}
           fail_ci_if_error: true
           files: test-data/coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
   bench:
     name: CPU Benchmarks
+    permissions:
+      id-token: write  # for codspeed OIDC
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -78,12 +82,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.2.0
       - run: uv pip install --system --group=test -e .[full]
-      - uses: CodSpeedHQ/action@v3
+      - uses: CodSpeedHQ/action@v4
         with:
+          mode: simulation
           run: pytest -m benchmark --codspeed -n auto
-          token: ${{ secrets.CODSPEED_TOKEN }}
   import:
     name: Import Tests
     runs-on: ubuntu-latest
@@ -93,7 +97,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.2.0
       - run: uv pip install --system -e .
       - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'
       - run: uv pip install --system -e .[testing]
@@ -106,9 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: j178/prek-action@v1
-        with:
-          working-directory: ${{ github.workspace }}
+      - uses: j178/prek-action@v2
   pass:
     name: All Checks
     if: always()
