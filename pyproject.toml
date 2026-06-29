@@ -61,12 +61,14 @@ test-min = [
 ]
 
 [tool.hatch]
+version.source = "vcs"
+version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
 # TODO: re-activate incl. `dynamic = [ "description", "readme", ... ]` after https://github.com/pypa/hatch/issues/2252
 # metadata.hooks.docstring-description = {}
 # metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
-# metadata.hooks.fancy-pypi-readme.fragments = [ { path = "README.rst", start-after = ".. begin" } ]
-version.source = "vcs"
-version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
+# metadata.hooks.fancy-pypi-readme.fragments = [
+#   { path = "README.rst", start-after = ".. begin" }
+# ]
 build.targets.wheel.packages = [ "src/fast_array_utils", "src/testing" ]
 envs.default.installer = "uv"
 envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
