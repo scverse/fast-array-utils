@@ -18,7 +18,7 @@ jobs:
       envs: ${{ steps.get-envs.outputs.envs }}
       pythons: ${{ steps.get-pythons.outputs.pythons }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: astral-sh/setup-uv@v8.2.0
       - name: Get test environments
@@ -52,7 +52,7 @@ jobs:
               python: "3.14"
             os: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: astral-sh/setup-uv@v8.2.0
         with:
@@ -77,7 +77,7 @@ jobs:
       id-token: write  # for codspeed OIDC
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v6
         with:
@@ -92,7 +92,7 @@ jobs:
     name: Import Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v6
         with:
@@ -108,7 +108,7 @@ jobs:
     env:
       SKIP: no-commit-to-branch  # this CI runs on the main branch
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: j178/prek-action@v2
   pass:

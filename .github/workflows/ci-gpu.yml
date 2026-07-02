@@ -35,19 +35,19 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Check NVIDIA SMI
         run: nvidia-smi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v8.2.0
         with:
           enable-cache: true  # "auto" is `false` on non-GitHub runners
       - name: Install package
-        run: uv pip install --system --group=test -e .[full] cupy-cuda12x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
+        run: uv pip install --system --group=test -e .[full] cupy-cuda13x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
       - name: List installed packages
         run: uv pip list
       - name: Run tests
@@ -57,7 +57,7 @@ jobs:
           # https://github.com/codecov/codecov-cli/issues/648
           coverage xml
           rm test-data/.coverage
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           name: GPU Tests
           fail_ci_if_error: true
