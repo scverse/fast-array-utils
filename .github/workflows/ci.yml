@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: j178/prek-action@v2
+      - uses: j178/prek-action@v2.0.4
   pass:
     name: All Checks
     if: always()
