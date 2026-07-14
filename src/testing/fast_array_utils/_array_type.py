@@ -146,7 +146,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
                 return cast("type[Arr]", zarr.Array)
             case "anndata.abc", ("CSCDataset" | "CSRDataset") as cls_name, _:
-                import anndata.abc  # type: ignore[import-untyped]
+                import anndata.abc
 
                 return cast("type[Arr]", getattr(anndata.abc, cls_name))
             case _:
@@ -188,13 +188,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
                 import dask.array as da
 
                 arr = da.zeros(shape, dtype=dtype, chunks=_half_chunk_size(shape))
-                return cast(
-                    "Arr",
-                    arr.map_blocks(
-                        lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density),  # type: ignore[attr-defined]
-                        dtype=dtype,
-                    ),
-                )
+                return cast("Arr", arr.map_blocks(lambda x: self.random(x.shape, dtype=x.dtype, gen=gen, density=density), dtype=dtype))
             case "h5py", "Dataset", _:
                 raise NotImplementedError
             case "zarr", "Array", _:
@@ -235,7 +229,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
     @staticmethod
     def _to_numpy_array(x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> NDArray[np.number[Any]]:
         """Convert to a numpy array."""
-        x = to_dense(x, to_cpu_memory=True)
+        x = to_dense(x, to_cpu_memory=True)  # type: ignore[arg-type]  # doesn’t officially handle ArrayLike
         return x if dtype is None else x.astype(dtype)
 
     def _to_dask_array(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.DaskArray:
@@ -277,7 +271,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
 
     def _to_cs_dataset(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CSDataset:
         """Convert to a scipy sparse dataset."""
-        import anndata.io  # type: ignore[import-untyped]
+        import anndata.io
         from scipy.sparse import csc_array, csr_array
 
         assert self.inner is not None
@@ -298,7 +292,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
         cls = cast("type[types.csr_array[Any, tuple[int, int]] | types.csc_array]", csr_array if self.cls is types.CSRDataset else csc_array)
         x_sparse = self._to_scipy_sparse(x, dtype=dtype, cls=cls)
         anndata.io.write_elem(grp, "/mtx", x_sparse)
-        return anndata.io.sparse_dataset(grp["mtx"])
+        return anndata.io.sparse_dataset(cast("types.H5Group | types.ZarrGroup", grp["mtx"]))
 
     def _to_scipy_sparse(
         self,
@@ -314,7 +308,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
         if isinstance(x, types.CupySpMatrix):
             x = x.get()  # can be a coo_matrix due to dask concatenation
         elif not isinstance(x, types.spmatrix | types.sparray | np.ndarray):
-            x = to_dense(x, to_cpu_memory=True)
+            x = to_dense(x, to_cpu_memory=True)  # type: ignore[arg-type]  # doesn’t officially handle ArrayLike
 
         cls = cast("type[types.CSBase]", cls or self.cls)
         return cls(x, dtype=dtype)  # type: ignore[arg-type,misc]

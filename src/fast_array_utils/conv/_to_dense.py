@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # fallback’s arg0 type has to include types of registered functions
 @singledispatch
 def to_dense_(
-    x: CpuArray | GpuArray | DiskArray | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix | types.HasArrayNamespace,
+    x: CpuArray | GpuArray | DiskArray | types.CSDataset | types.DaskArray | types.sparray | types.spmatrix | types.CupySpMatrix | types.HasArrayNamespace,
     /,
     *,
     order: Literal["K", "A", "C", "F"] = "K",
@@ -64,8 +64,7 @@ def _to_dense_ooc(x: types.CSDataset, /, *, order: Literal["K", "A", "C", "F"] =
     if not to_cpu_memory:
         msg = "to_cpu_memory must be True if x is an CS{R,C}Dataset"
         raise ValueError(msg)
-    # TODO(flying-sheep): why is to_memory of type Any?  # noqa: TD003
-    return to_dense(cast("types.CSBase", x.to_memory()), order=sparse_order(x, order=order))
+    return to_dense(x.to_memory(), order=sparse_order(x, order=order))
 
 
 @to_dense_.register(types.CupyArray | types.CupySpMatrix)

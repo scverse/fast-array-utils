@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import singledispatch
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -47,10 +47,10 @@ def _power_array_api[A: AArray[object, object]](x: A, n: int, /, dtype: DTypeLik
 @_power.register(types.CSBase | types.CupyCSMatrix)
 def _power_cs[Mat: types.CSBase | types.CupyCSMatrix](x: Mat, n: int, /, dtype: DTypeLike | None = None) -> Mat:
     new_data = power(x.data, n, dtype=dtype)
-    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[call-overload,return-value]
+    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[call-overload]
 
 
 @_power.register(types.DaskArray)
 def _power_dask(x: types.DaskArray, n: int, /, dtype: DTypeLike | None = None) -> types.DaskArray:
-    meta = x._meta.astype(dtype or x.dtype)  # noqa: SLF001
-    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype, meta=meta)  # type: ignore[type-var,arg-type]
+    meta = cast("CpuArray | GpuArray", x._meta.astype(dtype or x.dtype))  # noqa: SLF001  # https://github.com/python/mypy/issues/16826
+    return x.map_blocks(lambda c: power(c, n, dtype=dtype), dtype=dtype, meta=meta)

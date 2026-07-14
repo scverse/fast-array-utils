@@ -54,7 +54,7 @@ def _dask_inner(x: types.DaskArray, op: Ops, /, *, axis: Literal[0, 1] | None, d
             a = a.get()
         return a.reshape(())[()]  # type: ignore[return-value]
 
-    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))  # type: ignore[arg-type]
+    return rv.map_blocks(to_scalar, meta=x.dtype.type(0))
 
 
 def _dask_block(
