@@ -63,7 +63,7 @@ class Array:
     def map_blocks(
         self,
         # TODO(flying-sheep): make this generic, _Array the default  # noqa: TD003
-        func: Callable[[object], object],
+        func: Callable[..., object],
         *args: Never,
         name: str | None = None,
         token: str | None = None,
@@ -89,7 +89,7 @@ def from_array(
 ) -> Array: ...
 def map_blocks(
     # TODO(flying-sheep): make this generic, _Array the default  # noqa: TD003
-    func: Callable[[object], object],
+    func: Callable[..., object],
     *args: Array,
     name: str | None = None,
     token: str | None = None,

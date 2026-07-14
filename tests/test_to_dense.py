@@ -41,7 +41,7 @@ def test_to_dense(array_type: ArrayType[Array], *, order: Literal["K", "C", "F"]
         else nullcontext(),
         WARNS_NUMBA if issubclass(array_type.cls, types.CSBase) and not find_spec("numba") else nullcontext(),
     ):
-        arr = to_dense(x, order=order, to_cpu_memory=to_cpu_memory)
+        arr = to_dense(x, order=order, to_cpu_memory=to_cpu_memory)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
 
     assert_expected_cls(x, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)
@@ -56,7 +56,7 @@ def test_to_dense_extra(coo_matrix_type: ArrayType[types.COOBase | types.CupyCOO
     src_mtx = coo_matrix_type([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
 
     with WARNS_NUMBA if not find_spec("numba") else nullcontext():
-        arr = to_dense(src_mtx, order=order, to_cpu_memory=to_cpu_memory)
+        arr = to_dense(src_mtx, order=order, to_cpu_memory=to_cpu_memory)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
 
     assert_expected_cls(src_mtx, arr, to_cpu_memory=to_cpu_memory)
     assert arr.shape == (2, 3)

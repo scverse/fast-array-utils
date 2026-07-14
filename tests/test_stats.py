@@ -155,7 +155,7 @@ def test_ndim_error(
     arr = array_type(np_arr)
 
     with pytest.raises(AxisError):
-        func(arr, axis=axis)
+        func(arr, axis=axis)  # type: ignore[arg-type]  # https://github.com/python/mypy/issues/16777
 
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)

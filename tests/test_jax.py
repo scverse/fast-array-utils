@@ -98,7 +98,7 @@ def test_mean_var(subtests: pytest.Subtests, jax_arr: jax.Array, axis: Literal[0
 def test_to_dense(*, jax_arr: jax.Array, to_cpu_memory: bool) -> None:
     import jax.numpy as jnp
 
-    result = to_dense(jax_arr, to_cpu_memory=to_cpu_memory)
+    result = to_dense(jax_arr, to_cpu_memory=to_cpu_memory)  # type: ignore[call-overload]  # https://github.com/python/mypy/issues/16777
 
     if to_cpu_memory:
         assert isinstance(result, np.ndarray)
