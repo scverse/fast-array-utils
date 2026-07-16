@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
       - name: Get test environments
         id: get-envs
         run: |
@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           python-version: ${{ matrix.env.python }}
       - name: create environment
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
       - run: uv pip install --system --group=test -e .[full]
       - uses: CodSpeedHQ/action@v4
         with:
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
       - run: uv pip install --system -e .
       - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'
       - run: uv pip install --system -e .[testing]
