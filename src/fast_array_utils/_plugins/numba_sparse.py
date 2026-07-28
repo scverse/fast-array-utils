@@ -183,7 +183,7 @@ def box_matrix(typ: CSType, val: NativeValue, c: BoxContext) -> Value:
 
 # See https://numba.readthedocs.io/en/stable/extending/overloading-guide.html
 @overload(np.shape)
-def overload_sparse_shape(x: CSType) -> None | Callable[[CSType], nbtypes.UniTuple]:
+def overload_sparse_shape(x: CSType) -> Callable[[CSType], nbtypes.UniTuple] | None:
     if not isinstance(x, CSType):  # pragma: no cover
         return None
 
@@ -195,7 +195,7 @@ def overload_sparse_shape(x: CSType) -> None | Callable[[CSType], nbtypes.UniTup
 
 
 @overload_attribute(CSType, "ndim")
-def overload_sparse_ndim(inst: CSType) -> None | Callable[[CSType], int]:
+def overload_sparse_ndim(inst: CSType) -> Callable[[CSType], int] | None:
     if not isinstance(inst, CSType):  # pragma: no cover
         return None
 
@@ -207,7 +207,7 @@ def overload_sparse_ndim(inst: CSType) -> None | Callable[[CSType], int]:
 
 
 @intrinsic
-def _sparse_copy(
+def _sparse_copy(  # noqa: PLR0917
     typingctx: TypingContext,  # noqa: ARG001
     inst: CSType,
     data: nbtypes.Array,  # noqa: ARG001
@@ -241,7 +241,7 @@ def _sparse_copy(
 
 
 @overload_method(CSType, "copy")
-def overload_sparse_copy(inst: CSType) -> None | Callable[[CSType], CSType]:
+def overload_sparse_copy(inst: CSType) -> Callable[[CSType], CSType] | None:
     if not isinstance(inst, CSType):  # pragma: no cover
         return None
 

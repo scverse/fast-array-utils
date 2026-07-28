@@ -160,6 +160,7 @@ def test_ndim_error(
 
 @pytest.mark.array_type(skip=ATS_SPARSE_DS)
 def test_sum(
+    *,
     request: pytest.FixtureRequest,
     array_type: ArrayType[CpuArray | GpuArray | DiskArray | types.DaskArray],
     dtype_in: type[DTypeIn],
