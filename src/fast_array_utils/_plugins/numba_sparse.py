@@ -207,7 +207,7 @@ def overload_sparse_ndim(inst: CSType) -> Callable[[CSType], int] | None:
 
 
 @intrinsic
-def _sparse_copy(
+def _sparse_copy(  # noqa: PLR0917
     typingctx: TypingContext,  # noqa: ARG001
     inst: CSType,
     data: nbtypes.Array,  # noqa: ARG001

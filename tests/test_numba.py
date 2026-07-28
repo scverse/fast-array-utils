@@ -162,6 +162,7 @@ def _install_fake_njit(monkeypatch: pytest.MonkeyPatch, calls: list[bool]) -> No
     ],
 )
 def test_probe_needed(
+    *,
     monkeypatch: pytest.MonkeyPatch,
     platform_name: str,
     machine: str,
@@ -169,7 +170,6 @@ def test_probe_needed(
     layer: fa_numba.ThreadingLayer | fa_numba.TheadingCategory,
     priority: tuple[fa_numba.ThreadingLayer, ...],
     layers: dict[fa_numba.TheadingCategory, set[fa_numba.ThreadingLayer]] | None,
-    *,
     expected: bool,
 ) -> None:
     _set_runtime(monkeypatch, platform_name=platform_name, machine=machine, loaded=loaded, layer=layer, priority=priority, layers=layers)
