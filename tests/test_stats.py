@@ -398,4 +398,12 @@ def test_stats_benchmark(
     arr = array_type.random((n, n), density=density, dtype=dtype)
 
     func(arr, axis=axis)  # warmup: numba compile
-    benchmark(func, arr, axis=axis)
+
+    is_very_fast = func is stats.is_constant and ((array_type.name == "csr_array" and axis == 1) or (array_type.name == "csc_array" and axis == 0))
+
+    def call(a: CpuArray, axis: Literal[0, 1] | None) -> None:
+        reps = 100 if is_very_fast else 1
+        for _ in range(reps):
+            func(a, axis=axis)
+
+    benchmark(call, arr, axis=axis)
