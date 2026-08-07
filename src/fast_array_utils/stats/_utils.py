@@ -19,7 +19,11 @@ if TYPE_CHECKING:
     from ..typing import CpuArray, GpuArray
     from ._typing import DTypeKw, Ops
 
-    type ComplexAxis = tuple[Literal[0], Literal[1]] | tuple[Literal[0, 1]] | Literal[0, 1] | None
+    # `axis` as dask passes it into reduction callbacks:
+    # normalized to a tuple of non-negative ints,
+    # or not passed at all (hence `None`) when dask only computes a callback’s `meta`.
+    # `Literal[0, 1]` is what `_normalize_axis` narrows that down to.
+    type ComplexAxis = Literal[0, 1] | tuple[int, ...] | None
 
 
 __all__ = ["_dask_inner"]
@@ -85,12 +89,15 @@ def _normalize_axis(axis: ComplexAxis, ndim: int) -> Literal[0, 1] | None:
     match axis:
         case int() | None:  # pragma: no cover
             pass
-        case (0 | 1,):
-            axis = axis[0]
+        case (0,):
+            axis = 0
+        case (1,):
+            axis = 1
         case (0, 1) | (1, 0):
             axis = None
         case _:  # pragma: no cover
-            raise AxisError(axis, ndim)
+            msg = f"axis {axis!r} invalid for {ndim}-dimensional array"
+            raise AxisError(msg)
     if axis == 0 and ndim == 1:
         return None  # dask’s aggregate doesn’t know we don’t accept `axis=0` for 1D arrays
     return axis

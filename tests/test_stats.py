@@ -316,10 +316,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray], subtests: pyte
 
 @pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
 def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
-    """Test float32 precision for bigger data.
-
-    This test is flaky for sparse-in-dask for some reason.
-    """
+    """Test float32 precision for bigger data."""
     mat = pbmc64k_reduced_raw
     arr = array_type(mat)
 
@@ -328,9 +325,8 @@ def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_redu
     var_arr: NDArray[Any] | np.number
     mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
 
-    rtol = 1.0e-5 if array_type.flags & Flags.Gpu else 1.0e-7
-    np.testing.assert_allclose(mean_arr, mean_mat, rtol=rtol)
-    np.testing.assert_allclose(var_arr, var_mat, rtol=rtol)
+    np.testing.assert_allclose(mean_arr, mean_mat, rtol=1.0e-7)
+    np.testing.assert_allclose(var_arr, var_mat, rtol=1.0e-7)
 
 
 @pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
