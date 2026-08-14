@@ -96,7 +96,9 @@ def _dask_mean_var(x: types.DaskArray, /, *, axis: Literal[0, 1] | None, correct
     mean_ = mean(x, axis=axis, dtype=np.float64)
     # mypy can’t infer `reduction`’s type parameter from the callbacks, so pin it here
     chunk: _Chunk[_Moments] = _moments_chunk
-    m2 = da.reduction(x, chunk, _moments_aggregate, axis=axis, combine=_moments_combine, concatenate=False, dtype=np.float64)
+    m2 = da.reduction(
+        x, chunk, _moments_aggregate, axis=axis, combine=_moments_combine, concatenate=False, dtype=np.float64, meta=np.array([], dtype=np.float64)
+    )
     if axis is None:  # match `mean`/`sum`’s convention of reducing to a true scalar
         m2 = m2.map_blocks(lambda a: a.reshape(())[()], meta=m2.dtype.type(0))
     denom = n - correction if correction and n != 1 else n
