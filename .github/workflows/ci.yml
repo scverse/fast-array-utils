@@ -54,16 +54,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
+      # https://github.com/pypa/hatch/pull/2382
+      - run: uv tool install 'hatch @ git+https://github.com/pypa/hatch.git@ed8e30bebf98f2fe4d70c18a32a50a8160c391cb'
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: ${{ matrix.env.python }}
       - name: create environment
-        run: uvx hatch -v env create ${{ matrix.env.name }}
+        run: hatch -v env create ${{ matrix.env.name }}
       - name: run tests with coverage
         run: |
-          uvx hatch run ${{ matrix.env.name }}:run-cov
+          hatch run ${{ matrix.env.name }}:run-cov
           # https://github.com/codecov/codecov-cli/issues/648
-          uvx hatch run ${{ matrix.env.name }}:coverage xml
+          hatch run ${{ matrix.env.name }}:coverage xml
           rm test-data/.coverage
       - uses: codecov/codecov-action@v7
         with:
