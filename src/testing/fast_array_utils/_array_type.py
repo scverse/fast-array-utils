@@ -311,7 +311,7 @@ class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
             x = to_dense(x, to_cpu_memory=True)  # type: ignore[arg-type]  # doesn’t officially handle ArrayLike
 
         cls = cast("type[types.CSBase]", cls or self.cls)
-        return cls(x, dtype=dtype)  # type: ignore[arg-type,misc]
+        return cls(x, dtype=dtype)  # type: ignore[arg-type]
 
     def _to_cupy_array(self, x: ArrayLike | Array, /, *, dtype: DTypeLike | None = None) -> types.CupyArray:
         import cupy as cu

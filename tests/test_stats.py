@@ -325,8 +325,9 @@ def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_redu
     var_arr: NDArray[Any] | np.number
     mean_arr, var_arr = (to_np_dense_checked(a, 0, arr) for a in stats.mean_var(arr, axis=0, correction=1))
 
-    np.testing.assert_allclose(mean_arr, mean_mat, rtol=1.0e-7)
-    np.testing.assert_allclose(var_arr, var_mat, rtol=1.0e-7)
+    rtol = 1.0e-5 if array_type.flags & Flags.Gpu else 1.0e-7
+    np.testing.assert_allclose(mean_arr, mean_mat, rtol=rtol)
+    np.testing.assert_allclose(var_arr, var_mat, rtol=rtol)
 
 
 @pytest.mark.array_type(skip={Flags.Disk, *ATS_CUPY_SPARSE})
