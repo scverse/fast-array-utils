@@ -57,13 +57,14 @@ jobs:
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: ${{ matrix.env.python }}
+      - run: uv tool install 'hatch!=1.18.0'
       - name: create environment
-        run: uvx hatch -v env create ${{ matrix.env.name }}
+        run: hatch -v env create ${{ matrix.env.name }}
       - name: run tests with coverage
         run: |
-          uvx hatch run ${{ matrix.env.name }}:run-cov
+          hatch run ${{ matrix.env.name }}:run-cov
           # https://github.com/codecov/codecov-cli/issues/648
-          uvx hatch run ${{ matrix.env.name }}:coverage xml
+          hatch run ${{ matrix.env.name }}:coverage xml
           rm test-data/.coverage
       - uses: codecov/codecov-action@v7
         with:
