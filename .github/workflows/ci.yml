@@ -54,6 +54,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
+      # https://github.com/pypa/hatch/pull/2382
+      - run: uv tool install 'hatch @ git+https://github.com/pypa/hatch.git@ed8e30bebf98f2fe4d70c18a32a50a8160c391cb'
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: ${{ matrix.env.python }}

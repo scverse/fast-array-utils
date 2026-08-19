@@ -316,10 +316,7 @@ def test_mean_var_sparse_32(array_type: ArrayType[types.CSArray], subtests: pyte
 
 @pytest.mark.array_type({at for at in SUPPORTED_TYPES if at.flags & Flags.Sparse and at.flags & Flags.Dask})
 def test_mean_var_pbmc_dask(array_type: ArrayType[types.DaskArray], pbmc64k_reduced_raw: sps.csr_array[np.float32]) -> None:
-    """Test float32 precision for bigger data.
-
-    This test is flaky for sparse-in-dask for some reason.
-    """
+    """Test float32 precision for bigger data."""
     mat = pbmc64k_reduced_raw
     arr = array_type(mat)
 
