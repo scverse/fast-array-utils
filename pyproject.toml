@@ -22,7 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-dynamic = [ "version" ]
+dynamic = [ "description", "readme", "version" ]
 dependencies = [ "array-api-compat", "numpy>=2" ]
 optional-dependencies.accel = [ "numba>=0.57" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
@@ -63,12 +63,11 @@ test-min = [
 [tool.hatch]
 version.source = "vcs"
 version.raw-options = { local_scheme = "no-local-version" }  # be able to publish dev version
-# TODO: re-activate incl. `dynamic = [ "description", "readme", ... ]` after https://github.com/pypa/hatch/issues/2252
-# metadata.hooks.docstring-description = {}
-# metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
-# metadata.hooks.fancy-pypi-readme.fragments = [
-#   { path = "README.rst", start-after = ".. begin" }
-# ]
+metadata.hooks.docstring-description = {}
+metadata.hooks.fancy-pypi-readme.content-type = "text/x-rst"
+metadata.hooks.fancy-pypi-readme.fragments = [
+  { path = "README.rst", start-after = ".. begin" },
+]
 build.targets.wheel.packages = [ "src/fast_array_utils", "src/testing" ]
 envs.default.installer = "uv"
 envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
