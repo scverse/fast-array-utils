@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v10.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
       - name: Get test environments
         id: get-envs
         run: |
@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: astral-sh/setup-uv@v10.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           python-version: ${{ matrix.env.python }}
       # https://github.com/pypa/hatch/pull/2382
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v10.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
       - run: uv pip install --system --group=test -e .[full]
       - uses: CodSpeedHQ/action@v5.0.3
         with:
@@ -99,7 +99,7 @@ jobs:
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.14'
-      - uses: astral-sh/setup-uv@v10.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
       - run: uv pip install --system -e .
       - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'
       - run: uv pip install --system -e .[testing]
