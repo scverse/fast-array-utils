@@ -86,7 +86,7 @@ jobs:
           python-version: '3.14'
       - uses: astral-sh/setup-uv@v10.0.1
       - run: uv pip install --system --group=test -e .[full]
-      - uses: CodSpeedHQ/action@v5.0.3
+      - uses: CodSpeedHQ/action@v5.2.1
         with:
           mode: simulation
           run: pytest -m benchmark --codspeed -n auto
