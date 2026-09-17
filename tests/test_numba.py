@@ -86,21 +86,20 @@ def test_threading_layer_resolves_available_backend(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.parametrize(
-    ("name", "layer", "expected"),
+    ("on_main", "layer", "expected"),
     [
-        pytest.param("ThreadPoolExecutor-0_1", "workqueue", True, id="executor-unsafe"),
-        pytest.param("ThreadPoolExecutor-0_1", "omp", False, id="executor-threadsafe"),
-        pytest.param("MainThread", "workqueue", False, id="not-executor"),
+        pytest.param(False, "workqueue", True, id="worker-unsafe"),
+        pytest.param(False, "omp", False, id="worker-threadsafe"),
+        pytest.param(True, "workqueue", False, id="main-thread"),
     ],
 )
-def test_is_in_unsafe_thread_pool(monkeypatch: pytest.MonkeyPatch, name: str, layer: fa_numba.ThreadingLayer, *, expected: bool) -> None:
-    def current_thread() -> object:
-        return type("FakeThread", (), {"name": name})()
+def test_is_on_unsafe_thread(monkeypatch: pytest.MonkeyPatch, layer: fa_numba.ThreadingLayer, *, on_main: bool, expected: bool) -> None:
+    caller = threading.main_thread() if on_main else threading.Thread()
 
-    monkeypatch.setattr(threading, "current_thread", current_thread)
+    monkeypatch.setattr(threading, "current_thread", lambda: caller)
     monkeypatch.setattr(fa_numba, "threading_layer", lambda: layer)
 
-    assert fa_numba._is_in_unsafe_thread_pool() is expected
+    assert fa_numba._is_on_unsafe_thread() is expected
 
 
 def _set_runtime(
@@ -271,7 +270,7 @@ def test_probe_failure(
 
 
 @pytest.mark.parametrize(
-    ("unsafe_pool", "needs_probe", "probe_safe", "expected", "warning"),
+    ("unsafe_thread", "needs_probe", "probe_safe", "expected", "warning"),
     [
         pytest.param(True, None, None, False, "unsupported threading environment", id="thread-pool"),
         pytest.param(False, True, False, False, "unsupported numba parallel runtime", id="probe-fails"),
@@ -282,7 +281,7 @@ def test_probe_failure(
 def test_njit_chooses_version(
     monkeypatch: pytest.MonkeyPatch,
     *,
-    unsafe_pool: bool,
+    unsafe_thread: bool,
     needs_probe: bool | None,
     probe_safe: bool | None,
     expected: bool,
@@ -291,7 +290,7 @@ def test_njit_chooses_version(
     calls: list[bool] = []
     _install_fake_njit(monkeypatch, calls)
 
-    monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: unsafe_pool)
+    monkeypatch.setattr(fa_numba, "_is_on_unsafe_thread", lambda: unsafe_thread)
     if needs_probe is None:
         monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: pytest.fail("probe should not be consulted"))
     else:
@@ -316,7 +315,7 @@ def test_njit_chooses_version(
 
 def test_serial_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     values = np.arange(10, dtype=np.float64)
-    monkeypatch.setattr(fa_numba, "_is_in_unsafe_thread_pool", lambda: False)
+    monkeypatch.setattr(fa_numba, "_is_on_unsafe_thread", lambda: False)
     monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: True)
     monkeypatch.setattr(probe, "_parallel_numba_runtime_is_safe", lambda: False)
     wrapped = fa_numba.njit(_sum_prange)
