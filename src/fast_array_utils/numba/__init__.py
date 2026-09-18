@@ -76,12 +76,11 @@ def _threading_layer(layer_or_category: ThreadingLayer | TheadingCategory, /, pr
     raise ValueError(msg)  # pragma: no cover
 
 
-def _is_in_unsafe_thread_pool() -> bool:
+def _is_on_unsafe_thread() -> bool:
     import threading
 
-    current_thread = threading.current_thread()
-    # ThreadPoolExecutor threads typically have names like 'ThreadPoolExecutor-0_1'
-    return current_thread.name.startswith("ThreadPoolExecutor") and threading_layer() not in LAYERS["threadsafe"]
+    # We deem it unsafe if the caller is not the main thread, and therefore fall back to serial.
+    return threading.current_thread() is not threading.main_thread() and threading_layer() not in LAYERS["threadsafe"]
 
 
 @overload
@@ -112,7 +111,7 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             msg = None
-            if _is_in_unsafe_thread_pool():  # pragma: no cover
+            if _is_on_unsafe_thread():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
             elif _needs_parallel_runtime_probe() and not _parallel_numba_runtime_is_safe():
                 msg = (
