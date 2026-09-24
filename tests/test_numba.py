@@ -41,48 +41,6 @@ def _sum_prange(values: NDArray[np.float64]) -> float:
 @pytest.fixture(autouse=True)
 def clear_probe_cache() -> None:
     probe._parallel_numba_runtime_layer_cached.cache_clear()
-    fa_numba._threading_layer.cache_clear()
-
-
-def test_threading_layer_uses_numba_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(numba.config, "THREADING_LAYER", "threadsafe")
-    monkeypatch.setattr(numba.config, "THREADING_LAYER_PRIORITY", ["omp", "tbb"])
-    calls: list[tuple[fa_numba.ThreadingLayer | fa_numba.TheadingCategory, tuple[fa_numba.ThreadingLayer, ...]]] = []
-
-    def fake_threading_layer(
-        layer_or_category: fa_numba.ThreadingLayer | fa_numba.TheadingCategory, priority: tuple[fa_numba.ThreadingLayer, ...]
-    ) -> fa_numba.ThreadingLayer:
-        calls.append((layer_or_category, priority))
-        return "omp"
-
-    monkeypatch.setattr(fa_numba, "_threading_layer", fake_threading_layer)
-
-    assert fa_numba.threading_layer() == "omp"
-    assert calls == [("threadsafe", ("omp", "tbb"))]
-
-
-def test_threading_layer_resolves_available_backend(monkeypatch: pytest.MonkeyPatch) -> None:
-    original_import_module = importlib.import_module
-    calls: list[str] = []
-
-    def import_module(name: str, package: str | None = None) -> object:
-        calls.append(name)
-        if name.endswith("tbbpool"):
-            raise ImportError
-        if name.endswith("omppool"):
-            return object()
-        return original_import_module(name, package)
-
-    monkeypatch.setattr(importlib, "import_module", import_module)
-
-    assert fa_numba.threading_layer("threadsafe", ("workqueue", "tbb", "omp")) == "omp"
-    assert calls == ["numba.np.ufunc.tbbpool", "numba.np.ufunc.omppool"]
-
-    fa_numba._threading_layer.cache_clear()
-    calls.clear()
-
-    assert fa_numba.threading_layer("default", ("workqueue", "omp")) == "workqueue"
-    assert calls == []
 
 
 @pytest.mark.parametrize(
@@ -178,7 +136,6 @@ def test_probe_needed(
 
 def test_probe_check_is_lazy(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_runtime(monkeypatch)
-    monkeypatch.setattr(fa_numba, "threading_layer", lambda: pytest.fail("threading_layer() should not be called"))
 
     original_import_module = importlib.import_module
 

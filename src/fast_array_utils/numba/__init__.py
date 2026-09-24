@@ -13,16 +13,16 @@ from __future__ import annotations
 
 import sys
 import warnings
-from functools import cache, update_wrapper, wraps
+from functools import update_wrapper, wraps
 from types import FunctionType
 from typing import TYPE_CHECKING, Literal, cast, overload
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable
 
 
-__all__ = ["TheadingCategory", "ThreadingLayer", "njit", "threading_layer"]
+__all__ = ["TheadingCategory", "ThreadingLayer", "njit"]
 
 
 type TheadingCategory = Literal["default", "safe", "threadsafe", "forksafe"]
@@ -37,43 +37,6 @@ LAYERS: dict[TheadingCategory, set[ThreadingLayer]] = {
     "threadsafe": {"tbb", "omp"},
     "forksafe": {"tbb", "workqueue", *(() if sys.platform == "linux" else {"omp"})},
 }
-
-
-def threading_layer(layer_or_category: ThreadingLayer | TheadingCategory | None = None, /, priority: Iterable[ThreadingLayer] | None = None) -> ThreadingLayer:
-    """Get numba’s configured threading layer as specified in :ref:`numba-threading-layer`.
-
-    ``layer_or_category`` defaults ``numba.config.THREADING_LAYER`` and ``priority`` to ``numba.config.THREADING_LAYER_PRIORITY``.
-    """
-    import numba
-
-    if layer_or_category is None:
-        layer_or_category = numba.config.THREADING_LAYER
-    if priority is None:
-        priority = numba.config.THREADING_LAYER_PRIORITY
-
-    return _threading_layer(layer_or_category, tuple(priority))
-
-
-@cache
-def _threading_layer(layer_or_category: ThreadingLayer | TheadingCategory, /, priority: Iterable[ThreadingLayer]) -> ThreadingLayer:
-    import importlib
-
-    if (available := LAYERS.get(layer_or_category)) is None:  # type: ignore[arg-type]  # pragma: no cover
-        return cast("ThreadingLayer", layer_or_category)  # given by direct name
-
-    # given by layer type (safe, …)
-    for layer in priority:
-        if layer not in available:  # pragma: no cover
-            continue
-        if layer != "workqueue":
-            try:  # `importlib.util.find_spec` doesn’t work here
-                importlib.import_module(f"numba.np.ufunc.{layer}pool")
-            except ImportError:
-                continue
-        # the layer has been found
-        return layer
-    msg = f"No threading layer matching {layer_or_category!r} ({available=}, {priority=})"  # pragma: no cover
-    raise ValueError(msg)  # pragma: no cover
 
 
 def _is_on_unsafe_thread() -> bool:
