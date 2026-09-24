@@ -79,8 +79,10 @@ def _threading_layer(layer_or_category: ThreadingLayer | TheadingCategory, /, pr
 def _is_on_unsafe_thread() -> bool:
     import threading
 
-    # We deem it unsafe if the caller is not the main thread, and therefore fall back to serial.
-    return threading.current_thread() is not threading.main_thread() and threading_layer() not in LAYERS["threadsafe"]
+    from ._parallel_runtime import _parallel_numba_runtime_layer
+
+    # We deem it unsafe if the caller is not the main thread and the layer numba launches isn’t threadsafe, and therefore fall back to serial.
+    return threading.current_thread() is not threading.main_thread() and _parallel_numba_runtime_layer() not in LAYERS["threadsafe"]
 
 
 @overload

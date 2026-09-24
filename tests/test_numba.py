@@ -40,7 +40,7 @@ def _sum_prange(values: NDArray[np.float64]) -> float:
 
 @pytest.fixture(autouse=True)
 def clear_probe_cache() -> None:
-    probe._parallel_numba_runtime_is_safe_cached.cache_clear()
+    probe._parallel_numba_runtime_layer_cached.cache_clear()
     fa_numba._threading_layer.cache_clear()
 
 
@@ -90,14 +90,15 @@ def test_threading_layer_resolves_available_backend(monkeypatch: pytest.MonkeyPa
     [
         pytest.param(False, "workqueue", True, id="worker-unsafe"),
         pytest.param(False, "omp", False, id="worker-threadsafe"),
+        pytest.param(False, None, True, id="worker-probe-failed"),
         pytest.param(True, "workqueue", False, id="main-thread"),
     ],
 )
-def test_is_on_unsafe_thread(monkeypatch: pytest.MonkeyPatch, layer: fa_numba.ThreadingLayer, *, on_main: bool, expected: bool) -> None:
+def test_is_on_unsafe_thread(monkeypatch: pytest.MonkeyPatch, layer: fa_numba.ThreadingLayer | None, *, on_main: bool, expected: bool) -> None:
     caller = threading.main_thread() if on_main else threading.Thread()
 
     monkeypatch.setattr(threading, "current_thread", lambda: caller)
-    monkeypatch.setattr(fa_numba, "threading_layer", lambda: layer)
+    monkeypatch.setattr(probe, "_parallel_numba_runtime_layer", lambda: layer)
 
     assert fa_numba._is_on_unsafe_thread() is expected
 
@@ -222,10 +223,11 @@ def test_probe_result(monkeypatch: pytest.MonkeyPatch) -> None:
 
     def run(cmd: list[str], /, **kwargs: object) -> subprocess.CompletedProcess[str]:
         calls.append((cmd, kwargs))
-        return subprocess.CompletedProcess(cmd, 0, stdout=f"{probe._PARALLEL_RUNTIME_PROBE_SENTINEL}\n", stderr="")
+        return subprocess.CompletedProcess(cmd, 0, stdout=f"{probe._PARALLEL_RUNTIME_PROBE_SENTINEL} tbb\n", stderr="")
 
     monkeypatch.setattr(probe.subprocess, "run", run)
 
+    assert probe._parallel_numba_runtime_layer() == "tbb"
     assert probe._parallel_numba_runtime_is_safe() is True
     assert probe._parallel_numba_runtime_is_safe() is True
     assert calls == [
@@ -240,6 +242,11 @@ def test_probe_result(monkeypatch: pytest.MonkeyPatch) -> None:
             },
         )
     ]
+
+
+def test_probe_reports_launched_layer() -> None:
+    """Runs the real probe, which reports what numba launched instead of what we’d predict."""
+    assert probe._parallel_numba_runtime_layer() in fa_numba.LAYERS["default"]
 
 
 @pytest.mark.parametrize(
