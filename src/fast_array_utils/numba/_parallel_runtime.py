@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from . import TheadingCategory, ThreadingLayer
 
 
-__all__ = ["_needs_parallel_runtime_probe", "_parallel_numba_runtime_is_safe", "_parallel_numba_runtime_layer"]
+__all__ = ["_needs_parallel_runtime_probe", "_parallel_numba_runtime_layer"]
 
 
 type _ParallelRuntimeProbeKey = tuple[str, ThreadingLayer | TheadingCategory, tuple[ThreadingLayer, ...], tuple[str, ...]]
@@ -110,7 +110,3 @@ def _parallel_numba_runtime_layer_cached(key: _ParallelRuntimeProbeKey) -> Threa
 def _parallel_numba_runtime_layer() -> ThreadingLayer | None:
     """Get the threading layer numba actually launches, or `None` if parallel execution crashes."""
     return _parallel_numba_runtime_layer_cached(_parallel_runtime_probe_key())
-
-
-def _parallel_numba_runtime_is_safe() -> bool:
-    return _parallel_numba_runtime_layer() is not None

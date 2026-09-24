@@ -63,7 +63,7 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
     def decorator(f: Callable[P, R], /) -> Callable[P, R]:
         import numba
 
-        from ._parallel_runtime import _needs_parallel_runtime_probe, _parallel_numba_runtime_is_safe
+        from ._parallel_runtime import _needs_parallel_runtime_probe, _parallel_numba_runtime_layer
 
         assert isinstance(f, FunctionType)
 
@@ -78,7 +78,7 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
             msg = None
             if _is_on_unsafe_thread():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
-            elif _needs_parallel_runtime_probe() and not _parallel_numba_runtime_is_safe():
+            elif _needs_parallel_runtime_probe() and _parallel_numba_runtime_layer() is None:
                 msg = (
                     f"Detected an unsupported numba parallel runtime. Running {f.__name__} in serial mode as a workaround. "
                     "Set `NUMBA_THREADING_LAYER=workqueue` or install `tbb` to avoid this fallback."
