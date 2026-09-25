@@ -83,9 +83,10 @@ def _set_runtime(
         monkeypatch.setattr(probe, "LAYERS", layers)
 
 
-def _install_fake_njit(monkeypatch: pytest.MonkeyPatch, calls: list[bool]) -> None:
-    def fake_njit(_fn: object, /, *, cache: bool, parallel: bool) -> Callable[..., bool]:
+def _install_fake_njit(monkeypatch: pytest.MonkeyPatch, calls: list[bool], *, expected_nogil: bool = True) -> None:
+    def fake_njit(_fn: object, /, *, cache: bool, parallel: bool, nogil: bool) -> Callable[..., bool]:
         assert cache is True
+        assert nogil is expected_nogil
 
         def compiled(*_args: object, **_kwargs: object) -> bool:
             calls.append(parallel)
@@ -287,3 +288,8 @@ def test_serial_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
         result = wrapped(values)
 
     assert result == pytest.approx(np.sum(values))
+
+
+def test_njit_nogil(monkeypatch: pytest.MonkeyPatch) -> None:
+    _install_fake_njit(monkeypatch, [], expected_nogil=False)
+    fa_numba.njit(nogil=False)(_return_true)
