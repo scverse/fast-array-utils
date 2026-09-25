@@ -49,14 +49,19 @@ def _is_on_unsafe_thread() -> bool:
 
 
 @overload
-def njit[**P, R](fn: Callable[P, R], /) -> Callable[P, R]: ...
+def njit[**P, R](fn: Callable[P, R], /, *, nogil: bool = True) -> Callable[P, R]: ...
 @overload
-def njit[**P, R]() -> Callable[[Callable[P, R]], Callable[P, R]]: ...
-def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+def njit[**P, R](*, nogil: bool = True) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Jit-compile a function using numba.
 
     On call, this function dispatches to a parallel or serial numba function,
     depending on the current threading environment.
+
+    Parameters
+    ----------
+    nogil
+        Release the GIL while the compiled function runs (see :func:`numba.jit`).
     """
     # See https://github.com/numbagg/numbagg/pull/201/files#r1409374809
 
@@ -69,7 +74,9 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callab
 
         # use distinct names so numba doesn’t reuse the wrong version’s cache
         fns: dict[bool, Callable[P, R]] = {
-            parallel: numba.njit(_copy_function(f, __qualname__=f"{f.__qualname__}-{'parallel' if parallel else 'serial'}"), cache=True, parallel=parallel)
+            parallel: numba.njit(
+                _copy_function(f, __qualname__=f"{f.__qualname__}-{'parallel' if parallel else 'serial'}"), cache=True, parallel=parallel, nogil=nogil
+            )
             for parallel in (True, False)
         }
 
