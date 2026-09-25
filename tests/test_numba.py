@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import importlib
+import os
 import subprocess
+import sys
 import threading
 import warnings
 from typing import TYPE_CHECKING
@@ -59,6 +61,29 @@ def test_is_on_unsafe_thread(monkeypatch: pytest.MonkeyPatch, layer: fa_numba.Th
     monkeypatch.setattr(probe, "_parallel_numba_runtime_layer", lambda: layer)
 
     assert fa_numba._is_on_unsafe_thread() is expected
+
+
+@pytest.mark.parametrize(
+    ("layer", "expected"),
+    [
+        pytest.param(None, False, id="nothing-launched"),
+        pytest.param("workqueue", False, id="workqueue"),
+        pytest.param("omp", sys.platform == "linux", id="omp"),
+        pytest.param("tbb", False, id="tbb"),
+    ],
+)
+def test_is_in_unsafe_fork(monkeypatch: pytest.MonkeyPatch, layer: fa_numba.ThreadingLayer | None, *, expected: bool) -> None:
+    def threading_layer() -> str:
+        if layer is None:
+            raise ValueError
+        return layer
+
+    monkeypatch.setattr(numba, "threading_layer", threading_layer)
+    monkeypatch.setattr(fa_numba, "_inherited_layer", None)
+    fa_numba._after_fork_in_child()
+    monkeypatch.setattr(numba, "threading_layer", lambda: "omp")  # a layer launched in the child isn’t inherited
+
+    assert fa_numba._is_in_unsafe_fork() is expected
 
 
 def _set_runtime(
@@ -234,17 +259,19 @@ def test_probe_failure(
 
 
 @pytest.mark.parametrize(
-    ("unsafe_thread", "needs_probe", "probe_safe", "expected", "warning"),
+    ("unsafe_fork", "unsafe_thread", "needs_probe", "probe_safe", "expected", "warning"),
     [
-        pytest.param(True, None, None, False, "unsupported threading environment", id="thread-pool"),
-        pytest.param(False, True, False, False, "unsupported numba parallel runtime", id="probe-fails"),
-        pytest.param(False, True, True, True, None, id="probe-passes"),
-        pytest.param(False, False, None, True, None, id="no-probe"),
+        pytest.param(True, True, None, None, False, "fork after numba launched", id="unsafe-fork"),
+        pytest.param(False, True, None, None, False, "unsupported threading environment", id="thread-pool"),
+        pytest.param(False, False, True, False, False, "unsupported numba parallel runtime", id="probe-fails"),
+        pytest.param(False, False, True, True, True, None, id="probe-passes"),
+        pytest.param(False, False, False, None, True, None, id="no-probe"),
     ],
 )
 def test_njit_chooses_version(
     monkeypatch: pytest.MonkeyPatch,
     *,
+    unsafe_fork: bool,
     unsafe_thread: bool,
     needs_probe: bool | None,
     probe_safe: bool | None,
@@ -254,6 +281,7 @@ def test_njit_chooses_version(
     calls: list[bool] = []
     _install_fake_njit(monkeypatch, calls)
 
+    monkeypatch.setattr(fa_numba, "_is_in_unsafe_fork", lambda: unsafe_fork)
     monkeypatch.setattr(fa_numba, "_is_on_unsafe_thread", lambda: unsafe_thread)
     if needs_probe is None:
         monkeypatch.setattr(probe, "_needs_parallel_runtime_probe", lambda: pytest.fail("probe should not be consulted"))
@@ -293,3 +321,29 @@ def test_serial_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_njit_nogil(monkeypatch: pytest.MonkeyPatch) -> None:
     _install_fake_njit(monkeypatch, [], expected_nogil=False)
     fa_numba.njit(nogil=False)(_return_true)
+
+
+_FORK_SCRIPT = """
+import os
+import numpy as np
+import scipy.sparse as sp
+from fast_array_utils.conv import to_dense
+
+x = sp.random(100, 100, density=0.1, format="csr")
+to_dense(x)  # launches the threading layer
+if (pid := os.fork()) == 0:
+    os._exit(0 if np.array_equal(to_dense(x), x.toarray()) else 1)
+os._exit(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]))
+"""
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="GNU OpenMP only terminates forked children on Linux")
+def test_fork_after_omp() -> None:
+    pytest.importorskip("scipy")
+    importlib.import_module("numba.np.ufunc.omppool")  # fail instead of skipping if the omp layer is missing
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", _FORK_SCRIPT], env={**os.environ, "NUMBA_THREADING_LAYER": "omp"}, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert "fork after numba launched the omp threading layer" in result.stderr
+    assert "NUMBA_THREADING_LAYER=forksafe" in result.stderr

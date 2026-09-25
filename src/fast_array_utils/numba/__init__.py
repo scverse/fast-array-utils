@@ -11,6 +11,7 @@ r"""Numba utilities, mainly used to deal with :ref:`numba-threading-layer` of :d
 
 from __future__ import annotations
 
+import os
 import sys
 import warnings
 from functools import update_wrapper, wraps
@@ -48,6 +49,26 @@ def _is_on_unsafe_thread() -> bool:
     return threading.current_thread() is not threading.main_thread() and _parallel_numba_runtime_layer() not in LAYERS["threadsafe"]
 
 
+_inherited_layer: ThreadingLayer | None = None
+
+
+def _after_fork_in_child() -> None:
+    global _inherited_layer  # noqa: PLW0603
+    try:
+        _inherited_layer = None if (numba := sys.modules.get("numba")) is None else numba.threading_layer()
+    except ValueError:  # no parallel code ran before the fork
+        _inherited_layer = None
+
+
+if hasattr(os, "register_at_fork"):  # only sees `os.fork`, and only if this module was imported before
+    os.register_at_fork(after_in_child=_after_fork_in_child)
+
+
+def _is_in_unsafe_fork() -> bool:
+    # e.g. GNU OpenMP terminates forked children
+    return _inherited_layer is not None and _inherited_layer not in LAYERS["forksafe"]
+
+
 @overload
 def njit[**P, R](fn: Callable[P, R], /, *, nogil: bool = True) -> Callable[P, R]: ...
 @overload
@@ -57,6 +78,9 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> 
 
     On call, this function dispatches to a parallel or serial numba function,
     depending on the current threading environment.
+    In a process forked after numba launched a threading layer that isn’t fork-safe
+    (GNU OpenMP on Linux), it runs the serial function.
+    TBB is only fork-safe when forked from the thread that launched it, which isn’t detected.
 
     Parameters
     ----------
@@ -83,7 +107,13 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> 
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             msg = None
-            if _is_on_unsafe_thread():  # pragma: no cover
+            if _is_in_unsafe_fork():
+                msg = (
+                    f"Detected a fork after numba launched the {_inherited_layer} threading layer, which isn’t fork-safe here. "
+                    f"Running {f.__name__} in serial mode. To avoid this fallback, use the `spawn` or `forkserver` start method, "
+                    "or if you can’t control how the process is forked, set `NUMBA_THREADING_LAYER=forksafe` before running parallel code."
+                )
+            elif _is_on_unsafe_thread():  # pragma: no cover
                 msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
             elif _needs_parallel_runtime_probe() and _parallel_numba_runtime_layer() is None:
                 msg = (
