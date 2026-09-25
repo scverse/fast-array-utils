@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
@@ -409,3 +411,16 @@ def test_stats_benchmark(
     @benchmark
     def call() -> None:
         func(arr, axis=axis)
+
+
+@pytest.mark.benchmark
+@pytest.mark.array_type(select=Flags.Sparse, skip=Flags.Matrix | Flags.Dask | Flags.Disk | Flags.Gpu)
+def test_mean_var_threaded_benchmark(benchmark: BenchmarkFixture, array_type: ArrayType[CpuArray, None]) -> None:
+    """Calls from worker threads run serially, so they only overlap if numba releases the GIL."""
+    mats = [array_type.random((20_000, 5_000), density=0.1, dtype=np.float64) for _ in range(4)]
+    stats.mean_var(mats[0], axis=0)  # warmup: numba compile
+
+    @benchmark
+    def call() -> None:
+        with ThreadPoolExecutor(len(mats)) as pool:
+            list(pool.map(partial(stats.mean_var, axis=0), mats))

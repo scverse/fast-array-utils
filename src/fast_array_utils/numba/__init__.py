@@ -62,6 +62,8 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> 
     ----------
     nogil
         Release the GIL while the compiled function runs (see :func:`numba.jit`).
+        numba’s on-disk cache doesn’t distinguish this option,
+        so wrapping the same function with both values reuses whichever was compiled first.
     """
     # See https://github.com/numbagg/numbagg/pull/201/files#r1409374809
 
