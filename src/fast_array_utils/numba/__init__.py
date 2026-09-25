@@ -60,7 +60,7 @@ def _after_fork_in_child() -> None:
         _inherited_layer = None
 
 
-if hasattr(os, "register_at_fork"):  # only sees `os.fork`, and only if this module was imported before
+if hasattr(os, "register_at_fork"):  # Unix only; only sees `os.fork`, and only if this module was imported before
     os.register_at_fork(after_in_child=_after_fork_in_child)
 
 
