@@ -87,6 +87,8 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
       - run: uv pip install --system --group=test -e .[full]
       - uses: CodSpeedHQ/action@v5.2.1
+        env:
+          OMP_WAIT_POLICY: passive  # spinning omp barriers make instruction counts noisy
         with:
           mode: simulation
           run: pytest -m benchmark --codspeed -n auto
