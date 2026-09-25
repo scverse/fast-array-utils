@@ -396,12 +396,16 @@ def test_stats_benchmark(
     n_elems, density = 10_000_000, 0.01
     n = int(np.sqrt(n_elems / density if "sparse" in array_type.mod else n_elems))
     arr = array_type.random((n, n), density=density, dtype=dtype)
+    if (
+        func is stats.is_constant
+        and isinstance(arr, types.CSBase)
+        and ((array_type.name == "csr_array" and axis == 1) or (array_type.name == "csc_array" and axis == 0))
+    ):
+        # random rows break at the first entry, so make every row constant (explicit zeros) to scan all entries
+        arr.data[:] = 0
 
     func(arr, axis=axis)  # warmup: numba compile
 
-    is_very_fast = func is stats.is_constant and ((array_type.name == "csr_array" and axis == 1) or (array_type.name == "csc_array" and axis == 0))
-
     @benchmark
     def call() -> None:
-        for _ in range(100 if is_very_fast else 1):
-            func(arr, axis=axis)
+        func(arr, axis=axis)
