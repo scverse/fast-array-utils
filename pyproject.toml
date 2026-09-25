@@ -60,6 +60,12 @@ test-min = [
   "pytest-doctestplus",
   "pytest-xdist",
 ]
+typecheck = [
+  "array-api-compat!=1.15", # https://github.com/data-apis/array-api-compat/issues/436
+  "mypy",
+  "scipy-stubs",
+  "sphinx",
+]
 
 [tool.hatch]
 version.source = "vcs"
@@ -75,6 +81,15 @@ envs.docs.scripts.build = "sphinx-build -M html docs docs/_build"
 envs.docs.scripts.clean = "git clean -fdX docs"
 envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 envs.docs.dependency-groups = [ "doc" ]
+envs.hatch-check-code.dependencies = [ "prek" ]
+envs.hatch-check-code.scripts.lint-check = "echo 'try `hatch check code --fix`'; false"
+envs.hatch-check-code.scripts.lint-fix = "prek run -a --no-group=format --no-group=typecheck"
+envs.hatch-check-fmt.dependencies = [ "prek" ]
+envs.hatch-check-fmt.scripts.format-check = "echo 'try `hatch check fmt --fix`'; false"
+envs.hatch-check-fmt.scripts.format-fix = "prek run -a --group=format --no-group=typecheck"
+envs.hatch-check-types.features = [ "full" ]  # the `test` group’s self-reference doesn’t get the extras
+envs.hatch-check-types.scripts.check = [ "mypy" ]
+envs.hatch-check-types.dependency-groups = [ "typecheck", "test" ]
 envs.hatch-test.extra-dependencies = [ "ipycytoscape", "ipykernel" ]
 envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 envs.hatch-test.matrix = [
@@ -140,6 +155,7 @@ lint.future-annotations = true
 
 [tool.mypy]
 mypy_path = [ "$MYPY_CONFIG_FILE_DIR/typings", "$MYPY_CONFIG_FILE_DIR/src" ]
+files = [ "." ]
 explicit_package_bases = true
 # https://github.com/dask/dask/issues/8853
 implicit_reexport = true

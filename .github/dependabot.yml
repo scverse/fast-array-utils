@@ -1,5 +1,16 @@
 version: 2
 updates:
+  - package-ecosystem: pre-commit
+    directory: /
+    labels:
+      - run-gpu-ci
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     labels:
