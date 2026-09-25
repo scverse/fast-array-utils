@@ -72,10 +72,10 @@ def _sparse_mean_var(mtx: types.CSBase, /, *, axis: Literal[0, 1]) -> tuple[NDAr
     elif mtx.format == "csc":
         ax_minor = 0
         shape = mtx.shape[::-1]
-    else:
+    else:  # pragma: no cover
         msg = "This function only works on sparse csr and csc matrices"
         raise TypeError(msg)
-    if len(shape) == 1:
+    if len(shape) == 1:  # pragma: no cover
         msg = "array must have 2 dimensions"
         raise TypeError(msg)
     f = sparse_mean_var_major_axis if axis == ax_minor else sparse_mean_var_minor_axis

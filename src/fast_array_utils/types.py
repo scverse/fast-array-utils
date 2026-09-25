@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 
 if TYPE_CHECKING:
-    from types import ModuleType
+    from typing import Self
+
+    from array_api.latest import ArrayNamespace
 
 
 __all__ = [
@@ -139,5 +141,5 @@ class HasArrayNamespace(Protocol):
     def dtype(self) -> object:
         """The data type of the array."""
 
-    def __array_namespace__(self, /, *, api_version: str | None = None) -> ModuleType:
+    def __array_namespace__(self, /, *, api_version: str | None = None) -> ArrayNamespace[Self, object, object]:  # type: ignore[type-var]
         """Get Array API namespace."""
