@@ -2,6 +2,8 @@
 from collections.abc import Iterable
 from typing import SupportsIndex, overload
 
+from fast_array_utils.numba import ThreadingLayer
+
 from .core import config as config
 from .core.decorators import njit as njit
 
@@ -10,3 +12,4 @@ def prange(stop: SupportsIndex, /) -> Iterable[int]: ...
 @overload
 def prange(start: SupportsIndex, stop: SupportsIndex, step: SupportsIndex = ..., /) -> Iterable[int]: ...
 def get_num_threads() -> int: ...
+def threading_layer() -> ThreadingLayer: ...
