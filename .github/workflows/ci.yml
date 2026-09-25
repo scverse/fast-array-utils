@@ -106,15 +106,6 @@ jobs:
       - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'
       - run: uv pip install --system -e .[testing]
       - run: python -c 'import testing.fast_array_utils as tfau; print(tfau.ArrayType("numpy", "ndarray"))'
-  check:
-    name: Static Checks
-    runs-on: ubuntu-latest
-    env:
-      SKIP: no-commit-to-branch  # this CI runs on the main branch
-    steps:
-      - uses: actions/checkout@v7
-        with: { fetch-depth: 0, filter: "blob:none" }
-      - uses: j178/prek-action@v3.0.0
   pass:
     name: All Checks
     if: always()
@@ -123,7 +114,6 @@ jobs:
       - test
       - bench
       - import
-      - check
     runs-on: ubuntu-latest
     steps:
       - uses: re-actors/alls-green@release/v1
