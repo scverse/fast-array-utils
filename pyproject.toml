@@ -87,7 +87,6 @@ envs.hatch-check-code.scripts.lint-fix = "prek run -a --no-group=format --no-gro
 envs.hatch-check-fmt.dependencies = [ "prek" ]
 envs.hatch-check-fmt.scripts.format-check = "echo 'try `hatch check fmt --fix`'; false"
 envs.hatch-check-fmt.scripts.format-fix = "prek run -a --group=format --no-group=typecheck"
-envs.hatch-check-types.features = [ "full" ]  # the `test` group’s self-reference doesn’t get the extras
 envs.hatch-check-types.scripts.check = [ "mypy" ]
 envs.hatch-check-types.dependency-groups = [ "typecheck", "test" ]
 envs.hatch-test.extra-dependencies = [ "ipycytoscape", "ipykernel" ]
