@@ -7,7 +7,7 @@ import platform
 import subprocess
 import sys
 from functools import cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numba
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from . import TheadingCategory, ThreadingLayer
 
 
-__all__ = ["_needs_parallel_runtime_probe", "_parallel_numba_runtime_is_safe"]
+__all__ = ["_needs_parallel_runtime_probe", "_parallel_numba_runtime_layer"]
 
 
 type _ParallelRuntimeProbeKey = tuple[str, ThreadingLayer | TheadingCategory, tuple[ThreadingLayer, ...], tuple[str, ...]]
@@ -40,7 +40,7 @@ def _probe(values):
 
 values = np.arange(32, dtype=np.float64)
 assert _probe(values) == np.sum(values)
-print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r})
+print({_PARALLEL_RUNTIME_PROBE_SENTINEL!r}, numba.threading_layer())
 """
 
 
@@ -87,7 +87,7 @@ def _build_parallel_runtime_probe_env(key: _ParallelRuntimeProbeKey | None = Non
 
 
 @cache
-def _parallel_numba_runtime_is_safe_cached(key: _ParallelRuntimeProbeKey) -> bool:
+def _parallel_numba_runtime_layer_cached(key: _ParallelRuntimeProbeKey) -> ThreadingLayer | None:
     try:
         # The probe command is built from `sys.executable` plus a generated script
         # that only imports modules from a fixed whitelist.
@@ -100,9 +100,13 @@ def _parallel_numba_runtime_is_safe_cached(key: _ParallelRuntimeProbeKey) -> boo
             timeout=_PARALLEL_RUNTIME_PROBE_TIMEOUT,
         )
     except Exception:  # noqa: BLE001
-        return False
-    return result.returncode == 0 and _PARALLEL_RUNTIME_PROBE_SENTINEL in result.stdout
+        return None
+    if result.returncode != 0:
+        return None
+    prefix = f"{_PARALLEL_RUNTIME_PROBE_SENTINEL} "
+    return next((cast("ThreadingLayer", line.removeprefix(prefix)) for line in result.stdout.splitlines() if line.startswith(prefix)), None)
 
 
-def _parallel_numba_runtime_is_safe() -> bool:
-    return _parallel_numba_runtime_is_safe_cached(_parallel_runtime_probe_key())
+def _parallel_numba_runtime_layer() -> ThreadingLayer | None:
+    """Get the threading layer numba actually launches, or `None` if parallel execution crashes."""
+    return _parallel_numba_runtime_layer_cached(_parallel_runtime_probe_key())
