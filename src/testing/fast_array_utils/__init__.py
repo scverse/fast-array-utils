@@ -6,7 +6,7 @@ Ideally used through the :mod:`testing.fast_array_utils.pytest` plugin.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from ._array_type import ArrayType, ConversionContext, Flags, random_mat
 
@@ -28,25 +28,23 @@ __all__ = [
 ]
 
 
-_TP_MEM = (
+_TP_MEM: tuple[ArrayType[CpuArray | GpuArray, None], ...] = (
     ArrayType("numpy", "ndarray", Flags.Any),
     ArrayType("cupy", "ndarray", Flags.Any | Flags.Gpu),
-    *(ArrayType("scipy.sparse", n, Flags.Any | Flags.Sparse) for n in ["csr_array", "csc_array"]),
-    *(
-        ArrayType(mod, n, Flags.Any | Flags.Sparse | Flags.Matrix | flags)
-        for n in ["csr_matrix", "csc_matrix"]
-        for (mod, flags) in [("scipy.sparse", Flags(0)), ("cupyx.scipy.sparse", Flags.Gpu)]
-    ),
+    ArrayType("scipy.sparse", "csr_array", Flags.Any | Flags.Sparse),
+    ArrayType("scipy.sparse", "csc_array", Flags.Any | Flags.Sparse),
+    ArrayType("scipy.sparse", "csr_matrix", Flags.Any | Flags.Sparse | Flags.Matrix),
+    ArrayType("scipy.sparse", "csc_matrix", Flags.Any | Flags.Sparse | Flags.Matrix),
+    ArrayType("cupyx.scipy.sparse", "csr_matrix", Flags.Any | Flags.Sparse | Flags.Matrix | Flags.Gpu),
+    ArrayType("cupyx.scipy.sparse", "csc_matrix", Flags.Any | Flags.Sparse | Flags.Matrix | Flags.Gpu),
 )
-_TP_DASK = tuple(
-    ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t)  # type: ignore[type-var]
-    for t in cast("tuple[ArrayType[CpuArray | GpuArray, None], ...]", _TP_MEM)
+_TP_DASK = tuple(ArrayType("dask.array", "Array", Flags.Dask | t.flags, inner=t) for t in _TP_MEM)
+_TP_DISK_DENSE: tuple[ArrayType[DiskArray, None], ...] = (
+    ArrayType("h5py", "Dataset", Flags.Any | Flags.Disk),
+    ArrayType("zarr", "Array", Flags.Any | Flags.Disk),
 )
-_TP_DISK_DENSE = tuple(ArrayType(m, n, Flags.Any | Flags.Disk) for m, n in [("h5py", "Dataset"), ("zarr", "Array")])
 _TP_DISK_SPARSE = tuple(
-    ArrayType("anndata.abc", n, Flags.Any | Flags.Disk | Flags.Sparse, inner=t)  # type: ignore[type-var]
-    for t in cast("tuple[ArrayType[DiskArray, None], ...]", _TP_DISK_DENSE)
-    for n in ["CSRDataset", "CSCDataset"]
+    ArrayType("anndata.abc", n, Flags.Any | Flags.Disk | Flags.Sparse, inner=t) for t in _TP_DISK_DENSE for n in ["CSRDataset", "CSCDataset"]
 )
 
 SUPPORTED_TYPES: tuple[ArrayType, ...] = (*_TP_MEM, *_TP_DASK, *_TP_DISK_DENSE, *_TP_DISK_SPARSE)
