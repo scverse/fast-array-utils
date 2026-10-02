@@ -29,6 +29,10 @@ jobs:
   test:
     name: All Tests
     needs: check
+    permissions:
+      contents: read
+      id-token: write  # for codecov OIDC
+      pull-requests: write  # for removing the label
     runs-on: "cirun-aws-gpu--${{ github.run_id }}"
     timeout-minutes: 30
     defaults:
@@ -62,7 +66,7 @@ jobs:
           name: GPU Tests
           fail_ci_if_error: true
           files: test-data/coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
       - name: Remove “run-gpu-ci” Label
         if: always()
         uses: actions-ecosystem/action-remove-labels@v1
