@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import enum
-import sys
 from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial
 from importlib.metadata import version
-from typing import TYPE_CHECKING, Generic, TypedDict, TypeVar, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import numpy as np
 from packaging.version import Version
@@ -74,17 +73,8 @@ class ConversionContext:
     hdf5_file: h5py.File  # TODO(flying-sheep): ReadOnly <https://peps.python.org/pep-0767/>
 
 
-if TYPE_CHECKING or sys.version_info >= (3, 13):
-    # TODO(flying-sheep): move vars into type parameter syntax  # noqa: TD003
-    Arr = TypeVar("Arr", bound="ExtendedArray", default="Array")
-    Inner = TypeVar("Inner", bound="ArrayType[InnerArray, None] | None", default="Any")
-else:
-    Arr = TypeVar("Arr")
-    Inner = TypeVar("Inner")
-
-
 @dataclass(frozen=True)
-class ArrayType(Generic[Arr, Inner]):  # noqa: UP046
+class ArrayType[Arr: ExtendedArray = Array, Inner: ArrayType[InnerArray, None] | None = ArrayType[InnerArray, None] | None]:
     """Supported array type with methods for conversion and random generation.
 
     Examples
