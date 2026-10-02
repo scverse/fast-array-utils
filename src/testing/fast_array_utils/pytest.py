@@ -159,7 +159,7 @@ class CC(ConversionContext):
 
 
 @pytest.fixture
-def tmp_hdf5_file(tmp_path: Path) -> Generator[h5py.File, None, None]:
+def tmp_hdf5_file(tmp_path: Path) -> Generator[h5py.File]:
     import h5py
 
     with h5py.File(tmp_path / "test.h5", "w") as f:

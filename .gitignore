@@ -15,3 +15,4 @@ _version.py
 
 # IDEs
 /.idea/
+/ci/min-constraints.txt

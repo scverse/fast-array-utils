@@ -13,22 +13,21 @@ license = "MPL-2.0"
 authors = [
   { name = "Philipp A.", email = "flying-sheep@web.de" },
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3.15",
 ]
 dynamic = [ "description", "readme", "version" ]
-dependencies = [ "array-api-compat", "numpy>=2" ]
-optional-dependencies.accel = [ "numba>=0.57" ]
+dependencies = [ "array-api-compat", "numpy>=2.1" ]
+optional-dependencies.accel = [ "numba>=0.61" ]
 optional-dependencies.dask = [ "dask>=2023.6.1" ]
 optional-dependencies.full = [ "fast-array-utils[accel,dask,sparse]", "h5py", "zarr" ]
-optional-dependencies.sparse = [ "scipy>=1.13" ]
+optional-dependencies.sparse = [ "scipy>=1.15" ]
 optional-dependencies.testing = [ "packaging" ]
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
 urls."Source Code" = "https://github.com/scverse/fast-array-utils"
@@ -92,16 +91,17 @@ envs.hatch-check-types.dependency-groups = [ "typecheck", "test" ]
 envs.hatch-test.extra-dependencies = [ "ipycytoscape", "ipykernel" ]
 envs.hatch-test.env-vars.CODSPEED_PROFILE_FOLDER = "test-data/codspeed"
 envs.hatch-test.matrix = [
-  { python = [ "3.14", "3.12" ], extras = [ "full", "min" ] },
-  { python = [ "3.12" ], extras = [ "full" ], resolution = [ "lowest" ] },
+  { python = [ "3.15", "3.13" ], extras = [ "full", "min" ] },
+  { python = [ "3.13" ], extras = [ "full" ], resolution = [ "lowest" ] },
 ]
 envs.hatch-test.overrides.matrix.extras.dependency-groups = [
   { value = "test", if = [ "full" ] },
 ]
-envs.hatch-test.overrides.matrix.resolution.dependencies = [
-  { value = "numpy==2", if = [ "lowest" ] },
-  { value = "dask==2023.6.1", if = [ "lowest" ] },
-  { value = "scipy==1.13.0", if = [ "lowest" ] },
+envs.hatch-test.overrides.matrix.resolution.pre-install-commands = [
+  { value = "python ci/min-constraints.py", if = [ "lowest" ] },
+]
+envs.hatch-test.overrides.matrix.resolution.env-vars = [
+  { key = "UV_CONSTRAINT", value = "ci/min-constraints.txt", if = [ "lowest" ] },
 ]
 envs.hatch-test.default-args = []
 envs.hatch-test.dependency-groups = [ "test-min" ]
@@ -129,7 +129,8 @@ lint.ignore = [
   "S101",    # asserts are fine
   "TID252",  # relative imports are fine
 ]
-# No __init__.py in docs
+# No __init__.py in scripts and docs
+lint.per-file-ignores."ci/**/*.py" = [ "INP001" ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ]
 # Shadows builtins like `sum`
 lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ]
