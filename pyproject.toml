@@ -103,6 +103,13 @@ envs.hatch-test.overrides.matrix.resolution.pre-install-commands = [
 envs.hatch-test.overrides.matrix.resolution.env-vars = [
   { key = "UV_CONSTRAINT", value = "ci/min-constraints.txt", if = [ "lowest" ] },
 ]
+# TODO: remove once h5py ships cp315 wheels: https://github.com/h5py/h5py/issues/2972
+envs.hatch-test.overrides.matrix.python.env-vars = [
+  { key = "UV_FIND_LINKS", value = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/h5py/", if = [
+    "3.15"
+  ] },
+  { key = "UV_CONSTRAINT", value = "ci/h5py-nightly.txt", if = [ "3.15" ] },
+]
 envs.hatch-test.default-args = []
 envs.hatch-test.dependency-groups = [ "test-min" ]
 
