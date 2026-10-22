@@ -253,13 +253,13 @@ def test_mean_var(
     mean, var = stats.mean_var(arr, axis=axis, correction=1)
     if isinstance(mean, types.DaskArray) and isinstance(var, types.DaskArray):
         mean, var = mean.compute(), var.compute()  # type: ignore[assignment]
-    if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray):
-        mean, var = mean.get(), var.get()
+    # new names: `.get()` returns a less specific dtype than `mean` and `var` have
+    mean_np, var_np = (mean.get(), var.get()) if isinstance(mean, types.CupyArray) and isinstance(var, types.CupyArray) else (mean, var)
 
     mean_expected = np.mean(np_arr, axis=axis)
     var_expected = np.var(np_arr, axis=axis, ddof=1)
-    np.testing.assert_array_equal(mean, mean_expected)
-    np.testing.assert_array_almost_equal(var, var_expected)  # type: ignore[arg-type]
+    np.testing.assert_array_equal(mean_np, mean_expected)
+    np.testing.assert_array_almost_equal(var_np, var_expected)  # type: ignore[arg-type]
 
 
 @pytest.mark.skipif(not find_spec("sklearn"), reason="sklearn not installed")

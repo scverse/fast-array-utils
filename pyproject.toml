@@ -61,6 +61,7 @@ test-min = [
 ]
 typecheck = [
   "array-api-compat!=1.15", # https://github.com/data-apis/array-api-compat/issues/436
+  "cupy-stubs",
   "mypy",
   "scipy-stubs",
   "sphinx",
