@@ -47,7 +47,7 @@ def _power_array_api[A: AArray[object, object]](x: A, n: int, /, dtype: DTypeLik
 @_power.register(types.CSBase | types.CupyCSMatrix)
 def _power_cs[Mat: types.CSBase | types.CupyCSMatrix](x: Mat, n: int, /, dtype: DTypeLike | None = None) -> Mat:
     new_data = power(x.data, n, dtype=dtype)
-    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[call-overload]
+    return type(x)((new_data, x.indices, x.indptr), shape=x.shape, dtype=new_data.dtype)  # type: ignore[arg-type]
 
 
 @_power.register(types.DaskArray)
