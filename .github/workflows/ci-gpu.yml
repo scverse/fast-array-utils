@@ -45,10 +45,10 @@ jobs:
           fetch-depth: 0
       - name: Check NVIDIA SMI
         run: nvidia-smi
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           enable-cache: true  # "auto" is `false` on non-GitHub runners
       - name: Install package
