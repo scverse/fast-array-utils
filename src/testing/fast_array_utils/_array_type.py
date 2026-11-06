@@ -325,7 +325,7 @@ class ArrayType[Arr: ExtendedArray = Array, Inner: ArrayType[InnerArray, None] |
         if not isinstance(x, types.spmatrix | types.sparray | types.CupyArray | types.CupySpMatrix):
             x = self._to_cupy_array(x, dtype=dtype)
 
-        return self.cls(x)  # type: ignore[call-arg,arg-type, return-value]
+        return self.cls(x)  # type: ignore[call-arg, call-overload, arg-type, return-value]
 
 
 def random_array(
