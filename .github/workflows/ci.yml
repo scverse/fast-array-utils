@@ -47,7 +47,7 @@ jobs:
     name: Tests
     needs: get-environments
     permissions:
-      id-token: write  # for codecov OIDC
+      id-token: write # for codecov OIDC
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -81,19 +81,19 @@ jobs:
   bench:
     name: CPU Benchmarks
     permissions:
-      id-token: write  # for codspeed OIDC
+      id-token: write # for codspeed OIDC
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v7.1.0
         with:
-          python-version: '3.14'
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv pip install --system --group=test -e .[full]
       - uses: CodSpeedHQ/action@v5.6.0
         env:
-          OMP_WAIT_POLICY: passive  # spinning omp barriers make instruction counts noisy
+          OMP_WAIT_POLICY: passive # spinning omp barriers make instruction counts noisy
         with:
           mode: simulation
           run: pytest -m benchmark --codspeed -n auto
@@ -105,7 +105,7 @@ jobs:
         with: { fetch-depth: 0, filter: "blob:none" }
       - uses: actions/setup-python@v7.1.0
         with:
-          python-version: '3.14'
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv pip install --system -e .
       - run: python -c 'import fast_array_utils as fau; print(fau.__all__)'

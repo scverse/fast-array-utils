@@ -35,8 +35,8 @@ jobs:
     needs: check
     permissions:
       contents: read
-      id-token: write  # for codecov OIDC
-      pull-requests: write  # for removing the label
+      id-token: write # for codecov OIDC
+      pull-requests: write # for removing the label
     runs-on: "cirun-aws-gpu--${{ github.run_id }}"
     timeout-minutes: 30
     steps:
@@ -50,7 +50,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v10.3.2
         with:
-          enable-cache: true  # "auto" is `false` on non-GitHub runners
+          enable-cache: true # "auto" is `false` on non-GitHub runners
       - name: Install package
         run: uv pip install --system --group=test -e .[full] cupy-cuda13x --extra-index-url=https://pypi.nvidia.com --index-strategy=unsafe-best-match
       - name: List installed packages
