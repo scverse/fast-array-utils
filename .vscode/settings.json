@@ -1,8 +1,8 @@
 {
-    "[json][jsonc][python]": {
+    "[json][jsonc][python][yaml]": {
         "editor.formatOnSave": true,
     },
-    "[json][jsonc]": {
+    "[json][jsonc][yaml]": {
         "editor.defaultFormatter": "biomejs.biome",
     },
     "[python]": {
