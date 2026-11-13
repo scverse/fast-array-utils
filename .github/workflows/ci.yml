@@ -91,7 +91,7 @@ jobs:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v10.3.3
       - run: uv pip install --system --group=test -e .[full]
-      - uses: CodSpeedHQ/action@v5.6.0
+      - uses: CodSpeedHQ/action@v5.6.3
         env:
           OMP_WAIT_POLICY: passive # spinning omp barriers make instruction counts noisy
         with:
