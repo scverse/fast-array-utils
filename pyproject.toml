@@ -188,6 +188,7 @@ doctest_subpackage_requires = [
   "src/fast_array_utils/conv/scipy/_to_dense.py = numba",
   "src/fast_array_utils/numba/* = numba",
   "src/fast_array_utils/stats/* = numba",
+  "src/fast_array_utils/cluster/* = numba",
   "src/fast_array_utils/_plugins/dask.py = dask",
   "src/fast_array_utils/_plugins/numba_sparse.py = numba;scipy",
 ]
