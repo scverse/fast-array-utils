@@ -141,15 +141,7 @@ lint.ignore = [
 lint.per-file-ignores."ci/**/*.py" = [ "INP001" ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ]
 # numba kernels and llvmlite intrinsics: untyped arguments, unused typing contexts, many locals
-lint.per-file-ignores."src/**/cluster/_kmeans.py" = [
-  "ANN001",
-  "ARG001",
-  "PLR0912",
-  "PLR0913",
-  "PLR0914",
-  "PLR0915",
-  "PLR0917"
-]
+lint.per-file-ignores."src/**/cluster/_kmeans.py" = [ "ANN001", "ANN202", "ARG001", "C901", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "PLR2004" ]
 # Shadows builtins like `sum`
 lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ]
 lint.per-file-ignores."tests/**/*.py" = [
@@ -178,6 +170,13 @@ explicit_package_bases = true
 # https://github.com/dask/dask/issues/8853
 implicit_reexport = true
 strict = true
+
+[[tool.mypy.overrides]]
+# numba kernels and llvmlite codegen are untyped; numba type-checks them when it compiles them
+module = [ "fast_array_utils.cluster._kmeans" ]
+check_untyped_defs = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
 
 [tool.pyright]
 stubPath = "./typings"

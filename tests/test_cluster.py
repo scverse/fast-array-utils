@@ -66,7 +66,7 @@ def _lloyd(x: np.ndarray, init: np.ndarray, tol: float = 1e-4, max_iter: int = 3
         pytest.param(4096, 32, 256, {"spread": 0.0}, np.float32, 10, id="f32-k256-ball-scans"),
     ],
 )
-def test_labels_equal_plain_lloyd(n: int, d: int, k: int, kw: dict[str, float], dtype: type, max_iter: int) -> None:
+def test_labels_equal_plain_lloyd(n: int, d: int, k: int, kw: dict[str, float], dtype: type, max_iter: int) -> None:  # noqa: PLR0917
     x = _data(n, d, k, seed=d + k, dtype=dtype, **kw)
     init = kmeans_plusplus(x, k, rng=np.random.default_rng(0))
     res = kmeans(x, k, rng=np.random.default_rng(0), init=init, max_iter=max_iter)
@@ -114,7 +114,8 @@ def test_seed_sample_and_max_iter() -> None:
     res = kmeans(x, 40, rng=np.random.default_rng(0), seed_sample=1200, max_iter=20)
     assert res.n_iter <= 20
     assert res.centers.shape == (40, 12)
-    assert res.labels.min() >= 0 and res.labels.max() < 40
+    assert res.labels.min() >= 0
+    assert res.labels.max() < 40
 
 
 @pytest.mark.parametrize("k", [0, 101])

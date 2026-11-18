@@ -39,10 +39,10 @@ CHUNK = 1 << 13  # rows per chunk of every reduction; fixed, so results don't de
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _dot_allowance(cn, unit, tiny, d):
-    """(a, b) with a + b·‖x‖ ≥ the rounding error of v = fl(‖c‖²) − 2·fma_dot(x, fl(c)) for one center.
+    """Return (a, b) with a + b·‖x‖ ≥ the rounding error of v = fl(‖c‖²) - 2·fma_dot(x, fl(c)) for one center.
 
-    ‖c‖² rounded to x's dtype: unit·‖c‖²; c rounded: 2·unit·‖x‖‖c‖; the FMA dot over d terms: 2·γ_d·‖x‖‖c‖ with
-    γ_d ≈ d·unit (Higham, §3.1); the final subtraction (float64; for float64 data at the same unit): unit·(‖c‖² +
+    ‖c‖² rounded to x's dtype: unit·‖c‖²; c rounded: 2·unit·‖x‖‖c‖; the FMA dot over d terms: 2·gamma_d·‖x‖‖c‖ with
+    gamma_d ≈ d·unit (Higham, §3.1); the final subtraction (float64; for float64 data at the same unit): unit·(‖c‖² +
     2‖x‖‖c‖). The factor 1.01 absorbs second-order terms (d·unit ≪ 0.01); the tiny term covers underflow
     (tiny = the dtype's smallest subnormal). cn = ‖c‖² in float64.
     """
@@ -214,7 +214,7 @@ def _block_transpose(x, perm, cols, xt, pfd):
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _d2(row, cur, live, q, i):
-    """Current D² of row position i: the last winner q's value where it was computed for i's block, else `cur`."""
+    """Return the current D² of row position i: the last winner q's value where it was computed for i's block, else `cur`."""
     return row[i] if live[i // SEED_ROWS, q] else cur[i]
 
 
@@ -260,7 +260,7 @@ def _vptr(builder, base, off, vt):
 
 
 def _splat(builder, val, vt):
-    """The scalar `val` in every lane of a vector of type vt."""
+    """Broadcast the scalar `val` to every lane of a vector of type vt."""
     undef = ir.Constant(vt, ir.Undefined)
     lane0 = builder.insert_element(undef, val, ir.Constant(ir.IntType(32), 0))
     return builder.shuffle_vector(lane0, undef, ir.Constant(ir.VectorType(ir.IntType(32), vt.count), [0] * vt.count))
@@ -273,7 +273,7 @@ def _fma(builder, vt):
 
 
 def _make_seed_tile(nq, rows):
-    """An intrinsic scoring nq live candidates (lq[t0:t0+nq]) on `rows` rows (r0...) of block `blk` over columns [j0, j1).
+    """Build an intrinsic scoring nq live candidates (lq[t0:t0+nq]) on `rows` rows (r0...) of block `blk` over columns [j0, j1).
 
     dv[q, r0+r] += (src[blk, j, r0+r] - cand[q, j])² for each column in order, as llvm.fma(t, t, acc): correctly rounded,
     so every value is the same on any FMA ISA and for any tile shape (each lane runs the same chain). Accumulators stay
@@ -421,7 +421,7 @@ _CLOCK_SYMBOL, _CLOCK_ID = ("QueryPerformanceCounter", 0) if sys.platform == "wi
 
 @intrinsic
 def _clock_ticks(typingctx):
-    """A monotonic clock reading (ns; QueryPerformanceCounter ticks on Windows). Only differences of readings are used.
+    """Read a monotonic clock (ns; QueryPerformanceCounter ticks on Windows); only differences of readings are used.
 
     The ball scans are chosen per pass by measured cost; results don't depend on the choice.
     """
@@ -459,7 +459,7 @@ def _cas(typingctx, arr, i, expected, new):
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _claim_range(rcnt, v, st, nb, nr):
-    """Claim the next chunk of step st from range v of nr (chunks v·nb/nr ...), or −1 if all are claimed.
+    """Claim the next chunk of step st from range v of nr (chunks v·nb/nr ...), or -1 if all are claimed.
 
     rcnt[8v] counts the range's claims over all steps; a claim for step st succeeds only while it's below (st + 1)·len,
     so a worker still looking at step st can never take a chunk of step st + 1.
@@ -778,7 +778,8 @@ def _dot_tile_body(context, builder, xbty, xb, dvty, dv, r0v, c0v, lanes, center
 
 @intrinsic
 def _dot_tile(typingctx, xb, ct, dv, r0, c0):
-    """dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·ct[j, c0+i] for i < 4, r < 2·L, accumulated with llvm.fma in vector registers;
+    """Compute dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·ct[j, c0+i] for i < 4, r < 2·L with llvm.fma in vector registers.
+
     L = 16 lanes for float32 (512-bit vectors: 32 rows per call), 8 for float64 (16 rows).
 
     numba keeps array accumulators in memory (L1 load and store per term); this tile keeps 8 vectors in
@@ -805,8 +806,9 @@ def _dot_tile(typingctx, xb, ct, dv, r0, c0):
 
 @intrinsic
 def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
-    """`_dot_tile` with the centers read by index from row-major `crow`: dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·crow[idx[c0+i], j],
-    8 lanes (16 rows per call).
+    """Compute `_dot_tile` with the centers read by index from row-major `crow`.
+
+    dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·crow[idx[c0+i], j], 8 lanes (16 rows per call).
 
     The ball scans tile a different subset of centers for every label; reading rows by index saves gathering
     them into a transposed copy. Same FMA chain per value as `_dot_tile`, so the same values.
@@ -832,8 +834,10 @@ def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
 
 @intrinsic
 def _transpose8(typingctx, x, queue, s, xb, r0, j0):
-    """xb[j0 + j, r0 + r] = x[queue[s + r], j0 + j] for r, j < 8: eight row vectors, a 3-stage shuffle network, eight
-    column vectors instead of storing one scalar per element.
+    """Transpose eight gathered rows into column vectors: xb[j0 + j, r0 + r] = x[queue[s + r], j0 + j] for r, j < 8.
+
+    Eight row vectors go through a 3-stage shuffle network into eight column vectors, instead of storing one scalar
+    per element.
 
     Copies values only, so results don't change. Rows queue[s..s+7] and columns j0..j0+7 must exist; arrays C-contiguous.
     """
@@ -884,9 +888,11 @@ SMALL_K = 64  # up to this many centers, rows failing the bound test go straight
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _scan_queue_dot(x, xnorm, ct, cnorm, err_a, err_b, centers, queue, nq, labels, upper, lower, pfd):
-    """Full scans of the queued rows, SEED_ROWS at a time: dot products x·c by FMA register tiles (4 centers x 16 rows,
-    `_dot_tile`), then per row, vectorized over rows, the nearest by v = ‖c‖² − 2x·c and the two smallest of
-    w_c = v_c − δ_c, where δ_c = err_a[c] + err_b[c]·‖x‖ bounds v_c's rounding error (`_dot_allowance`).
+    """Scan the queued rows fully, SEED_ROWS at a time.
+
+    Dot products x·c by FMA register tiles (4 centers x 16 rows,
+    `_dot_tile`), then per row, vectorized over rows, the nearest by v = ‖c‖² - 2x·c and the two smallest of
+    w_c = v_c - δ_c, where δ_c = err_a[c] + err_b[c]·‖x‖ bounds v_c's rounding error (`_dot_allowance`).
     The label is certain if every other center's w exceeds v1 + δ1; then the bounds come from the dot form with the
     allowances. Otherwise the centers that could be nearest (w_c ≤ v1 + δ1) get exact float64 distances.
     """
@@ -967,21 +973,25 @@ def _scan_queue_dot(x, xnorm, ct, cnorm, err_a, err_b, centers, queue, nq, label
 
 
 BALL_MIN_K, BALL_MAX_K = 256, 2048  # k range with ball scans (k×k center distances: ≤ 32 MB)
-BALL_FRACTION = 0.8  # ball scans only while plain-pass bounds leave this fraction failing (high-dimensional data with many centers fails far more often than well-separated blobs)
+# ball scans only while plain-pass bounds leave this fraction failing (high-dimensional data with many centers fails
+# far more often than well-separated blobs)
+BALL_FRACTION = 0.8
 BALL_MIN_ROWS = 8  # ...and only with this many failing rows per label on average: tiles take 16 rows
-BALL_PROBE = 8  # ...and only while measured cheaper per failing row than the plain pass; the other kind is re-timed after this many passes, then at doubling intervals while confirmed
+# ...and only while measured cheaper per failing row than the plain pass; the other kind is re-timed after this many
+# passes, then at doubling intervals while confirmed
+BALL_PROBE = 8
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _ball_label(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a, rows, labels, upper, lower, keys, cand, sidx, dv, xb, sel):
     """Exact scans of the rows labelled a that failed the bound test, against the centers that could be nearer.
 
-    Every center nearer to row i than c_a lies in the ball |c_o − c_a| ≤ 2u_i (u_i = the exact distance to c_a, from
-    the bound pass). Candidates are ordered by a lower bound on |c_o − c_a| (center distances cd at the last full
+    Every center nearer to row i than c_a lies in the ball |c_o - c_a| ≤ 2u_i (u_i = the exact distance to c_a, from
+    the bound pass). Candidates are ordered by a lower bound on |c_o - c_a| (center distances cd at the last full
     computation minus the drift since, acc), rows by u; each 16-row group is tiled (`_dot_tile_idx`) against the
     candidates inside its largest radius. Labels as in `_scan_queue_dot`: the dot form with per-center rounding
     allowances, exact float64 distances when another candidate could be nearest. Second bound: the smaller of the
-    candidates' and of |c_o − c_a| − u over the centers not scanned.
+    candidates' and of |c_o - c_a| - u over the centers not scanned.
     """
     k, d = crow.shape
     m = rows.shape[0]
@@ -1102,8 +1112,10 @@ def _ball_group(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a0, a1, l
 
 @numba.njit(nogil=True, cache=True)
 def _ball_sums(x, bounds, b0, b1, qn, qbuf, qold, labels, sums, counts, tch, dirty, moved):
-    """Phase C3: chunk sums of chunks b0..b1 for their rows that moved in phases C and E, as phase C does
-    without ball scans (many moves: the chunk's sums afresh in row order; few: those rows moved, in row order).
+    """Phase C3: chunk sums of chunks b0..b1 for their rows that moved in phases C and E.
+
+    As phase C does without ball scans: many moves, the chunk's sums afresh in row order; few, those rows moved, in
+    row order.
     """
     for b in range(b0, b1):
         lo, hi = bounds[b], bounds[b + 1]
@@ -1175,7 +1187,10 @@ SUM_BUDGET = 1 << 22  # max float64 entries of per-chunk center sums (32 MB)
 
 
 def _hamerly_bounds(n: int, k: int, d: int) -> np.ndarray:
-    """Fixed row chunks from the shape alone (≥ 256 rows each, ≤ 256 chunks, sums within SUM_BUDGET), so results don't depend on threads."""
+    """Split the rows into fixed chunks from the shape alone, so results don't depend on threads.
+
+    Chunks have ≥ 256 rows each, there are ≤ 256 of them, and their sums fit in SUM_BUDGET.
+    """
     nb = max(1, min(-(-n // 256), 256, SUM_BUDGET // (k * d)))
     return (np.arange(nb + 1, dtype=np.int64) * n) // nb
 
@@ -1254,7 +1269,7 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
     ngc = min(nb, 2 * nthreads)  # chunk groups (phase C2 and C3 items)
     gsplit = np.zeros(ne + 1, dtype=np.int64)
     pcost = np.zeros(3)  # time per failing row of the last plain [0] and ball [1] pass (0: not yet); [2]: failing
-    # fraction of the last pass that followed a plain pass (ball scans leave weaker lower bounds: |c_o − c_a| − u)
+    # fraction of the last pass that followed a plain pass (ball scans leave weaker lower bounds: |c_o - c_a| - u)
     na, nc = (d + ROW_ITEMS - 1) // ROW_ITEMS, (k + CENTER_ITEMS - 1) // CENTER_ITEMS
     # phase kinds: 0 A transposed centers, 1 B norms and separations, 2 C bound pass, 3 D new centers,
     # 4 C2 scatter failing rows into label order, 5 E ball scans per label group, 6 C3 chunk sums of moved rows
@@ -1300,9 +1315,8 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                     for c in range(k):
                         ct[j, c] = centers[c, j]
                         ctb[c // SEED_ROWS, j, c % SEED_ROWS] = centers[c, j]
-                        if ball:
-                            if istate[_BALL]:
-                                crow[c, j] = centers[c, j]
+                        if ball and istate[_BALL]:
+                            crow[c, j] = centers[c, j]
             elif ph == 1:  # norms, and separations: the item's centers against blocks of SEED_ROWS centers by FMA tiles (float64)
                 c_lo = item * CENTER_ITEMS
                 nl = min(k, c_lo + CENTER_ITEMS) - c_lo
@@ -1326,9 +1340,8 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                         for r in range(min(SEED_ROWS, k - bo * SEED_ROWS)):
                             if bo * SEED_ROWS + r != c:
                                 sepmin[t] = min(sepmin[t], dvs[c, r])
-                            if ball:
-                                if istate[_BALL]:
-                                    cd[c, bo * SEED_ROWS + r] = math.sqrt(dvs[c, r])
+                            if ball and istate[_BALL]:
+                                cd[c, bo * SEED_ROWS + r] = math.sqrt(dvs[c, r])
                 for t in range(nl):
                     half_sep[c_lo + t] = 0.5 * math.sqrt(sepmin[t])
                     hs_base[c_lo + t] = half_sep[c_lo + t]
@@ -1353,8 +1366,8 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                     need = a < 0
                     if not need:
                         u = upper[i] + drift[a]
-                        l = lower[i] - (d2nd if drift[a] == dmax else dmax)
-                        m = max(half_sep[a], l)
+                        lb = lower[i] - (d2nd if drift[a] == dmax else dmax)
+                        m = max(half_sep[a], lb)
                         if u * (1 + SAFETY) > m * (1 - SAFETY):
                             if k <= SMALL_K:  # small k: the queued scan is cheap and computes the exact distance anyway (most tightened rows got scanned)
                                 need = True
@@ -1366,7 +1379,7 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                                 u = math.sqrt(s)
                                 need = u * (1 + SAFETY) > m * (1 - SAFETY)
                         upper[i] = u
-                        lower[i] = l
+                        lower[i] = lb
                     if need:
                         sc += 1
                         if bl and a >= 0:  # to the ball scans (phase E); its chunk sums follow in phase C3
@@ -1495,7 +1508,7 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                 tch[:] = 0
                 istate[_FINAL] = n_moved <= max_moved or shift <= tol_abs or istate[_ITER] == max_iter
                 _top2(drift, fstate)
-                # separations: keep valid bounds hs_base[c] − (acc[c] + max acc)/2 (triangle inequality) while the drift
+                # separations: keep valid bounds hs_base[c] - (acc[c] + max acc)/2 (triangle inequality) while the drift
                 # since the last full computation is small next to them; recompute otherwise
                 amax, hmean = 0.0, 0.0
                 for c in range(k):
