@@ -140,10 +140,18 @@ lint.ignore = [
 # No __init__.py in scripts and docs
 lint.per-file-ignores."ci/**/*.py" = [ "INP001" ]
 lint.per-file-ignores."docs/**/*.py" = [ "INP001" ]
+# numba kernels and llvmlite intrinsics: untyped arguments, unused typing contexts, many locals
+lint.per-file-ignores."src/**/cluster/_kmeans.py" = [
+  "ANN001",
+  "ARG001",
+  "PLR0912",
+  "PLR0913",
+  "PLR0914",
+  "PLR0915",
+  "PLR0917"
+]
 # Shadows builtins like `sum`
 lint.per-file-ignores."src/**/stats/*.py" = [ "A001", "A004" ]
-# numba kernels and llvmlite intrinsics: untyped arguments, unused typing contexts, many locals
-lint.per-file-ignores."src/**/cluster/_kmeans.py" = [ "ANN001", "ARG001", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917" ]
 lint.per-file-ignores."tests/**/*.py" = [
   "D100",    # tests need no module docstrings
   "D103",    # tests need no function docstrings

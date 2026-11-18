@@ -114,7 +114,7 @@ def test_seed_sample_and_max_iter() -> None:
     res = kmeans(x, 40, rng=np.random.default_rng(0), seed_sample=1200, max_iter=20)
     assert res.n_iter <= 20
     assert res.centers.shape == (40, 12)
-    assert 0 <= res.labels.min() and res.labels.max() < 40
+    assert res.labels.min() >= 0 and res.labels.max() < 40
 
 
 @pytest.mark.parametrize("k", [0, 101])
