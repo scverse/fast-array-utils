@@ -118,6 +118,36 @@ def test_seed_sample_and_max_iter() -> None:
     assert res.labels.max() < 40
 
 
+def test_integer_input_becomes_float64() -> None:
+    x = (_data(2000, 5, 4, seed=9) * 10).astype(np.int64)
+    a = kmeans(x, 4, rng=np.random.default_rng(0))
+    b = kmeans(x.astype(np.float64), 4, rng=np.random.default_rng(0))
+    np.testing.assert_array_equal(a.labels, b.labels)
+    np.testing.assert_array_equal(a.centers, b.centers)
+
+
+@pytest.mark.parametrize(
+    ("layer", "step_terms", "expected"),
+    [
+        pytest.param(ValueError, 1, 0, id="no-region-yet"),
+        pytest.param("workqueue", 1, -1, id="workqueue-small-step"),
+        pytest.param("workqueue", 10**12, 0, id="workqueue-big-step"),
+        pytest.param("tbb", 1, 0, id="tbb"),
+    ],
+)
+def test_workers(monkeypatch: pytest.MonkeyPatch, layer: str | type[Exception], step_terms: int, expected: int) -> None:
+    """Persistent regions use one worker fewer only for small steps on workqueue (speed only, results don't change)."""
+
+    def threading_layer() -> str:
+        if isinstance(layer, type):
+            raise layer
+        return layer
+
+    monkeypatch.setattr(numba, "get_num_threads", lambda: 4)
+    monkeypatch.setattr(numba, "threading_layer", threading_layer)
+    assert _kmeans._workers(step_terms) == 4 + expected  # noqa: SLF001
+
+
 @pytest.mark.parametrize("k", [0, 101])
 def test_invalid_k(k: int) -> None:
     with pytest.raises(ValueError, match="k="):

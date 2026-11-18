@@ -428,7 +428,7 @@ def _clock_ticks(typingctx):
 
     def codegen(context, builder, signature, args):
         i64 = ir.IntType(64)
-        if _CLOCK_SYMBOL == "QueryPerformanceCounter":
+        if _CLOCK_SYMBOL == "QueryPerformanceCounter":  # pragma: no cover (Windows)
             slot = cgutils.alloca_once(builder, i64)
             fn = cgutils.get_or_insert_function(builder.module, ir.FunctionType(ir.IntType(32), [i64.as_pointer()]), _CLOCK_SYMBOL)
             builder.call(fn, [slot])
