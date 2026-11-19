@@ -12,7 +12,7 @@ import numpy as np
 from fast_array_utils.numba import njit
 
 from ._ball import BALL_FRACTION, BALL_MIN_ROWS, BALL_PROBE, _ball_group, _ball_offsets, _ball_scatter, _ball_sums, _chunk_sums
-from ._sync import SPIN_BEFORE_YIELD, _claim_range, _clock_ticks, _fetch_add, _load_acquire, _store_release, _yield_cpu
+from ._sync import LINE_SLOTS, SPIN_BEFORE_YIELD, _claim_range, _clock_ticks, _fetch_add, _load_acquire, _store_release, _yield_cpu
 from ._tiles import SAFETY, SEED_ROWS, _dot_allowance, _scan_queue_dot, _score
 
 
@@ -29,6 +29,7 @@ SUM_BUDGET = 1 << 22  # max float64 entries of per-chunk center sums (32 MB)
 SEP_STALE = 0.05  # phase B skips the separations while the accumulated drift is ≤ this × the mean half-separation
 CENTER_ITEMS = 16  # centers per work item in the per-center phases (4 and 64 are slower: ticket cost vs balance)
 ROW_ITEMS = 4  # rows of the transposed centers per work item
+LABEL_GROUPS_PER_THREAD, CHUNK_GROUPS_PER_THREAD = 4, 2  # work items per thread of phase E, and of phases C2 and C3
 
 # phase kinds, in the order of one iteration; C2, E and C3 only with ball scans
 PH_TRANSPOSE, PH_SEPARATIONS, PH_BOUNDS, PH_UPDATE = 0, 1, 2, 3  # A, B, C, D
@@ -85,20 +86,21 @@ def _hamerly(  # noqa: PLR0917
     nb = bounds.shape[0] - 1
     upper, lower, sums, counts, moved, scans, tch, dirty, new, tot = _row_and_sum_state(n, nb, k, d)
     ct, cnorm, err_a, err_b, ctb, half_sep, drift, hs_base, acc, fstate = _center_state(x, k)
-    rcnt = np.zeros(8 * nthreads, dtype=np.int64)  # phase C claims so far from each worker’s chunk range
+    rcnt = np.zeros(LINE_SLOTS * nthreads, dtype=np.int64)  # phase C claims so far from each worker’s chunk range
     istate = np.zeros(ISTATE_SLOTS, dtype=np.int64)
     istate[_FINAL] = max_iter == 0
     # ball scans: rows failing the bound test are scanned per label against the centers within 2u of theirs
     # cd: k×k center distances at the last full computation of the separations if ball scans may run, else 1×1
     ball = cd.shape[0] > 1
     crow, qbuf, qold, order, qn, lcnt, lstart, gsplit, bprobe, pcost = _ball_state(x, k, nb, nthreads, ball)
-    ne, ngc = gsplit.shape[0] - 1, min(nb, 2 * nthreads)  # label groups (phase E items), chunk groups (phase C2 and C3 items)
+    ne, ngc = gsplit.shape[0] - 1, min(nb, CHUNK_GROUPS_PER_THREAD * nthreads)  # label groups (phase E items), chunk groups (phase C2 and C3 items)
     kinds, offs = _phase_plan(ball, d, k, nb, ngc, ne)
     nph, per_it = kinds.shape[0], offs[-1]
     maxrows = np.max(bounds[1:] - bounds[:-1])
 
-    # run the update step until converged: tickets in order (iteration, phase, item); nobody waits for a particular
-    # thread, so it can’t deadlock
+    # run the update step until converged, all iterations in one region instead of one per phase (4 to 7 per iteration),
+    # whose wake-ups dominated small passes (1.3× faster on 20 000 rows, k ≤ 40); tickets in order (iteration, phase, item),
+    # nobody waits for a particular thread, so it can’t deadlock
     for _w in numba.prange(nthreads):
         queue = np.empty(maxrows, dtype=np.int64)  # full scans go into a queue, then run SEED_ROWS rows at a time
         oldl = np.empty(maxrows, dtype=np.int64)  # the queued rows’ labels before the scan
@@ -277,7 +279,7 @@ def _ball_state(x: FArr, k: int, nb: int, nthreads: int, ball: bool) -> tuple[FA
     qn = np.zeros(nb, dtype=np.int64)  # rows recorded per chunk (at qbuf[bounds[b]:]) with their old labels (qold)
     lcnt = np.zeros((nb if ball else 1, kb), dtype=np.int64)  # failing rows per chunk and label, then scatter offsets
     lstart = np.zeros(kb + 1, dtype=np.int64)  # label a’s rows: order[lstart[a]:lstart[a + 1]]
-    gsplit = np.zeros((min(k, 4 * nthreads) if ball else 0) + 1, dtype=np.int64)  # label groups of phase E: labels gsplit[e]...
+    gsplit = np.zeros((min(k, LABEL_GROUPS_PER_THREAD * nthreads) if ball else 0) + 1, dtype=np.int64)  # label groups of phase E: labels gsplit[e]...
     bprobe = np.array([BALL_PROBE, -1], dtype=np.int64)  # passes between re-timings (doubles while confirmed); kind before a re-timing
     pcost = np.zeros(3)  # time per failing row of the last plain [0] and ball [1] pass (0: not yet); [2]: failing
     # fraction of the last pass that followed a plain pass (ball scans leave weaker lower bounds: |c_o - c_a| - u)
@@ -314,7 +316,11 @@ def _ticket(istate: I64, per_it: int, offs: I64) -> tuple[int, int, int]:
 
 @numba.njit(inline="always", nogil=True, cache=True)
 def _wait_phase(istate: I64, g: int) -> bool:
-    """Wait until phase g may run; True if the loop has stopped instead."""
+    """Wait until phase g may run; True if the loop has stopped instead.
+
+    Waiting workers spin, then yield: a pure spin starved the working threads when workers and CPUs are as many
+    (numba’s workqueue layer: 18 → 66 ms on 20 000 rows, 8 threads).
+    """
     spins = 0
     while True:
         if _load_acquire(istate, _STOP):

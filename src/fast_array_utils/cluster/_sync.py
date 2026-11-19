@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from ._typing import I64
 
 
+LINE_SLOTS = 8  # int64 slots per 64-byte cache line: per-worker counters one line apart, so their atomics don’t contend
+
 WORKQUEUE_BIG_STEP = 50_000_000  # terms per step of a persistent region above which workqueue uses every thread
 
 
@@ -194,17 +196,17 @@ def _cas(typingctx: TypingContext, arr: types.Array, i: types.Integer, expected:
 def _claim_range(rcnt: I64, v: int, st: int, nb: int, nr: int) -> int:
     """Claim the next chunk of step st from range v of nr (chunks v·nb/nr ...), or -1 if all are claimed.
 
-    rcnt[8v] counts the range's claims over all steps; a claim for step st succeeds only while it's below (st + 1)·len,
+    rcnt[LINE_SLOTS·v] counts the range's claims over all steps; a claim for step st succeeds only while it's below (st + 1)·len,
     so a worker still looking at step st can never take a chunk of step st + 1.
     """
     lo, hi = (v * nb) // nr, ((v + 1) * nb) // nr
     n = hi - lo
     if n == 0:
         return -1
-    c: int = _load_acquire(rcnt, 8 * v)
+    c: int = _load_acquire(rcnt, LINE_SLOTS * v)
     lim = (st + 1) * n
     while c < lim:
-        old: int = _cas(rcnt, 8 * v, c, c + 1)
+        old: int = _cas(rcnt, LINE_SLOTS * v, c, c + 1)
         if old == c:
             return lo + c - st * n
         c = old

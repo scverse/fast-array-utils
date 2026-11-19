@@ -11,7 +11,18 @@ import numpy as np
 
 from fast_array_utils.numba import njit
 
-from ._sync import SPIN_BEFORE_YIELD, _claim_range, _fetch_add, _load_acquire, _prefetch_distance, _prefetch_row, _store_release, _workers, _yield_cpu
+from ._sync import (
+    LINE_SLOTS,
+    SPIN_BEFORE_YIELD,
+    _claim_range,
+    _fetch_add,
+    _load_acquire,
+    _prefetch_distance,
+    _prefetch_row,
+    _store_release,
+    _workers,
+    _yield_cpu,
+)
 from ._tiles import SEED_ROWS, _score
 
 
@@ -74,7 +85,7 @@ def _seed(x: FArr, xt: FArr, perm: I64, cols: I64, first: int, u: F64, centers: 
     live = np.zeros((nblk, trials), dtype=np.int64)  # per block, contiguous: no false sharing between threads’ chunks
     cand, idx = np.empty((trials, d), dtype=x.dtype), np.empty(trials, dtype=np.int64)  # in x’s dtype: float32 data, float32 lanes
     state = np.zeros(STATE_SLOTS, dtype=np.int64)
-    rcnt = np.zeros(8 * nthreads, dtype=np.int64)  # claims so far from each worker’s chunk range, one cache line each
+    rcnt = np.zeros(LINE_SLOTS * nthreads, dtype=np.int64)  # claims so far from each worker’s chunk range, one cache line each
     # the first center and everyone’s D² to it
     for j in range(d):
         centers[0, j] = x[first, j]
@@ -83,7 +94,8 @@ def _seed(x: FArr, xt: FArr, perm: I64, cols: I64, first: int, u: F64, centers: 
     if k == 1:
         return
     _draw(x, perm, cols, new_d2, cur, live, 0, tot, u[0], ch, idx, cand)
-    # the k - 1 steps in one region (per-region wake-ups cost more than small steps’ work);
+    # the k - 1 steps in one region: waking the workers for a region costs 6 to 23 µs (TBB), more than a small step’s
+    # work (48 µs per step, 6.5 µs of it busy, at k = 1000 on 5000 rows; one region: 64 → 31 ms, numba 0.68, 15 threads);
     # nobody waits for a particular thread: any worker can claim any chunk, so it can’t deadlock
     for _w in numba.prange(nthreads):
         acc = np.empty(trials)

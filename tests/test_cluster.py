@@ -76,7 +76,7 @@ def test_labels_equal_plain_lloyd(n: int, d: int, k: int, kw: dict[str, float], 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_ties_go_to_the_lowest_center(dtype: type) -> None:
     """Integer data on a small grid: many rows are exactly as far from two centers, and the lowest index wins, as in the reference."""
-    x = np.random.default_rng(0).integers(0, 3, size=(3000, 4)).astype(dtype)
+    x: np.ndarray = np.random.default_rng(0).integers(0, 3, size=(3000, 4)).astype(dtype)
     init = kmeans_plusplus(x, 12, rng=np.random.default_rng(0))
     res = kmeans(x, 12, rng=np.random.default_rng(0), init=init)
     np.testing.assert_array_equal(res.labels, _lloyd(x, init))
