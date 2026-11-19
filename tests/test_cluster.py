@@ -9,7 +9,7 @@ import pytest
 
 numba = pytest.importorskip("numba")  # fast_array_utils.cluster imports numba at module level
 
-from fast_array_utils.cluster import _kmeans, kmeans, kmeans_plusplus  # noqa: E402
+from fast_array_utils.cluster import _seed, _sync, kmeans, kmeans_plusplus  # noqa: E402
 
 
 if TYPE_CHECKING:
@@ -76,7 +76,7 @@ def test_labels_equal_plain_lloyd(n: int, d: int, k: int, kw: dict[str, float], 
 @pytest.mark.parametrize("copy", [True, False], ids=["transposed-copy", "no-copy"])
 def test_same_result_for_any_thread_count(monkeypatch: pytest.MonkeyPatch, copy: bool) -> None:  # noqa: FBT001
     if not copy:  # the seeding path for x too large for a transposed copy
-        monkeypatch.setattr(_kmeans, "SEED_COPY_BYTES", 0)
+        monkeypatch.setattr(_seed, "SEED_COPY_BYTES", 0)
     x = _data(20_000, 16, 30, seed=1)
     n = numba.get_num_threads()
     try:
@@ -94,7 +94,7 @@ def test_same_result_for_any_thread_count(monkeypatch: pytest.MonkeyPatch, copy:
 @pytest.mark.parametrize("copy", [True, False], ids=["transposed-copy", "no-copy"])
 def test_seeds_are_rows(monkeypatch: pytest.MonkeyPatch, copy: bool) -> None:  # noqa: FBT001
     if not copy:
-        monkeypatch.setattr(_kmeans, "SEED_COPY_BYTES", 0)
+        monkeypatch.setattr(_seed, "SEED_COPY_BYTES", 0)
     x = _data(5000, 6, 12, seed=5, dtype=np.float64)
     centers = kmeans_plusplus(x, 12, rng=np.random.default_rng(0))
     assert all((x == c).all(1).any() for c in centers)
@@ -145,7 +145,7 @@ def test_workers(monkeypatch: pytest.MonkeyPatch, layer: str | type[Exception], 
 
     monkeypatch.setattr(numba, "get_num_threads", lambda: 4)
     monkeypatch.setattr(numba, "threading_layer", threading_layer)
-    assert _kmeans._workers(step_terms) == 4 + expected  # noqa: SLF001
+    assert _sync._workers(step_terms) == 4 + expected  # noqa: SLF001
 
 
 @pytest.mark.parametrize("k", [0, 101])
