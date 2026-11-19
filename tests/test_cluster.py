@@ -73,6 +73,15 @@ def test_labels_equal_plain_lloyd(n: int, d: int, k: int, kw: dict[str, float], 
     np.testing.assert_array_equal(res.labels, _lloyd(x, init, max_iter=max_iter))
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_ties_go_to_the_lowest_center(dtype: type) -> None:
+    """Integer data on a small grid: many rows are exactly as far from two centers, and the lowest index wins, as in the reference."""
+    x = np.random.default_rng(0).integers(0, 3, size=(3000, 4)).astype(dtype)
+    init = kmeans_plusplus(x, 12, rng=np.random.default_rng(0))
+    res = kmeans(x, 12, rng=np.random.default_rng(0), init=init)
+    np.testing.assert_array_equal(res.labels, _lloyd(x, init))
+
+
 @pytest.mark.parametrize("copy", [True, False], ids=["transposed-copy", "no-copy"])
 def test_same_result_for_any_thread_count(monkeypatch: pytest.MonkeyPatch, copy: bool) -> None:  # noqa: FBT001
     if not copy:  # the seeding path for x too large for a transposed copy
@@ -163,12 +172,31 @@ def test_non_finite(func: object, value: float) -> None:
         func(x, 2, rng=np.random.default_rng(0))  # type: ignore[operator]
 
 
+# Benchmarks stay below BALL_MIN_K: ball scans are chosen per pass by measured time, which would make instruction counts vary.
+# n × d × k sized so each call takes about 5 to 60 ms natively on one thread;
+# overlapping clusters (spread 1), so every one of Lloyd’s passes moves rows.
+BENCH_N, BENCH_D, BENCH_SPREAD = 20_000, 32, 1.0
+
+
 @pytest.mark.benchmark
-@pytest.mark.parametrize("k", [30, 1000])
+@pytest.mark.parametrize("k", [8, 128])
+def test_kmeans_plusplus_benchmark(benchmark: BenchmarkFixture, k: int) -> None:
+    x = _data(BENCH_N, BENCH_D, k, seed=0, spread=BENCH_SPREAD)
+    kmeans_plusplus(x[:2000], 5, rng=np.random.default_rng(0))  # warmup: numba compile
+
+    @benchmark
+    def call() -> None:
+        kmeans_plusplus(x, k, rng=np.random.default_rng(0))
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("k", [8, 128])
 def test_kmeans_benchmark(benchmark: BenchmarkFixture, k: int) -> None:
-    x = _data(100_000, 50, k, seed=0)
+    """Lloyd from fixed seeds for a fixed number of passes (tol=0), so the work doesn’t depend on convergence."""
+    x = _data(BENCH_N, BENCH_D, k, seed=0, spread=BENCH_SPREAD)
+    init = kmeans_plusplus(x, k, rng=np.random.default_rng(0))
     kmeans(x[:2000], 5, rng=np.random.default_rng(0))  # warmup: numba compile
 
     @benchmark
     def call() -> None:
-        kmeans(x, k, rng=np.random.default_rng(0))
+        kmeans(x, k, rng=np.random.default_rng(0), init=init, max_iter=5, tol=0.0)
