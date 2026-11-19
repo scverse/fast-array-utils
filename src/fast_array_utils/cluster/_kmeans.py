@@ -25,7 +25,7 @@ import numpy as np
 from fast_array_utils.numba import njit
 
 from ._ball import BALL_MAX_K, BALL_MIN_K, BALL_MIN_ROWS
-from ._lloyd import _hamerly, _hamerly_bounds
+from ._lloyd import _hamerly, _hamerly_bounds, _inertia
 from ._seed import _plusplus
 from ._sync import _prefetch_distance, _workers
 
@@ -88,11 +88,12 @@ def kmeans_(
     labels = np.full(n, -1, dtype=np.int64)
     use_ball = BALL_MIN_K <= k <= BALL_MAX_K and n >= BALL_MIN_ROWS * k
     finfo = np.finfo(x.dtype)
-    it, inertia = _hamerly(
+    bounds = _hamerly_bounds(n, k, d)
+    it = _hamerly(
         x,
         xnorm,
         centers,
-        _hamerly_bounds(n, k, d),
+        bounds,
         max_iter,
         tol * mean_var,
         max_moved,
@@ -103,7 +104,7 @@ def kmeans_(
         _prefetch_distance(x),
         np.zeros((k, k) if use_ball else (1, 1)),
     )
-    return labels, centers, inertia, it
+    return labels, centers, _inertia(x, centers, labels, bounds), it
 
 
 @njit

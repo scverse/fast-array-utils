@@ -45,69 +45,78 @@ def _fma(builder, vt):
     return cgutils.get_or_insert_function(builder.module, ir.FunctionType(vt, [vt, vt, vt]), name)
 
 
+SEED_LANES = 16  # vector lanes of the seeding tiles
+
+
 def _make_seed_tile(nq, rows):
     """Build an intrinsic scoring nq live candidates (lq[t0:t0+nq]) on `rows` rows (r0...) of block `blk` over columns [j0, j1).
 
-    dv[q, r0+r] += (src[blk, j, r0+r] - cand[q, j])² for each column in order, as llvm.fma(t, t, acc): correctly rounded,
-    so every value is the same on any FMA ISA and for any tile shape (each lane runs the same chain). Accumulators stay
-    in 16-lane vector registers and each x vector feeds nq candidates (numba keeps array accumulators in L1).
+    dv[q, r0+r] += (src[blk, j, r0+r] - cand[q, j])² for each column in order, as llvm.fma(t, t, acc):
+    correctly rounded, so every value is the same on any FMA ISA and for any tile shape (each lane runs the same chain).
+    Accumulators stay in 16-lane vector registers and each x vector feeds nq candidates (numba keeps array accumulators in L1).
     fma(t, t, acc) ≥ acc, so partial sums still only grow and the early exit stays exact.
     """
-    lanes = 16
-    nv = rows // lanes
+    nv = rows // SEED_LANES
 
     @intrinsic
     def tile(typingctx, src, blk, cand, lq, t0, dv, r0, j0, j1):
+        del typingctx, blk, t0, r0, j0, j1
         sig = types.void(src, types.intp, cand, lq, types.intp, dv, types.intp, types.intp, types.intp)
 
         def codegen(context, builder, signature, args):
-            sty, _, cty, lty, _, dty = signature.args[:6]
-            sa = context.make_array(sty)(context, builder, args[0])
-            ca = context.make_array(cty)(context, builder, args[2])
-            la = context.make_array(lty)(context, builder, args[3])
-            da = context.make_array(dty)(context, builder, args[5])
-            blk_, t0_, r0_, j0_, j1_ = args[1], args[4], args[6], args[7], args[8]
-            intp = context.get_value_type(types.intp)
-            elt = context.get_value_type(sty.dtype)
-            vt = ir.VectorType(elt, lanes)
-            fma = _fma(builder, vt)
-            undef = ir.Constant(vt, ir.Undefined)
-            d, nr = builder.extract_value(sa.shape, 1), builder.extract_value(sa.shape, 2)
-            cd, dr = builder.extract_value(ca.shape, 1), builder.extract_value(da.shape, 1)
-
-            def k(v):
-                return ir.Constant(intp, v)
-
-            def vptr(base, off):
-                return _vptr(builder, base, off, vt)
-
-            qs = [builder.load(builder.gep(la.data, [builder.add(t0_, k(i))])) for i in range(nq)]
-            accs = []
-            for i in range(nq):
-                for h in range(nv):
-                    accs.append(cgutils.alloca_once_value(builder, undef))
-                    off = builder.add(builder.mul(qs[i], dr), builder.add(r0_, k(h * lanes)))
-                    builder.store(builder.load(vptr(da.data, off), align=4), accs[-1])
-            base = builder.add(builder.mul(blk_, builder.mul(d, nr)), r0_)
-            with cgutils.for_range_slice(builder, j0_, j1_, k(1), intp) as (j, _):
-                row = builder.add(base, builder.mul(j, nr))
-                xv = [builder.load(vptr(sa.data, builder.add(row, k(h * lanes))), align=4) for h in range(nv)]
-                for i in range(nq):
-                    cval = builder.load(builder.gep(ca.data, [builder.add(builder.mul(qs[i], cd), j)]))
-                    cv = _splat(builder, cval, vt)
-                    for h in range(nv):
-                        t = builder.fsub(xv[h], cv)
-                        a = accs[i * nv + h]
-                        builder.store(builder.call(fma, [t, t, builder.load(a)]), a)
-            for i in range(nq):
-                for h in range(nv):
-                    off = builder.add(builder.mul(qs[i], dr), builder.add(r0_, k(h * lanes)))
-                    builder.store(builder.load(accs[i * nv + h]), vptr(da.data, off), align=4)
-            return context.get_dummy_value()
+            return _seed_tile_codegen(context, builder, signature, args, nq, nv)
 
         return sig, codegen
 
     return tile
+
+
+def _seed_tile_codegen(context, builder, signature, args, nq, nv):
+    """Codegen of a `_make_seed_tile` intrinsic: nq candidates × nv vectors of SEED_LANES rows."""
+    lanes = SEED_LANES
+    sty, _, cty, lty, _, dty = signature.args[:6]
+    sa = context.make_array(sty)(context, builder, args[0])
+    ca = context.make_array(cty)(context, builder, args[2])
+    la = context.make_array(lty)(context, builder, args[3])
+    da = context.make_array(dty)(context, builder, args[5])
+    blk_, t0_, r0_, j0_, j1_ = args[1], args[4], args[6], args[7], args[8]
+    intp = context.get_value_type(types.intp)
+    elt = context.get_value_type(sty.dtype)
+    vt = ir.VectorType(elt, lanes)
+    fma = _fma(builder, vt)
+    undef = ir.Constant(vt, ir.Undefined)
+    d, nr = builder.extract_value(sa.shape, 1), builder.extract_value(sa.shape, 2)
+    cd, dr = builder.extract_value(ca.shape, 1), builder.extract_value(da.shape, 1)
+
+    def k(v):
+        return ir.Constant(intp, v)
+
+    def vptr(base, off):
+        return _vptr(builder, base, off, vt)
+
+    qs = [builder.load(builder.gep(la.data, [builder.add(t0_, k(i))])) for i in range(nq)]
+    accs = []
+    for i in range(nq):
+        for h in range(nv):
+            accs.append(cgutils.alloca_once_value(builder, undef))
+            off = builder.add(builder.mul(qs[i], dr), builder.add(r0_, k(h * lanes)))
+            builder.store(builder.load(vptr(da.data, off), align=4), accs[-1])
+    base = builder.add(builder.mul(blk_, builder.mul(d, nr)), r0_)
+    with cgutils.for_range_slice(builder, j0_, j1_, k(1), intp) as (j, _):
+        row = builder.add(base, builder.mul(j, nr))
+        xv = [builder.load(vptr(sa.data, builder.add(row, k(h * lanes))), align=4) for h in range(nv)]
+        for i in range(nq):
+            cval = builder.load(builder.gep(ca.data, [builder.add(builder.mul(qs[i], cd), j)]))
+            cv = _splat(builder, cval, vt)
+            for h in range(nv):
+                t = builder.fsub(xv[h], cv)
+                a = accs[i * nv + h]
+                builder.store(builder.call(fma, [t, t, builder.load(a)]), a)
+    for i in range(nq):
+        for h in range(nv):
+            off = builder.add(builder.mul(qs[i], dr), builder.add(r0_, k(h * lanes)))
+            builder.store(builder.load(accs[i * nv + h]), vptr(da.data, off), align=4)
+    return context.get_dummy_value()
 
 
 _seed_tile4, _seed_tile2, _seed_tile1 = _make_seed_tile(4, 32), _make_seed_tile(2, 64), _make_seed_tile(1, 64)  # fastest shapes
@@ -267,87 +276,118 @@ def _transpose8(typingctx, x, queue, s, xb, r0, j0):
     return sig, codegen
 
 
+TILE_CENTERS = 4  # centers per `_dot_tile` call
+TILE_ROWS_F32, TILE_ROWS_F64 = 32, 16  # rows per `_dot_tile` call: 2 vectors of 16 float32 or 8 float64 lanes
+F32_BYTES = 4
+TRANSPOSE_W = 8  # rows and columns per `_transpose8` call
+
+
 @numba.njit(inline="always", nogil=True, cache=True)
 def _scan_queue_dot(x, xnorm, ct, cnorm, err_a, err_b, centers, queue, nq, labels, upper, lower, pfd):
-    """Scan the queued rows fully, SEED_ROWS at a time.
+    """Scan the queued rows fully, SEED_ROWS at a time; returns how many labels changed.
 
-    Dot products x·c by FMA register tiles (4 centers x 16 rows,
-    `_dot_tile`), then per row, vectorized over rows, the nearest by v = ‖c‖² - 2x·c and the two smallest of
-    w_c = v_c - δ_c, where δ_c = err_a[c] + err_b[c]·‖x‖ bounds v_c's rounding error (`_dot_allowance`).
-    The label is certain if every other center's w exceeds v1 + δ1; then the bounds come from the dot form with the
-    allowances. Otherwise the centers that could be nearest (w_c ≤ v1 + δ1) get exact float64 distances.
+    Dot products x·c by FMA register tiles (4 centers × 16 rows, `_dot_tile`),
+    then per row, vectorized over rows, the nearest by v = ‖c‖² - 2x·c and the two smallest of w_c = v_c - δ_c,
+    where δ_c = err_a[c] + err_b[c]·‖x‖ bounds v_c’s rounding error (`_dot_allowance`).
+    The label is certain if every other center’s w exceeds v1 + δ1; then the bounds come from the dot form with the allowances.
+    Otherwise the centers that could be nearest (w_c ≤ v1 + δ1) get exact float64 distances.
     """
     d, k = ct.shape
     xb = np.zeros((d, SEED_ROWS), dtype=x.dtype)
     dv = np.empty((k, SEED_ROWS), dtype=x.dtype)
     d1, l1, l2, xs = np.empty(SEED_ROWS), np.empty(SEED_ROWS), np.empty(SEED_ROWS), np.zeros(SEED_ROWS)
     b1, lb1 = np.empty(SEED_ROWS, dtype=np.int64), np.empty(SEED_ROWS, dtype=np.int64)
-    k4 = k - k % 4
     moved = 0
     for s0 in range(0, nq, SEED_ROWS):
         m = min(SEED_ROWS, nq - s0)
-        d8, m8 = d - d % 8, m - m % 8
-        for r in range(m):
-            if pfd and s0 + r + pfd < nq:  # queued rows are scattered in x (a few % of rows at large n)
-                _prefetch_row(x, queue[s0 + r + pfd])
-            i = queue[s0 + r]
-            xs[r] = math.sqrt(xnorm[i])
-            for j in range(d8 if r < m8 else 0, d):  # the rest of groups of 8 rows go through 8×8 register transposes
-                xb[j, r] = x[i, j]
-        for r0 in range(0, m8, 8):
-            for j0 in range(0, d8, 8):
-                _transpose8(x, queue, s0 + r0, xb, r0, j0)
-        for r0 in range(0, SEED_ROWS, 32 if xb.itemsize == 4 else 16):  # rows per `_dot_tile` call
-            for c0 in range(0, k4, 4):
-                _dot_tile(xb, ct, dv, r0, c0)
-        for c in range(k4, k):
-            dv[c, :] = 0
-            for j in range(d):
-                cj = ct[j, c]
-                for r in range(SEED_ROWS):
-                    dv[c, r] += xb[j, r] * cj
-        for r in range(SEED_ROWS):
-            d1[r], l1[r], l2[r] = np.inf, np.inf, np.inf
-            b1[r], lb1[r] = 0, -1
-        for c in range(k):  # vectorized over rows (ties: lowest index)
-            cn, ea, eb = np.float64(cnorm[c]), err_a[c], err_b[c]
-            for r in range(SEED_ROWS):
-                v = cn - 2.0 * np.float64(dv[c, r])
-                w = v - (ea + eb * xs[r])
-                lt1 = v < d1[r]
-                d1[r] = v if lt1 else d1[r]
-                b1[r] = c if lt1 else b1[r]
-                lw1 = w < l1[r]
-                lw2 = w < l2[r]
-                l2[r] = l1[r] if lw1 else (w if lw2 else l2[r])
-                l1[r] = w if lw1 else l1[r]
-                lb1[r] = c if lw1 else lb1[r]
+        _gather_rows(x, xnorm, queue, nq, s0, m, xb, xs, pfd)
+        _queue_dots(xb, ct, dv)
+        _nearest_two(dv, cnorm, err_a, err_b, xs, d1, l1, l2, b1, lb1)
         for r in range(m):
             i = queue[s0 + r]
-            best, v1 = b1[r], d1[r]
-            reach = v1 + err_a[best] + err_b[best] * xs[r]  # ≥ the nearest center's true v
-            wo = l1[r] if lb1[r] != best else l2[r]  # smallest w over the other centers (inf for k = 1)
-            if wo > reach:  # certain; bounds from the dot form with the allowances
-                e1 = xnorm[i] + reach
-                e2 = max(xnorm[i] + wo, 0.0)
-            else:  # exact float64 distances to the centers that could be nearest; the others' w bound the second
-                best, e1, e2, rest = -1, np.inf, np.inf, np.inf
-                for c in range(k):
-                    w = np.float64(cnorm[c]) - 2.0 * np.float64(dv[c, r]) - (err_a[c] + err_b[c] * xs[r])
-                    if w <= reach:
-                        e = 0.0
-                        for j in range(d):
-                            t = np.float64(x[i, j]) - centers[c, j]
-                            e += t * t
-                        if e < e1:  # ties: lowest index, as the reference
-                            best, e1, e2 = c, e, e1
-                        elif e < e2:
-                            e2 = e
-                    else:
-                        rest = min(rest, w)
-                e2 = min(e2, max(xnorm[i] + rest, 0.0))
+            best, e1, e2 = _label_row(x, xnorm[i], i, r, centers, dv, cnorm, err_a, err_b, xs[r], d1[r], l1[r], l2[r], b1[r], lb1[r])
             moved += labels[i] != best
             labels[i] = best
             upper[i] = math.sqrt(e1)
             lower[i] = math.sqrt(e2)
     return moved
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _gather_rows(x, xnorm, queue, nq, s0, m, xb, xs, pfd):
+    """xb[:, r] = x[queue[s0 + r]] for r < m (groups of 8 rows by 8×8 register transposes), xs[r] = ‖x‖."""
+    d = x.shape[1]
+    d8, m8 = d - d % TRANSPOSE_W, m - m % TRANSPOSE_W
+    for r in range(m):
+        if pfd and s0 + r + pfd < nq:  # queued rows are scattered in x (a few % of rows at large n)
+            _prefetch_row(x, queue[s0 + r + pfd])
+        i = queue[s0 + r]
+        xs[r] = math.sqrt(xnorm[i])
+        for j in range(d8 if r < m8 else 0, d):  # the rest of groups of 8 rows go through 8×8 register transposes
+            xb[j, r] = x[i, j]
+    for r0 in range(0, m8, TRANSPOSE_W):
+        for j0 in range(0, d8, TRANSPOSE_W):
+            _transpose8(x, queue, s0 + r0, xb, r0, j0)
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _queue_dots(xb, ct, dv):
+    """dv[c, r] = x_r·c for every center: FMA tiles for groups of 4 centers, plain loops for the rest."""
+    d, k = ct.shape
+    k4 = k - k % TILE_CENTERS
+    for r0 in range(0, SEED_ROWS, TILE_ROWS_F32 if xb.itemsize == F32_BYTES else TILE_ROWS_F64):
+        for c0 in range(0, k4, TILE_CENTERS):
+            _dot_tile(xb, ct, dv, r0, c0)
+    for c in range(k4, k):
+        dv[c, :] = 0
+        for j in range(d):
+            cj = ct[j, c]
+            for r in range(SEED_ROWS):
+                dv[c, r] += xb[j, r] * cj
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _nearest_two(dv, cnorm, err_a, err_b, xs, d1, l1, l2, b1, lb1):
+    """Per row: the nearest center by the dot form (d1, b1) and the two smallest allowance-lowered values (l1 at lb1, l2)."""
+    k = dv.shape[0]
+    for r in range(SEED_ROWS):
+        d1[r], l1[r], l2[r] = np.inf, np.inf, np.inf
+        b1[r], lb1[r] = 0, -1
+    for c in range(k):  # vectorized over rows (ties: lowest index)
+        cn, ea, eb = np.float64(cnorm[c]), err_a[c], err_b[c]
+        for r in range(SEED_ROWS):
+            v = cn - 2.0 * np.float64(dv[c, r])
+            w = v - (ea + eb * xs[r])
+            lt1 = v < d1[r]
+            d1[r] = v if lt1 else d1[r]
+            b1[r] = c if lt1 else b1[r]
+            lw1 = w < l1[r]
+            lw2 = w < l2[r]
+            l2[r] = l1[r] if lw1 else (w if lw2 else l2[r])
+            l1[r] = w if lw1 else l1[r]
+            lb1[r] = c if lw1 else lb1[r]
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _label_row(x, xn, i, r, centers, dv, cnorm, err_a, err_b, xsr, v1, l1r, l2r, best, lb1r):
+    """Row i’s label and squared distances to its nearest and second-nearest center (bounds for the next pass)."""
+    reach = v1 + err_a[best] + err_b[best] * xsr  # ≥ the nearest center’s true v
+    wo = l1r if lb1r != best else l2r  # smallest w over the other centers (inf for k = 1)
+    if wo > reach:  # certain; bounds from the dot form with the allowances
+        return best, xn + reach, max(xn + wo, 0.0)
+    # exact float64 distances to the centers that could be nearest; the others’ w bound the second
+    best, e1, e2, rest = -1, np.inf, np.inf, np.inf
+    for c in range(dv.shape[0]):
+        w = np.float64(cnorm[c]) - 2.0 * np.float64(dv[c, r]) - (err_a[c] + err_b[c] * xsr)
+        if w <= reach:
+            e = 0.0
+            for j in range(x.shape[1]):
+                t = np.float64(x[i, j]) - centers[c, j]
+                e += t * t
+            if e < e1:  # ties: lowest index, as the reference
+                best, e1, e2 = c, e, e1
+            elif e < e2:
+                e2 = e
+        else:
+            rest = min(rest, w)
+    return best, e1, min(e2, max(xn + rest, 0.0))

@@ -6,7 +6,7 @@ import math
 import numba
 import numpy as np
 
-from ._tiles import SAFETY, _dot_tile_idx
+from ._tiles import SAFETY, TILE_CENTERS, _dot_tile_idx
 
 
 BALL_MIN_K, BALL_MAX_K = 256, 2048  # k range with ball scans (k×k center distances: ≤ 32 MB)
@@ -25,23 +25,50 @@ BALL_MIN_ROWS = 8  # ...and only with this many failing rows per label on averag
 BALL_PROBE = 8
 
 
+BALL_TILE_ROWS = 16  # rows per `_dot_tile_idx` call (8 float64 or float32 lanes, 2 vectors)
+
+
 @numba.njit(inline="always", nogil=True, cache=True)
 def _ball_label(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a, rows, labels, upper, lower, keys, cand, sidx, dv, xb, sel):
     """Exact scans of the rows labelled a that failed the bound test, against the centers that could be nearer.
 
-    Every center nearer to row i than c_a lies in the ball |c_o - c_a| ≤ 2u_i (u_i = the exact distance to c_a, from
-    the bound pass). Candidates are ordered by a lower bound on |c_o - c_a| (center distances cd at the last full
-    computation minus the drift since, acc), rows by u; each 16-row group is tiled (`_dot_tile_idx`) against the
-    candidates inside its largest radius. Labels as in `_scan_queue_dot`: the dot form with per-center rounding
-    allowances, exact float64 distances when another candidate could be nearest. Second bound: the smaller of the
-    candidates' and of |c_o - c_a| - u over the centers not scanned.
+    Every center nearer to row i than c_a lies in the ball |c_o - c_a| ≤ 2u_i (u_i = the exact distance to c_a, from the bound pass).
+    Candidates are ordered by a lower bound on |c_o - c_a| (center distances cd at the last full computation minus the drift since, acc),
+    rows by u; each 16-row group is tiled (`_dot_tile_idx`) against the candidates inside its largest radius.
+    Labels as in `_scan_queue_dot`: the dot form with per-center rounding allowances,
+    exact float64 distances when another candidate could be nearest.
+    Second bound: the smaller of the candidates’ and of |c_o - c_a| - u over the centers not scanned.
     """
-    k, d = crow.shape
     m = rows.shape[0]
     rows[:] = rows[np.argsort(upper[rows])]
-    rad_all = 2.0 * upper[rows[m - 1]] * (1 + 4 * SAFETY)
+    kc, oute = _ball_candidates(cd, acc, a, 2.0 * upper[rows[m - 1]] * (1 + 4 * SAFETY), cand, keys)
+    srt = cand[:kc][np.argsort(keys[:kc])]
+    kc4 = (kc + TILE_CENTERS - 1) // TILE_CENTERS * TILE_CENTERS
+    for t in range(kc4):
+        sidx[t] = srt[min(t, kc - 1)]  # padding columns repeat a real center (ignored)
+    xs, d1, l1, l2 = sel[0], sel[1], sel[2], sel[3]
+    bb, lb1 = np.zeros(BALL_TILE_ROWS, dtype=np.int64), np.zeros(BALL_TILE_ROWS, dtype=np.int64)
+    for s0 in range(0, m, BALL_TILE_ROWS):
+        nr = min(BALL_TILE_ROWS, m - s0)
+        pe, p4, out = _ball_reach(cd, acc, a, srt, kc, kc4, 2.0 * upper[rows[s0 + nr - 1]] * (1 + 4 * SAFETY), oute)
+        _gather_group(x, xnorm, rows, s0, nr, xb, xs)
+        for cq in range(0, p4, TILE_CENTERS):
+            _dot_tile_idx(xb, crow, sidx, dv, 0, cq)
+        _nearest_two_of(dv, srt, pe, cnorm, err_a, err_b, xs, d1, l1, l2, bb, lb1)
+        for r in range(nr):
+            i = rows[s0 + r]
+            rest = (out - upper[i]) * (1 - SAFETY)  # every center not scanned is at least this far from row i
+            best, e1, e2 = _label_ball_row(x, xnorm[i], i, r, centers, dv, srt, pe, cnorm, err_a, err_b, xs[r], d1[r], l1[r], l2[r], bb[r], lb1[r])
+            labels[i] = best
+            upper[i] = math.sqrt(e1)
+            lower[i] = max(min(math.sqrt(e2), rest), 0.0)
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _ball_candidates(cd, acc, a, rad_all, cand, keys):
+    """Centers o whose lower bound on |c_o - c_a| is within rad_all (cand[:kc], keyed by it); returns kc and the smallest bound outside."""
     kc, oute = 0, np.inf
-    for o in range(k):
+    for o in range(cd.shape[0]):
         lb = (cd[a, o] - acc[a] - acc[o]) * (1 - SAFETY)
         if lb <= rad_all:
             cand[kc] = o
@@ -49,80 +76,87 @@ def _ball_label(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a, rows, 
             kc += 1
         else:
             oute = min(oute, lb)
-    srt = cand[:kc][np.argsort(keys[:kc])]
-    kc4 = (kc + 3) // 4 * 4
-    for t in range(kc4):
-        sidx[t] = srt[min(t, kc - 1)]  # padding columns repeat a real center (ignored)
-    xs, d1, l1, l2 = sel[0], sel[1], sel[2], sel[3]
-    bb, lb1 = np.zeros(16, dtype=np.int64), np.zeros(16, dtype=np.int64)
-    for s0 in range(0, m, 16):
-        nr = min(16, m - s0)
-        rad = 2.0 * upper[rows[s0 + nr - 1]] * (1 + 4 * SAFETY)
-        p = kc
-        while p > 0 and (cd[a, srt[p - 1]] - acc[a] - acc[srt[p - 1]]) * (1 - SAFETY) > rad:
-            p -= 1
-        p4 = min((p + 3) // 4 * 4, kc4)
-        pe = min(p4, kc)  # candidates scanned (the padded tile columns may add a few beyond the radius: harmless)
-        out = (cd[a, srt[pe]] - acc[a] - acc[srt[pe]]) * (1 - SAFETY) if pe < kc else oute
-        for r in range(16):
-            if r < nr:
-                i = rows[s0 + r]
-                xs[r] = math.sqrt(xnorm[i])
-                for j in range(d):
-                    xb[j, r] = x[i, j]
-            else:
-                xs[r] = 0.0
-                for j in range(d):
-                    xb[j, r] = 0
-        for cq in range(0, p4, 4):
-            _dot_tile_idx(xb, crow, sidx, dv, 0, cq)
-        for r in range(16):
-            d1[r], l1[r], l2[r] = np.inf, np.inf, np.inf
-            bb[r], lb1[r] = 0, -1
-        for t in range(pe):  # vectorized over the rows; dot-form ties fall to the exact rescans (w_other ≤ v1 ≤ reach)
-            o = srt[t]
-            cn, ea, eb = np.float64(cnorm[o]), err_a[o], err_b[o]
-            for r in range(16):
-                v = cn - 2.0 * np.float64(dv[t, r])
-                w = v - (ea + eb * xs[r])
-                lt1 = v < d1[r]
-                d1[r] = v if lt1 else d1[r]
-                bb[r] = t if lt1 else bb[r]
-                lw1 = w < l1[r]
-                lw2 = w < l2[r]
-                l2[r] = l1[r] if lw1 else (w if lw2 else l2[r])
-                l1[r] = w if lw1 else l1[r]
-                lb1[r] = t if lw1 else lb1[r]
-        for r in range(nr):
+    return kc, oute
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _ball_reach(cd, acc, a, srt, kc, kc4, rad, oute):
+    """Candidates to scan for a row group of radius rad: (scanned, tiled columns, smallest bound of the rest).
+
+    The padded tile columns may add a few beyond the radius: harmless.
+    """
+    p = kc
+    while p > 0 and (cd[a, srt[p - 1]] - acc[a] - acc[srt[p - 1]]) * (1 - SAFETY) > rad:
+        p -= 1
+    p4 = min((p + TILE_CENTERS - 1) // TILE_CENTERS * TILE_CENTERS, kc4)
+    pe = min(p4, kc)
+    out = (cd[a, srt[pe]] - acc[a] - acc[srt[pe]]) * (1 - SAFETY) if pe < kc else oute
+    return pe, p4, out
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _gather_group(x, xnorm, rows, s0, nr, xb, xs):
+    """xb[:, r] = x[rows[s0 + r]] and xs[r] = ‖x‖ for r < nr; the rest of the BALL_TILE_ROWS columns zero."""
+    d = x.shape[1]
+    for r in range(BALL_TILE_ROWS):
+        if r < nr:
             i = rows[s0 + r]
-            best = srt[bb[r]]
-            reach = d1[r] + err_a[best] + err_b[best] * xs[r]  # ≥ the nearest candidate's true v
-            wo = l1[r] if lb1[r] != bb[r] else l2[r]
-            rest = (out - upper[i]) * (1 - SAFETY)  # every center not scanned is at least this far from row i
-            if wo > reach:
-                e1 = xnorm[i] + reach
-                e2 = max(xnorm[i] + wo, 0.0)
-            else:
-                best, e1, e2, wr = -1, np.inf, np.inf, np.inf
-                for t in range(pe):
-                    o = srt[t]
-                    w = np.float64(cnorm[o]) - 2.0 * np.float64(dv[t, r]) - (err_a[o] + err_b[o] * xs[r])
-                    if w <= reach:
-                        e = 0.0
-                        for j in range(d):
-                            q = np.float64(x[i, j]) - centers[o, j]
-                            e += q * q
-                        if e < e1 or (e == e1 and o < best):  # ties: lowest index, as the reference
-                            e2 = e1
-                            best, e1 = o, e
-                        elif e < e2:
-                            e2 = e
-                    else:
-                        wr = min(wr, w)
-                e2 = min(e2, max(xnorm[i] + wr, 0.0))
-            labels[i] = best
-            upper[i] = math.sqrt(e1)
-            lower[i] = max(min(math.sqrt(e2), rest), 0.0)
+            xs[r] = math.sqrt(xnorm[i])
+            for j in range(d):
+                xb[j, r] = x[i, j]
+        else:
+            xs[r] = 0.0
+            for j in range(d):
+                xb[j, r] = 0
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _nearest_two_of(dv, srt, pe, cnorm, err_a, err_b, xs, d1, l1, l2, bb, lb1):
+    """`_tiles._nearest_two` over the candidates srt[:pe] (tile column t is center srt[t]); bb and lb1 hold columns."""
+    for r in range(BALL_TILE_ROWS):
+        d1[r], l1[r], l2[r] = np.inf, np.inf, np.inf
+        bb[r], lb1[r] = 0, -1
+    for t in range(pe):  # vectorized over the rows; dot-form ties fall to the exact rescans (w_other ≤ v1 ≤ reach)
+        o = srt[t]
+        cn, ea, eb = np.float64(cnorm[o]), err_a[o], err_b[o]
+        for r in range(BALL_TILE_ROWS):
+            v = cn - 2.0 * np.float64(dv[t, r])
+            w = v - (ea + eb * xs[r])
+            lt1 = v < d1[r]
+            d1[r] = v if lt1 else d1[r]
+            bb[r] = t if lt1 else bb[r]
+            lw1 = w < l1[r]
+            lw2 = w < l2[r]
+            l2[r] = l1[r] if lw1 else (w if lw2 else l2[r])
+            l1[r] = w if lw1 else l1[r]
+            lb1[r] = t if lw1 else lb1[r]
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _label_ball_row(x, xn, i, r, centers, dv, srt, pe, cnorm, err_a, err_b, xsr, v1, l1r, l2r, bbr, lb1r):
+    """`_tiles._label_row` over the candidates srt[:pe]: row i’s label and squared distances to its nearest two."""
+    best = srt[bbr]
+    reach = v1 + err_a[best] + err_b[best] * xsr  # ≥ the nearest candidate’s true v
+    wo = l1r if lb1r != bbr else l2r
+    if wo > reach:
+        return best, xn + reach, max(xn + wo, 0.0)
+    best, e1, e2, wr = -1, np.inf, np.inf, np.inf
+    for t in range(pe):
+        o = srt[t]
+        w = np.float64(cnorm[o]) - 2.0 * np.float64(dv[t, r]) - (err_a[o] + err_b[o] * xsr)
+        if w <= reach:
+            e = 0.0
+            for j in range(x.shape[1]):
+                q = np.float64(x[i, j]) - centers[o, j]
+                e += q * q
+            if e < e1 or (e == e1 and o < best):  # ties: lowest index, as the reference
+                e2 = e1
+                best, e1 = o, e
+            elif e < e2:
+                e2 = e
+        else:
+            wr = min(wr, w)
+    return best, e1, min(e2, max(xn + wr, 0.0))
 
 
 @numba.njit(nogil=True, cache=True)
