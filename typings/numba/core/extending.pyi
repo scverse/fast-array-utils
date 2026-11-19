@@ -62,19 +62,23 @@ def unbox[T: Type](
     [Callable[[T, Value, UnboxContext], NativeValue]],
     Callable[[T, Value, UnboxContext], NativeValue],
 ]: ...
+# The decorated function types the call at compile time (its arguments are numba types);
+# the intrinsic is then called from nopython code with runtime values, and numba decides the result type.
+type _Codegen = Callable[..., NativeValue | Value]
+
 @typing.overload
-def intrinsic[**P](
-    func: Callable[Concatenate[TypingContext, P], tuple[Signature, Callable[..., NativeValue]]],
+def intrinsic(
+    func: Callable[Concatenate[TypingContext, ...], tuple[Signature, _Codegen]],
     /,
-) -> Callable[P, object]: ...
+) -> Callable[..., typing.Any]: ...
 @typing.overload
-def intrinsic[**P](
+def intrinsic(
     *,
     prefer_literal: bool = False,
     **kwargs: object,
 ) -> Callable[
-    [Callable[Concatenate[TypingContext, P], tuple[Signature, Callable[..., NativeValue]]]],
-    Callable[P, object],
+    [Callable[Concatenate[TypingContext, ...], tuple[Signature, _Codegen]]],
+    Callable[..., typing.Any],
 ]: ...
 def make_attribute_wrapper(typeclass: type[Type], struct_attr: str, python_attr: str) -> None: ...
 def overload[F: Callable[..., object]](f: Callable[..., object]) -> Callable[[F], F]: ...

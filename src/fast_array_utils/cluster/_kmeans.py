@@ -17,7 +17,7 @@ Modules: `_seed` (greedy k-means++), `_lloyd` (Lloyd with Hamerly bounds), `_bal
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numba
 import numpy as np
@@ -47,7 +47,7 @@ def _validate(x: NDArray[np.number[Any]], k: int) -> NDArray[np.float32] | NDArr
     if not 1 <= k <= x.shape[0]:
         msg = f"k={k} must be between 1 and the number of rows ({x.shape[0]})"
         raise ValueError(msg)
-    return x
+    return cast("NDArray[np.float32] | NDArray[np.float64]", x)
 
 
 def _check_finite(xnorm: NDArray[np.float64]) -> None:

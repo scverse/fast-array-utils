@@ -2,12 +2,20 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
 
 from ._tiles import SAFETY, TILE_CENTERS, _dot_tile_idx
 
+
+if TYPE_CHECKING:
+    from ._typing import F64, I64, U8, FArr
+
+
+# Kernels take their arrays as positional arguments (one PLR0917 suppression per kernel, FBT001 for flags):
+# numba can’t inline calls with keyword-only arguments.
 
 BALL_MIN_K, BALL_MAX_K = 256, 2048  # k range with ball scans (k×k center distances: ≤ 32 MB)
 
@@ -29,7 +37,28 @@ BALL_TILE_ROWS = 16  # rows per `_dot_tile_idx` call (8 float64 or float32 lanes
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _ball_label(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a, rows, labels, upper, lower, keys, cand, sidx, dv, xb, sel):
+def _ball_label(  # noqa: PLR0917
+    x: FArr,
+    xnorm: F64,
+    crow: FArr,
+    centers: F64,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    cd: F64,
+    acc: F64,
+    a: int,
+    rows: I64,
+    labels: I64,
+    upper: F64,
+    lower: F64,
+    keys: F64,
+    cand: I64,
+    sidx: I64,
+    dv: FArr,
+    xb: FArr,
+    sel: F64,
+) -> None:
     """Exact scans of the rows labelled a that failed the bound test, against the centers that could be nearer.
 
     Every center nearer to row i than c_a lies in the ball |c_o - c_a| ≤ 2u_i (u_i = the exact distance to c_a, from the bound pass).
@@ -65,7 +94,7 @@ def _ball_label(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a, rows, 
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _ball_candidates(cd, acc, a, rad_all, cand, keys):
+def _ball_candidates(cd: F64, acc: F64, a: int, rad_all: float, cand: I64, keys: F64) -> tuple[int, float]:  # noqa: PLR0917
     """Centers o whose lower bound on |c_o - c_a| is within rad_all (cand[:kc], keyed by it); returns kc and the smallest bound outside."""
     kc, oute = 0, np.inf
     for o in range(cd.shape[0]):
@@ -80,7 +109,7 @@ def _ball_candidates(cd, acc, a, rad_all, cand, keys):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _ball_reach(cd, acc, a, srt, kc, kc4, rad, oute):
+def _ball_reach(cd: F64, acc: F64, a: int, srt: I64, kc: int, kc4: int, rad: float, oute: float) -> tuple[int, int, float]:  # noqa: PLR0917
     """Candidates to scan for a row group of radius rad: (scanned, tiled columns, smallest bound of the rest).
 
     The padded tile columns may add a few beyond the radius: harmless.
@@ -95,7 +124,7 @@ def _ball_reach(cd, acc, a, srt, kc, kc4, rad, oute):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _gather_group(x, xnorm, rows, s0, nr, xb, xs):
+def _gather_group(x: FArr, xnorm: F64, rows: I64, s0: int, nr: int, xb: FArr, xs: F64) -> None:  # noqa: PLR0917
     """xb[:, r] = x[rows[s0 + r]] and xs[r] = ‖x‖ for r < nr; the rest of the BALL_TILE_ROWS columns zero."""
     d = x.shape[1]
     for r in range(BALL_TILE_ROWS):
@@ -111,7 +140,7 @@ def _gather_group(x, xnorm, rows, s0, nr, xb, xs):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _nearest_two_of(dv, srt, pe, cnorm, err_a, err_b, xs, d1, l1, l2, bb, lb1):
+def _nearest_two_of(dv: FArr, srt: I64, pe: int, cnorm: FArr, err_a: F64, err_b: F64, xs: F64, d1: F64, l1: F64, l2: F64, bb: I64, lb1: I64) -> None:  # noqa: PLR0917
     """`_tiles._nearest_two` over the candidates srt[:pe] (tile column t is center srt[t]); bb and lb1 hold columns."""
     for r in range(BALL_TILE_ROWS):
         d1[r], l1[r], l2[r] = np.inf, np.inf, np.inf
@@ -133,7 +162,25 @@ def _nearest_two_of(dv, srt, pe, cnorm, err_a, err_b, xs, d1, l1, l2, bb, lb1):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _label_ball_row(x, xn, i, r, centers, dv, srt, pe, cnorm, err_a, err_b, xsr, v1, l1r, l2r, bbr, lb1r):
+def _label_ball_row(  # noqa: PLR0917
+    x: FArr,
+    xn: float,
+    i: int,
+    r: int,
+    centers: F64,
+    dv: FArr,
+    srt: I64,
+    pe: int,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    xsr: float,
+    v1: float,
+    l1r: float,
+    l2r: float,
+    bbr: int,
+    lb1r: int,
+) -> tuple[int, float, float]:
     """`_tiles._label_row` over the candidates srt[:pe]: row i’s label and squared distances to its nearest two."""
     best = srt[bbr]
     reach = v1 + err_a[best] + err_b[best] * xsr  # ≥ the nearest candidate’s true v
@@ -160,7 +207,7 @@ def _label_ball_row(x, xn, i, r, centers, dv, srt, pe, cnorm, err_a, err_b, xsr,
 
 
 @numba.njit(nogil=True, cache=True)
-def _ball_scatter(bounds, b0, b1, qn, qbuf, qold, lcnt, order):
+def _ball_scatter(bounds: I64, b0: int, b1: int, qn: I64, qbuf: I64, qold: I64, lcnt: I64, order: I64) -> None:  # noqa: PLR0917
     """Phase C2: the recorded rows of chunks b0..b1 into label order (chunk order, then row order, per label).
 
     The ball phases are separate functions (not inlined) so the plain Hamerly loop stays as small as without them.
@@ -175,7 +222,24 @@ def _ball_scatter(bounds, b0, b1, qn, qbuf, qold, lcnt, order):
 
 
 @numba.njit(nogil=True, cache=True)
-def _ball_group(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a0, a1, lstart, order, labels, upper, lower):
+def _ball_group(  # noqa: PLR0917
+    x: FArr,
+    xnorm: F64,
+    crow: FArr,
+    centers: F64,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    cd: F64,
+    acc: F64,
+    a0: int,
+    a1: int,
+    lstart: I64,
+    order: I64,
+    labels: I64,
+    upper: F64,
+    lower: F64,
+) -> None:
     """Phase E: ball scans of the labels a0..a1 (`_ball_label`)."""
     k, d = crow.shape
     keys, cand, sidx = np.empty(k), np.empty(k, dtype=np.int64), np.empty(k + 4, dtype=np.int64)
@@ -188,7 +252,9 @@ def _ball_group(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, a0, a1, l
 
 
 @numba.njit(nogil=True, cache=True)
-def _ball_sums(x, bounds, b0, b1, qn, qbuf, qold, labels, sums, counts, tch, dirty, moved):
+def _ball_sums(  # noqa: PLR0917
+    x: FArr, bounds: I64, b0: int, b1: int, qn: I64, qbuf: I64, qold: I64, labels: I64, sums: F64, counts: I64, tch: U8, dirty: I64, moved: I64
+) -> None:
     """Phase C3: chunk sums of chunks b0..b1 for their rows that moved in phases C and E.
 
     As phase C does without ball scans: many moves, the chunk's sums afresh in row order; few, those rows moved, in
@@ -206,7 +272,9 @@ def _ball_sums(x, bounds, b0, b1, qn, qbuf, qold, labels, sums, counts, tch, dir
 
 
 @numba.njit(nogil=True, cache=True)
-def _chunk_sums(x, b, lo, hi, rows, old, r0, nq, mv, labels, sums, counts, tch, dirty):
+def _chunk_sums(  # noqa: PLR0917
+    x: FArr, b: int, lo: int, hi: int, rows: I64, old: I64, r0: int, nq: int, mv: int, labels: I64, sums: F64, counts: I64, tch: U8, dirty: I64
+) -> None:
     """Chunk b's center sums after mv > 0 of its nq recorded rows (rows[r0 + t], previous labels old[r0 + t]) moved.
 
     Many moves (or rows taken by the empty-center rule): the chunk's sums afresh, rows in order. Few: those rows move
@@ -239,7 +307,7 @@ def _chunk_sums(x, b, lo, hi, rows, old, r0, nq, mv, labels, sums, counts, tch, 
 
 
 @numba.njit(nogil=True, cache=True)
-def _ball_offsets(lcnt, lstart, gsplit):
+def _ball_offsets(lcnt: I64, lstart: I64, gsplit: I64) -> None:
     """End of phase C with ball scans: per-chunk scatter offsets, label starts and label groups of about equal rows."""
     nb, k = lcnt.shape
     ne = gsplit.shape[0] - 1

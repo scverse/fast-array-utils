@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -13,6 +14,13 @@ from fast_array_utils.numba import njit
 from ._sync import SPIN_BEFORE_YIELD, _claim_range, _fetch_add, _load_acquire, _prefetch_distance, _prefetch_row, _store_release, _workers, _yield_cpu
 from ._tiles import SEED_ROWS, _score
 
+
+if TYPE_CHECKING:
+    from ._typing import F64, I64, FArr
+
+
+# Kernels take their arrays as positional arguments (one PLR0917 suppression per kernel, FBT001 for flags):
+# numba can’t inline calls with keyword-only arguments.
 
 CHUNK = 1 << 13  # rows per chunk of the grid-order counting sort; fixed, so the order doesn’t depend on threads
 SEED_CHUNK = 1 << 10  # max rows per chunk of the seeding sums; chunks depend only on n, so seeds don’t depend on threads
@@ -46,7 +54,7 @@ def _plusplus(x: np.ndarray, k: int, rng: np.random.Generator, n_local_trials: i
 
 
 @njit
-def _seed(x, xt, perm, cols, first, u, centers, nthreads, pfd):
+def _seed(x: FArr, xt: FArr, perm: I64, cols: I64, first: int, u: F64, centers: F64, nthreads: int, pfd: int) -> None:  # noqa: PLR0917
     """Greedy k-means++ in one compiled loop: per step, draw the candidates and score all of them in one parallel pass.
 
     Row positions follow `perm` (rows of x in grid order, so nearby rows share a SEED_ROWS block).
@@ -101,7 +109,7 @@ def _seed(x, xt, perm, cols, first, u, centers, nthreads, pfd):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _first_d2(x, perm, centers, cur, lo, hi, pfd):
+def _first_d2(x: FArr, perm: I64, centers: F64, cur: F64, lo: int, hi: int, pfd: int) -> float:  # noqa: PLR0917
     """cur[lo:hi] = the squared distances of row positions lo..hi to the first center; returns their sum."""
     n, d = x.shape
     s = 0.0
@@ -118,7 +126,7 @@ def _first_d2(x, perm, centers, cur, lo, hi, pfd):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _claim_step_chunk(rcnt, own, st, nv, k, nb, nthreads):
+def _claim_step_chunk(rcnt: I64, own: int, st: int, nv: int, k: int, nb: int, nthreads: int) -> tuple[int, int, int]:  # noqa: PLR0917
     """Claim a chunk of the earliest step st with unclaimed chunks, from range own + nv; returns (chunk, st, nv)."""
     b = -1
     while st < k - 1:
@@ -132,7 +140,7 @@ def _claim_step_chunk(rcnt, own, st, nv, k, nb, nthreads):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _wait_published(state, st):
+def _wait_published(state: I64, st: int) -> None:
     """Wait until step st’s candidates are drawn (by whoever finished step st - 1)."""
     spins = 0
     while _load_acquire(state, _PUBLISHED) < st:
@@ -142,7 +150,9 @@ def _wait_published(state, st):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _score_block(x, xt, xb, cand, new_d2, cur, live, prev, r0, m, cb, w, dv, lq, acc):
+def _score_block(  # noqa: PLR0917
+    x: FArr, xt: FArr, xb: FArr, cand: FArr, new_d2: F64, cur: F64, live: I64, prev: int, r0: int, m: int, cb: F64, w: F64, dv: FArr, lq: I64, acc: F64
+) -> None:
     """Score every candidate on the m rows of the SEED_ROWS block at row position r0, adding its potential to acc."""
     d = x.shape[1]
     blk = r0 // SEED_ROWS
@@ -160,7 +170,9 @@ def _score_block(x, xt, xb, cand, new_d2, cur, live, prev, r0, m, cb, w, dv, lq,
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _take_block_scores(new_d2, cur, live, blk, r0, m, fresh, nl, lq, cb, sb, w, dv, acc):
+def _take_block_scores(  # noqa: PLR0917
+    new_d2: F64, cur: F64, live: I64, blk: int, r0: int, m: int, fresh: int, nl: int, lq: I64, cb: F64, sb: float, w: F64, dv: FArr, acc: F64
+) -> None:
     """Record which candidates completed the block (lq[:nl]) and their new D² there; add every candidate’s block potential."""
     trials = live.shape[1]
     for q in range(trials):
@@ -182,7 +194,7 @@ def _take_block_scores(new_d2, cur, live, blk, r0, m, fresh, nl, lq, cb, sb, w, 
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _staged_scores(src, sblk, cand, lq, dv, cb, first_stage):
+def _staged_scores(src: FArr, sblk: int, cand: FArr, lq: I64, dv: FArr, cb: F64, first_stage: int) -> int:  # noqa: PLR0917
     """Candidates’ partial D² over columns in stages of first_stage, 2·first_stage, …; returns how many stay live (lq[:nl]).
 
     A candidate leaves once no row’s partial sum is below its current D² (cb): the rest only adds,
@@ -191,7 +203,7 @@ def _staged_scores(src, sblk, cand, lq, dv, cb, first_stage):
     d = src.shape[1]
     trials = cand.shape[0]
     dv[:, :] = 0.0
-    nl = trials  # candidates still live in this block, in order
+    nl: int = trials  # candidates still live in this block, in order
     for q in range(trials):
         lq[q] = q
     j, e = 0, min(first_stage, d)
@@ -216,7 +228,23 @@ def _staged_scores(src, sblk, cand, lq, dv, cb, first_stage):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _finish_step(x, perm, cols, u, centers, new_d2, cur, live, tot, pots, cand, idx, ch, st, state):
+def _finish_step(  # noqa: PLR0917
+    x: FArr,
+    perm: I64,
+    cols: I64,
+    u: F64,
+    centers: F64,
+    new_d2: F64,
+    cur: F64,
+    live: I64,
+    tot: F64,
+    pots: F64,
+    cand: FArr,
+    idx: I64,
+    ch: int,
+    st: int,
+    state: I64,
+) -> None:
     """End of step st: the candidate with the lowest potential becomes center st + 1 (ties: lowest candidate); draw the next."""
     k, d = centers.shape
     trials, nb = pots.shape
@@ -238,7 +266,7 @@ def _finish_step(x, perm, cols, u, centers, new_d2, cur, live, tot, pots, cand, 
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _draw(x, perm, cols, new_d2, cur, live, prev, tot, uc, ch, idx, cand):
+def _draw(x: FArr, perm: I64, cols: I64, new_d2: F64, cur: F64, live: I64, prev: int, tot: F64, uc: F64, ch: int, idx: I64, cand: FArr) -> None:  # noqa: PLR0917
     """Draw the step’s candidates (D²-weighted, from the chunk totals and the last winner’s D²) and gather them in column order."""
     total = 0.0
     for b in range(tot.shape[0]):
@@ -250,7 +278,7 @@ def _draw(x, perm, cols, new_d2, cur, live, prev, tot, uc, ch, idx, cand):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _pick(row, cur, live, q, tot, target, chunk):
+def _pick(row: F64, cur: F64, live: I64, q: int, tot: F64, target: float, chunk: int) -> int:  # noqa: PLR0917
     """Row whose cumulative D² first exceeds `target`: the chunk from the chunk totals, then the row inside it."""
     nb = tot.shape[0]
     b, cum = 0, 0.0
@@ -270,13 +298,14 @@ def _pick(row, cur, live, q, tot, target, chunk):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _d2(row, cur, live, q, i):
+def _d2(row: F64, cur: F64, live: I64, q: int, i: int) -> float:
     """Return the current D² of row position i: the last winner q’s value where it was computed for i’s block, else `cur`."""
-    return row[i] if live[i // SEED_ROWS, q] else cur[i]
+    v: float = row[i] if live[i // SEED_ROWS, q] else cur[i]
+    return v
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _bsum(w):
+def _bsum(w: F64) -> float:
     """Sum of a SEED_ROWS block in a fixed order (8 interleaved partial sums, then a fixed tree)."""
     s0 = s1 = s2 = s3 = s4 = s5 = s6 = s7 = 0.0
     for g in range(0, SEED_ROWS, 8):
@@ -293,7 +322,7 @@ def _bsum(w):
 
 # ----------------------------------------------------------------------------- row and column order
 @njit
-def _grid_order(x):
+def _grid_order(x: FArr) -> tuple[I64, I64]:
     """Row order (stable counting sort on the grid key) and column order (variance, descending), from the data alone.
 
     Variance and range come from a fixed subsample (every n // GRID_SAMPLE-th row), so the order doesn’t depend on threads.
@@ -328,7 +357,7 @@ def _grid_order(x):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _sample_stats(x, step):
+def _sample_stats(x: FArr, step: int) -> tuple[F64, F64, F64]:
     """Per-column min, max and variance over every step-th row."""
     n, d = x.shape
     ns = (n + step - 1) // step
@@ -350,7 +379,7 @@ def _sample_stats(x, step):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _grid_key(x, i, cols, lo, scale, levels):
+def _grid_key(x: FArr, i: int, cols: I64, lo: F64, scale: F64, levels: int) -> int:  # noqa: PLR0917
     """Row i’s grid cell: levels per column on the first scale.shape[0] columns of `cols`."""
     kk = 0
     for t in range(scale.shape[0]):
@@ -361,7 +390,7 @@ def _grid_key(x, i, cols, lo, scale, levels):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _bucket_starts(hist):
+def _bucket_starts(hist: I64) -> I64:
     """First position of each (chunk, key) bucket in key order, chunks in order within a key: a stable counting sort."""
     nc, nk = hist.shape
     pos = np.empty((nc, nk), dtype=np.int64)
@@ -374,7 +403,7 @@ def _bucket_starts(hist):
 
 
 @njit
-def _block_transpose(x, perm, cols, xt, pfd):
+def _block_transpose(x: FArr, perm: I64, cols: I64, xt: FArr, pfd: int) -> None:
     """xt[b, j, r] = x[perm[b·SEED_ROWS + r], cols[j]]; rows past the end stay zero.
 
     Rows come in grid order, i.e. scattered in x: prefetching pfd rows ahead (0: off) turns the latency-bound reads into a stream.

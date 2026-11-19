@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -12,8 +13,19 @@ from numba.extending import intrinsic
 from ._sync import _prefetch_row
 
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from llvmlite.ir import Constant, Function, Instruction, IRBuilder, Value
+    from numba.core.base import BaseContext
+    from numba.core.extending import TypingContext
+    from numba.core.typing.templates import Signature
+
+    from ._typing import F64, I64, FArr
+
+
 @numba.njit(inline="always", nogil=True, cache=True)
-def _dot_allowance(cn, unit, tiny, d):
+def _dot_allowance(cn: float, unit: float, tiny: float, d: int) -> tuple[float, float]:
     """Return (a, b) with a + b·‖x‖ ≥ the rounding error of v = fl(‖c‖²) - 2·fma_dot(x, fl(c)) for one center.
 
     ‖c‖² rounded to x's dtype: unit·‖c‖²; c rounded: 2·unit·‖x‖‖c‖; the FMA dot over d terms: 2·gamma_d·‖x‖‖c‖ with
@@ -24,22 +36,25 @@ def _dot_allowance(cn, unit, tiny, d):
     return 1.01 * unit * 2.0 * cn + 4.0 * (d + 1) * tiny, 1.01 * unit * 2.0 * (d + 2) * math.sqrt(cn)
 
 
+# Kernels take their arrays as positional arguments (one PLR0917 suppression per kernel, FBT001 for flags):
+# numba can’t inline calls with keyword-only arguments.
+
 SEED_ROWS = 64  # rows per transposed block in the candidate pass; ≤ 32 gets unrolled into scalar code
 
 
-def _vptr(builder, base, off, vt):
+def _vptr(builder: IRBuilder, base: Value, off: Value, vt: ir.VectorType) -> Instruction:
     """Pointer to the vector of type vt at element `off` of `base`."""
     return builder.bitcast(builder.gep(base, [off]), vt.as_pointer())
 
 
-def _splat(builder, val, vt):
+def _splat(builder: IRBuilder, val: Value, vt: ir.VectorType) -> Instruction:
     """Broadcast the scalar `val` to every lane of a vector of type vt."""
     undef = ir.Constant(vt, ir.Undefined)
     lane0 = builder.insert_element(undef, val, ir.Constant(ir.IntType(32), 0))
     return builder.shuffle_vector(lane0, undef, ir.Constant(ir.VectorType(ir.IntType(32), vt.count), [0] * vt.count))
 
 
-def _fma(builder, vt):
+def _fma(builder: IRBuilder, vt: ir.VectorType) -> Function:
     """llvm.fma for vectors of type vt (correctly rounded on every ISA)."""
     name = f"llvm.fma.v{vt.count}{'f32' if isinstance(vt.element, ir.FloatType) else 'f64'}"
     return cgutils.get_or_insert_function(builder.module, ir.FunctionType(vt, [vt, vt, vt]), name)
@@ -48,7 +63,7 @@ def _fma(builder, vt):
 SEED_LANES = 16  # vector lanes of the seeding tiles
 
 
-def _make_seed_tile(nq, rows):
+def _make_seed_tile(nq: int, rows: int) -> Callable[..., object]:
     """Build an intrinsic scoring nq live candidates (lq[t0:t0+nq]) on `rows` rows (r0...) of block `blk` over columns [j0, j1).
 
     dv[q, r0+r] += (src[blk, j, r0+r] - cand[q, j])² for each column in order, as llvm.fma(t, t, acc):
@@ -59,11 +74,22 @@ def _make_seed_tile(nq, rows):
     nv = rows // SEED_LANES
 
     @intrinsic
-    def tile(typingctx, src, blk, cand, lq, t0, dv, r0, j0, j1):
+    def tile(  # noqa: PLR0917
+        typingctx: TypingContext,
+        src: types.Array,
+        blk: types.Integer,
+        cand: types.Array,
+        lq: types.Array,
+        t0: types.Integer,
+        dv: types.Array,
+        r0: types.Integer,
+        j0: types.Integer,
+        j1: types.Integer,
+    ) -> tuple[Signature, Callable[..., Value]]:
         del typingctx, blk, t0, r0, j0, j1
         sig = types.void(src, types.intp, cand, lq, types.intp, dv, types.intp, types.intp, types.intp)
 
-        def codegen(context, builder, signature, args):
+        def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
             return _seed_tile_codegen(context, builder, signature, args, nq, nv)
 
         return sig, codegen
@@ -71,7 +97,7 @@ def _make_seed_tile(nq, rows):
     return tile
 
 
-def _seed_tile_codegen(context, builder, signature, args, nq, nv):
+def _seed_tile_codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value], nq: int, nv: int) -> Value:  # noqa: PLR0917
     """Codegen of a `_make_seed_tile` intrinsic: nq candidates × nv vectors of SEED_LANES rows."""
     lanes = SEED_LANES
     sty, _, cty, lty, _, dty = signature.args[:6]
@@ -88,10 +114,10 @@ def _seed_tile_codegen(context, builder, signature, args, nq, nv):
     d, nr = builder.extract_value(sa.shape, 1), builder.extract_value(sa.shape, 2)
     cd, dr = builder.extract_value(ca.shape, 1), builder.extract_value(da.shape, 1)
 
-    def k(v):
+    def k(v: int) -> Constant:
         return ir.Constant(intp, v)
 
-    def vptr(base, off):
+    def vptr(base: Value, off: Value) -> Instruction:
         return _vptr(builder, base, off, vt)
 
     qs = [builder.load(builder.gep(la.data, [builder.add(t0_, k(i))])) for i in range(nq)]
@@ -123,7 +149,7 @@ _seed_tile4, _seed_tile2, _seed_tile1 = _make_seed_tile(4, 32), _make_seed_tile(
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _score(src, blk, cand, lq, nl, dv, j0, j1):
+def _score(src: FArr, blk: int, cand: FArr, lq: I64, nl: int, dv: FArr, j0: int, j1: int) -> None:  # noqa: PLR0917
     """Add columns [j0, j1) to the D² of the nl live candidates lq[:nl] for one SEED_ROWS block (rows 0..63)."""
     t = 0
     while t + 4 <= nl:
@@ -140,7 +166,18 @@ def _score(src, blk, cand, lq, nl, dv, j0, j1):
 SAFETY = 1e-5  # relative margin on every bound test, so float rounding can never skip a needed scan
 
 
-def _dot_tile_body(context, builder, xbty, xb, dvty, dv, r0v, c0v, lanes, center):
+def _dot_tile_body(  # noqa: PLR0917
+    context: BaseContext,
+    builder: IRBuilder,
+    xbty: types.Array,
+    xb: Value,
+    dvty: types.Array,
+    dv: Value,
+    r0v: Value,
+    c0v: Value,
+    lanes: int,
+    center: Callable[[Value, int], Value],
+) -> Value:
     """Shared codegen of `_dot_tile` and `_dot_tile_idx`; center(j, i) loads center c0+i's column j."""
     xa = context.make_array(xbty)(context, builder, xb)
     da = context.make_array(dvty)(context, builder, dv)
@@ -170,7 +207,9 @@ def _dot_tile_body(context, builder, xbty, xb, dvty, dv, r0v, c0v, lanes, center
 
 
 @intrinsic
-def _dot_tile(typingctx, xb, ct, dv, r0, c0):
+def _dot_tile(  # noqa: PLR0917
+    typingctx: TypingContext, xb: types.Array, ct: types.Array, dv: types.Array, r0: types.Integer, c0: types.Integer
+) -> tuple[Signature, Callable[..., Value]]:
     """Compute dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·ct[j, c0+i] for i < 4, r < 2·L with llvm.fma in vector registers.
 
     L = 16 lanes for float32 (512-bit vectors: 32 rows per call), 8 for float64 (16 rows).
@@ -180,16 +219,17 @@ def _dot_tile(typingctx, xb, ct, dv, r0, c0):
     accumulators are LLVM vector values built with llvmlite's IRBuilder. FMA is correctly rounded, so the values are
     the same on every FMA ISA. Rows r0..r0+2L-1 and centers c0..c0+3 must exist; arrays C-contiguous.
     """
+    del typingctx, r0, c0
     sig = types.void(xb, ct, dv, types.intp, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         xbty, ctty, dvty = signature.args[:3]
         ca = context.make_array(ctty)(context, builder, args[1])
         intp = context.get_value_type(types.intp)
         kc = builder.extract_value(ca.shape, 1)
         lanes = 16 if isinstance(context.get_value_type(xbty.dtype), ir.FloatType) else 8
 
-        def center(j, i):
+        def center(j: Value, i: int) -> Value:
             return builder.load(builder.gep(ca.data, [builder.add(builder.mul(j, kc), builder.add(args[4], ir.Constant(intp, i)))]))
 
         return _dot_tile_body(context, builder, xbty, args[0], dvty, args[2], args[3], args[4], lanes, center)
@@ -198,7 +238,9 @@ def _dot_tile(typingctx, xb, ct, dv, r0, c0):
 
 
 @intrinsic
-def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
+def _dot_tile_idx(  # noqa: PLR0917
+    typingctx: TypingContext, xb: types.Array, crow: types.Array, idx: types.Array, dv: types.Array, r0: types.Integer, c0: types.Integer
+) -> tuple[Signature, Callable[..., Value]]:
     """Compute `_dot_tile` with the centers read by index from row-major `crow`.
 
     dv[c0+i, r0+r] = Σ_j xb[j, r0+r]·crow[idx[c0+i], j], 8 lanes (16 rows per call).
@@ -206,9 +248,10 @@ def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
     The ball scans tile a different subset of centers for every label; reading rows by index saves gathering
     them into a transposed copy. Same FMA chain per value as `_dot_tile`, so the same values.
     """
+    del typingctx, r0, c0
     sig = types.void(xb, crow, idx, dv, types.intp, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         xbty, crty, idty, dvty = signature.args[:4]
         xa = context.make_array(xbty)(context, builder, args[0])
         ca = context.make_array(crty)(context, builder, args[1])
@@ -217,7 +260,7 @@ def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
         d = builder.extract_value(xa.shape, 0)
         rows = [builder.mul(builder.load(builder.gep(ia.data, [builder.add(args[5], ir.Constant(intp, i))])), d) for i in range(4)]
 
-        def center(j, i):
+        def center(j: Value, i: int) -> Value:
             return builder.load(builder.gep(ca.data, [builder.add(rows[i], j)]))
 
         return _dot_tile_body(context, builder, xbty, args[0], dvty, args[3], args[4], args[5], 8, center)
@@ -226,7 +269,9 @@ def _dot_tile_idx(typingctx, xb, crow, idx, dv, r0, c0):
 
 
 @intrinsic
-def _transpose8(typingctx, x, queue, s, xb, r0, j0):
+def _transpose8(  # noqa: PLR0917
+    typingctx: TypingContext, x: types.Array, queue: types.Array, s: types.Integer, xb: types.Array, r0: types.Integer, j0: types.Integer
+) -> tuple[Signature, Callable[..., Value]]:
     """Transpose eight gathered rows into column vectors: xb[j0 + j, r0 + r] = x[queue[s + r], j0 + j] for r, j < 8.
 
     Eight row vectors go through a 3-stage shuffle network into eight column vectors, instead of storing one scalar
@@ -234,9 +279,10 @@ def _transpose8(typingctx, x, queue, s, xb, r0, j0):
 
     Copies values only, so results don't change. Rows queue[s..s+7] and columns j0..j0+7 must exist; arrays C-contiguous.
     """
+    del typingctx, s, r0, j0
     sig = types.void(x, queue, types.intp, xb, types.intp, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         xty, qty, _, xbty = signature.args[:4]
         xa = context.make_array(xty)(context, builder, args[0])
         qa = context.make_array(qty)(context, builder, args[1])
@@ -248,7 +294,7 @@ def _transpose8(typingctx, x, queue, s, xb, r0, j0):
         d = builder.extract_value(xa.shape, 1)
         nr = builder.extract_value(ba.shape, 1)
 
-        def vptr(base, off):
+        def vptr(base: Value, off: Value) -> Instruction:
             return _vptr(builder, base, off, vt)
 
         v = []
@@ -283,7 +329,9 @@ TRANSPOSE_W = 8  # rows and columns per `_transpose8` call
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _scan_queue_dot(x, xnorm, ct, cnorm, err_a, err_b, centers, queue, nq, labels, upper, lower, pfd):
+def _scan_queue_dot(  # noqa: PLR0917
+    x: FArr, xnorm: F64, ct: FArr, cnorm: FArr, err_a: F64, err_b: F64, centers: F64, queue: I64, nq: int, labels: I64, upper: F64, lower: F64, pfd: int
+) -> int:
     """Scan the queued rows fully, SEED_ROWS at a time; returns how many labels changed.
 
     Dot products x·c by FMA register tiles (4 centers × 16 rows, `_dot_tile`),
@@ -314,7 +362,7 @@ def _scan_queue_dot(x, xnorm, ct, cnorm, err_a, err_b, centers, queue, nq, label
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _gather_rows(x, xnorm, queue, nq, s0, m, xb, xs, pfd):
+def _gather_rows(x: FArr, xnorm: F64, queue: I64, nq: int, s0: int, m: int, xb: FArr, xs: F64, pfd: int) -> None:  # noqa: PLR0917
     """xb[:, r] = x[queue[s0 + r]] for r < m (groups of 8 rows by 8×8 register transposes), xs[r] = ‖x‖."""
     d = x.shape[1]
     d8, m8 = d - d % TRANSPOSE_W, m - m % TRANSPOSE_W
@@ -331,7 +379,7 @@ def _gather_rows(x, xnorm, queue, nq, s0, m, xb, xs, pfd):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _queue_dots(xb, ct, dv):
+def _queue_dots(xb: FArr, ct: FArr, dv: FArr) -> None:
     """dv[c, r] = x_r·c for every center: FMA tiles for groups of 4 centers, plain loops for the rest."""
     d, k = ct.shape
     k4 = k - k % TILE_CENTERS
@@ -347,7 +395,7 @@ def _queue_dots(xb, ct, dv):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _nearest_two(dv, cnorm, err_a, err_b, xs, d1, l1, l2, b1, lb1):
+def _nearest_two(dv: FArr, cnorm: FArr, err_a: F64, err_b: F64, xs: F64, d1: F64, l1: F64, l2: F64, b1: I64, lb1: I64) -> None:  # noqa: PLR0917
     """Per row: the nearest center by the dot form (d1, b1) and the two smallest allowance-lowered values (l1 at lb1, l2)."""
     k = dv.shape[0]
     for r in range(SEED_ROWS):
@@ -369,7 +417,23 @@ def _nearest_two(dv, cnorm, err_a, err_b, xs, d1, l1, l2, b1, lb1):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _label_row(x, xn, i, r, centers, dv, cnorm, err_a, err_b, xsr, v1, l1r, l2r, best, lb1r):
+def _label_row(  # noqa: PLR0917
+    x: FArr,
+    xn: float,
+    i: int,
+    r: int,
+    centers: F64,
+    dv: FArr,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    xsr: float,
+    v1: float,
+    l1r: float,
+    l2r: float,
+    best: int,
+    lb1r: int,
+) -> tuple[int, float, float]:
     """Row i’s label and squared distances to its nearest and second-nearest center (bounds for the next pass)."""
     reach = v1 + err_a[best] + err_b[best] * xsr  # ≥ the nearest center’s true v
     wo = l1r if lb1r != best else l2r  # smallest w over the other centers (inf for k = 1)

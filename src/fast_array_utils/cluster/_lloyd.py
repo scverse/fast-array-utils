@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -15,6 +16,14 @@ from ._sync import SPIN_BEFORE_YIELD, _claim_range, _clock_ticks, _fetch_add, _l
 from ._tiles import SAFETY, SEED_ROWS, _dot_allowance, _scan_queue_dot, _score
 
 
+if TYPE_CHECKING:
+    from ._typing import F64, I64, U8, FArr
+
+
+# Kernels take their arrays as positional arguments (one PLR0917 suppression per kernel, FBT001 for flags):
+# numba can’t inline calls with keyword-only arguments.
+
+BALL_FROM_ITER = 2  # ball scans from the second pass with labels on (the first pass scans every row)
 SMALL_K = 64  # up to this many centers, rows failing the bound test go straight to the queued scan, without tightening
 SUM_BUDGET = 1 << 22  # max float64 entries of per-chunk center sums (32 MB)
 SEP_STALE = 0.05  # phase B skips the separations while the accumulated drift is ≤ this × the mean half-separation
@@ -44,7 +53,21 @@ def _hamerly_bounds(n: int, k: int, d: int) -> np.ndarray:
 
 
 @njit
-def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nthreads, unit, tiny, pfd, cd):
+def _hamerly(  # noqa: PLR0917
+    x: FArr,
+    xnorm: F64,
+    centers: F64,
+    bounds: I64,
+    max_iter: int,
+    tol_abs: float,
+    max_moved: int,
+    labels: I64,
+    nthreads: int,
+    unit: float,
+    tiny: float,
+    pfd: int,
+    cd: F64,
+) -> int:
     """Exact Lloyd with Hamerly’s bounds, the whole loop compiled; `centers` and `labels` are updated in place. Returns n_iter.
 
     All iterations run in one parallel region: each iteration is a stream of tickets over its phases
@@ -60,53 +83,19 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
     n, d = x.shape
     k = centers.shape[0]
     nb = bounds.shape[0] - 1
-    upper, lower = np.empty(n), np.empty(n)
-    sums, counts = np.empty((nb, k, d)), np.empty((nb, k), dtype=np.int64)
-    moved, scans = np.empty(nb, dtype=np.int64), np.empty(nb, dtype=np.int64)
-    tch = np.ones(k, dtype=np.uint8)  # centers whose sums changed in some chunk since the last phase D (all at first)
-    dirty = np.zeros(nb, dtype=np.int64)  # chunks whose sums must be recomputed (rows taken out by the empty-center rule)
-    new, tot = np.empty((k, d)), np.empty(k, dtype=np.int64)
-    ct, cnorm = np.empty((d, k), dtype=x.dtype), np.empty(k, dtype=x.dtype)
-    err_a, err_b = np.empty(k), np.empty(k)  # per-center rounding allowance of the scans’ dot form: a + b·‖x‖
-    ctb = np.zeros(((k + SEED_ROWS - 1) // SEED_ROWS, d, SEED_ROWS))  # float64 centers, block-transposed like seeding’s rows
-    half_sep, drift = np.empty(k), np.zeros(k)
-    hs_base, acc = np.zeros(k), np.zeros(k)  # separations at the last full computation, drift since then
+    upper, lower, sums, counts, moved, scans, tch, dirty, new, tot = _row_and_sum_state(n, nb, k, d)
+    ct, cnorm, err_a, err_b, ctb, half_sep, drift, hs_base, acc, fstate = _center_state(x, k)
     rcnt = np.zeros(8 * nthreads, dtype=np.int64)  # phase C claims so far from each worker’s chunk range
     istate = np.zeros(ISTATE_SLOTS, dtype=np.int64)
     istate[_FINAL] = max_iter == 0
-    fstate = np.empty(2)  # largest and second-largest drift
-    _top2(drift, fstate)
     # ball scans: rows failing the bound test are scanned per label against the centers within 2u of theirs
     # cd: k×k center distances at the last full computation of the separations if ball scans may run, else 1×1
     ball = cd.shape[0] > 1
-    kb, nbl = (k, n) if ball else (1, 1)
-    crow = np.empty((kb, d), dtype=x.dtype)  # centers in x’s dtype, row-major, for `_dot_tile_idx`
-    bprobe = np.array([BALL_PROBE, -1], dtype=np.int64)  # passes between re-timings (doubles while confirmed); kind before a re-timing
-    qbuf, qold, order = np.empty(nbl, dtype=np.int64), np.empty(nbl, dtype=np.int64), np.empty(nbl, dtype=np.int64)
-    qn = np.zeros(nb, dtype=np.int64)  # rows recorded per chunk (at qbuf[bounds[b]:]) with their old labels (qold)
-    lcnt = np.zeros((nb if ball else 1, kb), dtype=np.int64)  # failing rows per chunk and label, then scatter offsets
-    lstart = np.zeros(kb + 1, dtype=np.int64)  # label a’s rows: order[lstart[a]:lstart[a + 1]]
-    ne = min(k, 4 * nthreads) if ball else 0  # label groups (phase E items)
-    ngc = min(nb, 2 * nthreads)  # chunk groups (phase C2 and C3 items)
-    gsplit = np.zeros(ne + 1, dtype=np.int64)
-    pcost = np.zeros(3)  # time per failing row of the last plain [0] and ball [1] pass (0: not yet); [2]: failing
-    # fraction of the last pass that followed a plain pass (ball scans leave weaker lower bounds: |c_o - c_a| - u)
-    na, nc = (d + ROW_ITEMS - 1) // ROW_ITEMS, (k + CENTER_ITEMS - 1) // CENTER_ITEMS
-    if ball:
-        kinds = np.array([PH_TRANSPOSE, PH_SEPARATIONS, PH_BOUNDS, PH_SCATTER, PH_BALL_SCAN, PH_BALL_SUMS, PH_UPDATE], dtype=np.int64)
-        sizes = np.array([na, nc, nb, ngc, ne, ngc, nc], dtype=np.int64)
-    else:
-        kinds = np.array([PH_TRANSPOSE, PH_SEPARATIONS, PH_BOUNDS, PH_UPDATE], dtype=np.int64)
-        sizes = np.array([na, nc, nb, nc], dtype=np.int64)
-    nph = kinds.shape[0]
-    offs = np.zeros(nph + 1, dtype=np.int64)  # first item of each phase; offs[nph] = items per iteration
-    for p in range(nph):
-        offs[p + 1] = offs[p] + sizes[p]
-    per_it = offs[nph]
-    pass_end = PH_BALL_SUMS if ball else PH_BOUNDS  # the bound pass (incl. its scans and sums) is complete after this phase kind
-    maxrows = 0
-    for b in range(nb):
-        maxrows = max(maxrows, bounds[b + 1] - bounds[b])
+    crow, qbuf, qold, order, qn, lcnt, lstart, gsplit, bprobe, pcost = _ball_state(x, k, nb, nthreads, ball)
+    ne, ngc = gsplit.shape[0] - 1, min(nb, 2 * nthreads)  # label groups (phase E items), chunk groups (phase C2 and C3 items)
+    kinds, offs = _phase_plan(ball, d, k, nb, ngc, ne)
+    nph, per_it = kinds.shape[0], offs[-1]
+    maxrows = np.max(bounds[1:] - bounds[:-1])
 
     # run the update step until converged: tickets in order (iteration, phase, item); nobody waits for a particular
     # thread, so it can’t deadlock
@@ -121,7 +110,7 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
             if _wait_phase(istate, g):
                 break
             ph = kinds[pp]
-            with_ball = ball and istate[_BALL] != 0
+            with_ball = istate[_BALL] != 0  # set only if ball scans may run (`_choose_pass_kind`)
             if ph == PH_TRANSPOSE:
                 _transpose_centers(item, centers, ct, ctb, crow, with_ball)
             elif ph == PH_SEPARATIONS:
@@ -160,61 +149,80 @@ def _hamerly(x, xnorm, centers, bounds, max_iter, tol_abs, max_moved, labels, nt
                     dirty,
                     pfd,
                 )
-            elif ph == PH_SCATTER:
-                if with_ball:
-                    _ball_scatter(bounds, item * nb // ngc, (item + 1) * nb // ngc, qn, qbuf, qold, lcnt, order)
-            elif ph == PH_BALL_SCAN:
-                if with_ball:
-                    _ball_group(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, gsplit[item], gsplit[item + 1], lstart, order, labels, upper, lower)
-            elif ph == PH_BALL_SUMS:
-                if with_ball:
-                    _ball_sums(x, bounds, item * nb // ngc, (item + 1) * nb // ngc, qn, qbuf, qold, labels, sums, counts, tch, dirty, moved)
+            elif ph != PH_UPDATE:
+                _ball_phase(
+                    with_ball,
+                    ph,
+                    item,
+                    x,
+                    xnorm,
+                    crow,
+                    centers,
+                    cnorm,
+                    err_a,
+                    err_b,
+                    cd,
+                    acc,
+                    bounds,
+                    ngc,
+                    gsplit,
+                    lstart,
+                    order,
+                    qn,
+                    qbuf,
+                    qold,
+                    lcnt,
+                    labels,
+                    upper,
+                    lower,
+                    sums,
+                    counts,
+                    tch,
+                    dirty,
+                    moved,
+                )
             else:
                 _new_centers(item, centers, sums, counts, tch, new, tot)
             if _fetch_add(istate, _DONE) != tit * per_it + offs[pp + 1] - 1:
                 continue
             # the last item of phase g: its serial part, then publish phase g + 1
-            if ball and ph == PH_SEPARATIONS:
-                istate[_T0] = _clock_ticks()
-            if ball and ph == PH_BALL_SUMS and istate[_ITER] >= 1:
-                _record_pass_cost(istate, scans, pcost)
-            if ph == pass_end and istate[_FINAL]:
-                _store_release(istate, _STOP, 1)  # the pass after the last update is done
+            if _end_of_phase(
+                ph,
+                with_ball,
+                x,
+                centers,
+                labels,
+                bounds,
+                new,
+                tot,
+                moved,
+                scans,
+                tch,
+                dirty,
+                drift,
+                fstate,
+                half_sep,
+                hs_base,
+                acc,
+                istate,
+                pcost,
+                bprobe,
+                lcnt,
+                lstart,
+                gsplit,
+                ball,
+                max_iter,
+                max_moved,
+                tol_abs,
+            ):
                 break
-            if with_ball and ph == PH_BOUNDS:
-                _ball_offsets(lcnt, lstart, gsplit)
-            if ph == PH_UPDATE:
-                _end_of_iteration(
-                    x,
-                    centers,
-                    labels,
-                    bounds,
-                    new,
-                    tot,
-                    moved,
-                    scans,
-                    tch,
-                    dirty,
-                    drift,
-                    fstate,
-                    half_sep,
-                    hs_base,
-                    acc,
-                    istate,
-                    pcost,
-                    bprobe,
-                    ball,
-                    k,
-                    max_iter,
-                    max_moved,
-                    tol_abs,
-                )
             _store_release(istate, _PHASE, g + 1)
-    return istate[_ITER]
+    n_iter: int = istate[_ITER]
+    return n_iter
 
 
 @njit
-def _inertia(x, centers, labels, bounds):
+def _inertia(x: FArr, centers: F64, labels: I64, bounds: I64) -> float:
     """Exact inertia: rows in order per chunk, chunks added in order."""
     d = x.shape[1]
     nb = bounds.shape[0] - 1
@@ -232,9 +240,69 @@ def _inertia(x, centers, labels, bounds):
     return inertia
 
 
+# ----------------------------------------------------------------------------- memory
+@numba.njit(inline="always", nogil=True, cache=True)
+def _row_and_sum_state(n: int, nb: int, k: int, d: int) -> tuple[F64, F64, F64, I64, I64, I64, U8, I64, F64, I64]:
+    """Per-row bounds, per-chunk center sums and the bookkeeping of which sums changed."""
+    upper, lower = np.empty(n), np.empty(n)
+    sums, counts = np.empty((nb, k, d)), np.empty((nb, k), dtype=np.int64)
+    moved, scans = np.empty(nb, dtype=np.int64), np.empty(nb, dtype=np.int64)
+    tch = np.ones(k, dtype=np.uint8)  # centers whose sums changed in some chunk since the last phase D (all at first)
+    dirty = np.zeros(nb, dtype=np.int64)  # chunks whose sums must be recomputed (rows taken out by the empty-center rule)
+    new, tot = np.empty((k, d)), np.empty(k, dtype=np.int64)
+    return upper, lower, sums, counts, moved, scans, tch, dirty, new, tot
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _center_state(x: FArr, k: int) -> tuple[FArr, FArr, F64, F64, F64, F64, F64, F64, F64, F64]:
+    """Per-center copies, norms, rounding allowances, separations and drift."""
+    d = x.shape[1]
+    ct, cnorm = np.empty((d, k), dtype=x.dtype), np.empty(k, dtype=x.dtype)
+    err_a, err_b = np.empty(k), np.empty(k)  # per-center rounding allowance of the scans’ dot form: a + b·‖x‖
+    ctb = np.zeros(((k + SEED_ROWS - 1) // SEED_ROWS, d, SEED_ROWS))  # float64 centers, block-transposed like seeding’s rows
+    half_sep, drift = np.empty(k), np.zeros(k)
+    hs_base, acc = np.zeros(k), np.zeros(k)  # separations at the last full computation, drift since then
+    fstate = np.empty(2)  # largest and second-largest drift
+    _top2(drift, fstate)
+    return ct, cnorm, err_a, err_b, ctb, half_sep, drift, hs_base, acc, fstate
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _ball_state(x: FArr, k: int, nb: int, nthreads: int, ball: bool) -> tuple[FArr, I64, I64, I64, I64, I64, I64, I64, I64, F64]:  # noqa: FBT001
+    """Buffers of the ball scans (size 1 without them) and the bookkeeping of their pass-kind choice."""
+    n, d = x.shape
+    kb, nbl = (k, n) if ball else (1, 1)
+    crow = np.empty((kb, d), dtype=x.dtype)  # centers in x’s dtype, row-major, for `_dot_tile_idx`
+    qbuf, qold, order = np.empty(nbl, dtype=np.int64), np.empty(nbl, dtype=np.int64), np.empty(nbl, dtype=np.int64)
+    qn = np.zeros(nb, dtype=np.int64)  # rows recorded per chunk (at qbuf[bounds[b]:]) with their old labels (qold)
+    lcnt = np.zeros((nb if ball else 1, kb), dtype=np.int64)  # failing rows per chunk and label, then scatter offsets
+    lstart = np.zeros(kb + 1, dtype=np.int64)  # label a’s rows: order[lstart[a]:lstart[a + 1]]
+    gsplit = np.zeros((min(k, 4 * nthreads) if ball else 0) + 1, dtype=np.int64)  # label groups of phase E: labels gsplit[e]...
+    bprobe = np.array([BALL_PROBE, -1], dtype=np.int64)  # passes between re-timings (doubles while confirmed); kind before a re-timing
+    pcost = np.zeros(3)  # time per failing row of the last plain [0] and ball [1] pass (0: not yet); [2]: failing
+    # fraction of the last pass that followed a plain pass (ball scans leave weaker lower bounds: |c_o - c_a| - u)
+    return crow, qbuf, qold, order, qn, lcnt, lstart, gsplit, bprobe, pcost
+
+
 # ----------------------------------------------------------------------------- scheduling
 @numba.njit(inline="always", nogil=True, cache=True)
-def _ticket(istate, per_it, offs):
+def _phase_plan(ball: bool, d: int, k: int, nb: int, ngc: int, ne: int) -> tuple[I64, I64]:  # noqa: FBT001, PLR0917
+    """Phase kinds of one iteration and the first item of each (offs[-1] = items per iteration)."""
+    na, nc = (d + ROW_ITEMS - 1) // ROW_ITEMS, (k + CENTER_ITEMS - 1) // CENTER_ITEMS
+    if ball:
+        kinds = np.array([PH_TRANSPOSE, PH_SEPARATIONS, PH_BOUNDS, PH_SCATTER, PH_BALL_SCAN, PH_BALL_SUMS, PH_UPDATE], dtype=np.int64)
+        sizes = np.array([na, nc, nb, ngc, ne, ngc, nc], dtype=np.int64)
+    else:
+        kinds = np.array([PH_TRANSPOSE, PH_SEPARATIONS, PH_BOUNDS, PH_UPDATE], dtype=np.int64)
+        sizes = np.array([na, nc, nb, nc], dtype=np.int64)
+    offs = np.zeros(kinds.shape[0] + 1, dtype=np.int64)
+    for p in range(kinds.shape[0]):
+        offs[p + 1] = offs[p] + sizes[p]
+    return kinds, offs
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _ticket(istate: I64, per_it: int, offs: I64) -> tuple[int, int, int]:
     """Draw the next ticket: (iteration, phase index, item within the phase)."""
     ticket = _fetch_add(istate, _TICKET)
     tit, r = ticket // per_it, ticket % per_it
@@ -245,7 +313,7 @@ def _ticket(istate, per_it, offs):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _wait_phase(istate, g):
+def _wait_phase(istate: I64, g: int) -> bool:
     """Wait until phase g may run; True if the loop has stopped instead."""
     spins = 0
     while True:
@@ -259,7 +327,7 @@ def _wait_phase(istate, g):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _claim_chunk(rcnt, w, tit, nb, nthreads):
+def _claim_chunk(rcnt: I64, w: int, tit: int, nb: int, nthreads: int) -> int:
     """Claim a row chunk of iteration tit’s bound pass, from worker w’s own range first (its rows stay in this core’s caches)."""
     v = w % nthreads  # an int64 copy of the prange index: v is reassigned below, and (uint64 + 1) % int64 types as float64
     b = _claim_range(rcnt, v, tit, nb, nthreads)
@@ -271,7 +339,7 @@ def _claim_chunk(rcnt, w, tit, nb, nthreads):
 
 # ----------------------------------------------------------------------------- phases
 @numba.njit(inline="always", nogil=True, cache=True)
-def _transpose_centers(item, centers, ct, ctb, crow, with_crow):
+def _transpose_centers(item: int, centers: F64, ct: FArr, ctb: F64, crow: FArr, with_crow: bool) -> None:  # noqa: FBT001, PLR0917
     """Phase A: columns item·ROW_ITEMS... of the centers into ct, ctb (and crow for the ball scans); whole rows per item: no false sharing."""
     d, k = ct.shape
     for j in range(item * ROW_ITEMS, min(d, (item + 1) * ROW_ITEMS)):
@@ -283,7 +351,25 @@ def _transpose_centers(item, centers, ct, ctb, crow, with_crow):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _separations(item, centers, cnorm, err_a, err_b, unit, tiny, keep_sep, ctb, lqc, sepmin, dvs, cd, with_cd, half_sep, hs_base, acc):
+def _separations(  # noqa: PLR0917
+    item: int,
+    centers: F64,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    unit: float,
+    tiny: float,
+    keep_sep: int,
+    ctb: F64,
+    lqc: I64,
+    sepmin: F64,
+    dvs: F64,
+    cd: F64,
+    with_cd: bool,  # noqa: FBT001
+    half_sep: F64,
+    hs_base: F64,
+    acc: F64,
+) -> None:
     """Phase B: norms and rounding allowances of the item’s centers, and their half-separations.
 
     Separations: the item’s centers against blocks of SEED_ROWS centers by FMA tiles (float64);
@@ -304,16 +390,7 @@ def _separations(item, centers, cnorm, err_a, err_b, unit, tiny, keep_sep, ctb, 
     if keep_sep:
         return
     for bo in range(ctb.shape[0]):
-        for t in range(nl):
-            dvs[c_lo + t, :] = 0.0
-        _score(ctb, bo, centers, lqc, nl, dvs, 0, d)
-        for t in range(nl):
-            c = c_lo + t
-            for r in range(min(SEED_ROWS, k - bo * SEED_ROWS)):
-                if bo * SEED_ROWS + r != c:
-                    sepmin[t] = min(sepmin[t], dvs[c, r])
-                if with_cd:
-                    cd[c, bo * SEED_ROWS + r] = math.sqrt(dvs[c, r])
+        _separation_block(bo, c_lo, nl, centers, ctb, lqc, sepmin, dvs, cd, with_cd)
     for t in range(nl):
         half_sep[c_lo + t] = 0.5 * math.sqrt(sepmin[t])
         hs_base[c_lo + t] = half_sep[c_lo + t]
@@ -321,44 +398,59 @@ def _separations(item, centers, cnorm, err_a, err_b, unit, tiny, keep_sep, ctb, 
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _bound_pass(
-    x,
-    xnorm,
-    centers,
-    ct,
-    cnorm,
-    err_a,
-    err_b,
-    labels,
-    upper,
-    lower,
-    half_sep,
-    drift,
-    fstate,
-    lo,
-    hi,
-    b,
-    with_ball,
-    queue,
-    oldl,
-    qbuf,
-    qold,
-    qn,
-    lcnt,
-    moved,
-    scans,
-    sums,
-    counts,
-    tch,
-    dirty,
-    pfd,
-):
+def _separation_block(bo: int, c_lo: int, nl: int, centers: F64, ctb: F64, lqc: I64, sepmin: F64, dvs: F64, cd: F64, with_cd: bool) -> None:  # noqa: FBT001, PLR0917
+    """Squared distances of centers c_lo..c_lo+nl to block bo of SEED_ROWS centers; their minimum over the others (and cd)."""
+    k, d = centers.shape
+    for t in range(nl):
+        dvs[c_lo + t, :] = 0.0
+    _score(ctb, bo, centers, lqc, nl, dvs, 0, d)
+    for t in range(nl):
+        c = c_lo + t
+        for r in range(min(SEED_ROWS, k - bo * SEED_ROWS)):
+            if bo * SEED_ROWS + r != c:
+                sepmin[t] = min(sepmin[t], dvs[c, r])
+            if with_cd:
+                cd[c, bo * SEED_ROWS + r] = math.sqrt(dvs[c, r])
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _bound_pass(  # noqa: PLR0917
+    x: FArr,
+    xnorm: F64,
+    centers: F64,
+    ct: FArr,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    labels: I64,
+    upper: F64,
+    lower: F64,
+    half_sep: F64,
+    drift: F64,
+    fstate: F64,
+    lo: int,
+    hi: int,
+    b: int,
+    with_ball: bool,  # noqa: FBT001
+    queue: I64,
+    oldl: I64,
+    qbuf: I64,
+    qold: I64,
+    qn: I64,
+    lcnt: I64,
+    moved: I64,
+    scans: I64,
+    sums: F64,
+    counts: I64,
+    tch: U8,
+    dirty: I64,
+    pfd: int,
+) -> None:
     """Phase C on rows lo..hi (chunk b): Hamerly’s bound test, then exact scans of the rows that fail it.
 
     Without ball scans, the failing rows are scanned here (`_scan_queue_dot`) and the chunk sums updated;
     with them, rows that have a label are recorded for phases C2, E and C3.
     """
-    k, d = centers.shape
     dmax, d2nd = fstate[0], fstate[1]
     mv, sc = 0, 0
     nq, nrec = 0, 0
@@ -366,23 +458,7 @@ def _bound_pass(
         lcnt[b, :] = 0
     for i in range(lo, hi):
         a = labels[i]
-        need = a < 0
-        if not need:
-            u = upper[i] + drift[a]
-            lb = lower[i] - (d2nd if drift[a] == dmax else dmax)
-            m = max(half_sep[a], lb)
-            if u * (1 + SAFETY) > m * (1 - SAFETY):
-                if k <= SMALL_K:  # small k: the queued scan is cheap and computes the exact distance anyway
-                    need = True
-                else:
-                    s = 0.0
-                    for j in range(d):
-                        t = np.float64(x[i, j]) - centers[a, j]
-                        s += t * t
-                    u = math.sqrt(s)
-                    need = u * (1 + SAFETY) > m * (1 - SAFETY)
-            upper[i] = u
-            lower[i] = lb
+        need = a < 0 or _fails_bound_test(x, i, a, centers, upper, lower, half_sep, drift, dmax, d2nd)
         if need:
             sc += 1
             if with_ball and a >= 0:  # to the ball scans (phase E); its chunk sums follow in phase C3
@@ -412,7 +488,30 @@ def _bound_pass(
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _new_centers(item, centers, sums, counts, tch, new, tot):
+def _fails_bound_test(x: FArr, i: int, a: int, centers: F64, upper: F64, lower: F64, half_sep: F64, drift: F64, dmax: float, d2nd: float) -> bool:  # noqa: PLR0917
+    """Hamerly’s test for labelled row i, with drift-updated bounds (stored back); True if it needs a full scan."""
+    k, d = centers.shape
+    u = upper[i] + drift[a]
+    lb = lower[i] - (d2nd if drift[a] == dmax else dmax)
+    m = max(half_sep[a], lb)
+    need = False
+    if u * (1 + SAFETY) > m * (1 - SAFETY):
+        if k <= SMALL_K:  # small k: the queued scan is cheap and computes the exact distance anyway
+            need = True
+        else:
+            s = 0.0
+            for j in range(d):
+                t = np.float64(x[i, j]) - centers[a, j]
+                s += t * t
+            u = math.sqrt(s)
+            need = u * (1 + SAFETY) > m * (1 - SAFETY)
+    upper[i] = u
+    lower[i] = lb
+    return need
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _new_centers(item: int, centers: F64, sums: F64, counts: I64, tch: U8, new: F64, tot: I64) -> None:  # noqa: PLR0917
     """Phase D: new means of the item’s centers from the chunk sums (centers whose sums didn’t change keep theirs)."""
     k, d = centers.shape
     nb = sums.shape[0]
@@ -434,9 +533,125 @@ def _new_centers(item, centers, sums, counts, tch, new, tot):
                 new[c, j] = s / cnt
 
 
+@numba.njit(inline="always", nogil=True, cache=True)
+def _ball_phase(  # noqa: PLR0917
+    with_ball: bool,  # noqa: FBT001
+    ph: int,
+    item: int,
+    x: FArr,
+    xnorm: F64,
+    crow: FArr,
+    centers: F64,
+    cnorm: FArr,
+    err_a: F64,
+    err_b: F64,
+    cd: F64,
+    acc: F64,
+    bounds: I64,
+    ngc: int,
+    gsplit: I64,
+    lstart: I64,
+    order: I64,
+    qn: I64,
+    qbuf: I64,
+    qold: I64,
+    lcnt: I64,
+    labels: I64,
+    upper: F64,
+    lower: F64,
+    sums: F64,
+    counts: I64,
+    tch: U8,
+    dirty: I64,
+    moved: I64,
+) -> None:
+    """Item `item` of ball phase ph: C2 scatter (chunk group), E ball scans (label group) or C3 chunk sums (chunk group).
+
+    Nothing to do in passes without ball scans.
+    """
+    nb = bounds.shape[0] - 1
+    if not with_ball:
+        return
+    if ph == PH_SCATTER:
+        _ball_scatter(bounds, item * nb // ngc, (item + 1) * nb // ngc, qn, qbuf, qold, lcnt, order)
+    elif ph == PH_BALL_SCAN:
+        _ball_group(x, xnorm, crow, centers, cnorm, err_a, err_b, cd, acc, gsplit[item], gsplit[item + 1], lstart, order, labels, upper, lower)
+    else:
+        _ball_sums(x, bounds, item * nb // ngc, (item + 1) * nb // ngc, qn, qbuf, qold, labels, sums, counts, tch, dirty, moved)
+
+
 # ----------------------------------------------------------------------------- serial work at the end of a phase
 @numba.njit(inline="always", nogil=True, cache=True)
-def _record_pass_cost(istate, scans, pcost):
+def _end_of_phase(  # noqa: PLR0917
+    ph: int,
+    with_ball: bool,  # noqa: FBT001
+    x: FArr,
+    centers: F64,
+    labels: I64,
+    bounds: I64,
+    new: F64,
+    tot: I64,
+    moved: I64,
+    scans: I64,
+    tch: U8,
+    dirty: I64,
+    drift: F64,
+    fstate: F64,
+    half_sep: F64,
+    hs_base: F64,
+    acc: F64,
+    istate: I64,
+    pcost: F64,
+    bprobe: I64,
+    lcnt: I64,
+    lstart: I64,
+    gsplit: I64,
+    ball: bool,  # noqa: FBT001
+    max_iter: int,
+    max_moved: int,
+    tol_abs: float,
+) -> bool:
+    """Do the serial work once phase kind ph’s last item is done; True if the loop stops (the pass after the last update is done)."""
+    if ball and ph == PH_SEPARATIONS:
+        istate[_T0] = _clock_ticks()
+    if ball and ph == PH_BALL_SUMS and istate[_ITER] >= 1:
+        _record_pass_cost(istate, scans, pcost)
+    if ph == (PH_BALL_SUMS if ball else PH_BOUNDS) and istate[_FINAL]:
+        _store_release(istate, _STOP, 1)
+        return True
+    if with_ball and ph == PH_BOUNDS:
+        _ball_offsets(lcnt, lstart, gsplit)
+    if ph == PH_UPDATE:
+        _end_of_iteration(
+            x,
+            centers,
+            labels,
+            bounds,
+            new,
+            tot,
+            moved,
+            scans,
+            tch,
+            dirty,
+            drift,
+            fstate,
+            half_sep,
+            hs_base,
+            acc,
+            istate,
+            pcost,
+            bprobe,
+            ball,
+            centers.shape[0],
+            max_iter,
+            max_moved,
+            tol_abs,
+        )
+    return False
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _record_pass_cost(istate: I64, scans: I64, pcost: F64) -> None:
     """End of a pass with labels: its time per failing row, by kind (plain or ball)."""
     n_scan = 0
     for bb in range(scans.shape[0]):
@@ -446,31 +661,31 @@ def _record_pass_cost(istate, scans, pcost):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _end_of_iteration(
-    x,
-    centers,
-    labels,
-    bounds,
-    new,
-    tot,
-    moved,
-    scans,
-    tch,
-    dirty,
-    drift,
-    fstate,
-    half_sep,
-    hs_base,
-    acc,
-    istate,
-    pcost,
-    bprobe,
-    ball,
-    k,
-    max_iter,
-    max_moved,
-    tol_abs,
-):
+def _end_of_iteration(  # noqa: PLR0917
+    x: FArr,
+    centers: F64,
+    labels: I64,
+    bounds: I64,
+    new: F64,
+    tot: I64,
+    moved: I64,
+    scans: I64,
+    tch: U8,
+    dirty: I64,
+    drift: F64,
+    fstate: F64,
+    half_sep: F64,
+    hs_base: F64,
+    acc: F64,
+    istate: I64,
+    pcost: F64,
+    bprobe: I64,
+    ball: bool,  # noqa: FBT001
+    k: int,
+    max_iter: int,
+    max_moved: int,
+    tol_abs: float,
+) -> None:
     """End of phase D: pick the next pass’s kind, move empty centers, take the new centers, test for convergence."""
     istate[_ITER] += 1
     n_moved, n_scan = 0, 0
@@ -496,7 +711,7 @@ def _end_of_iteration(
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _choose_pass_kind(istate, pcost, bprobe, n_scan, n, k):
+def _choose_pass_kind(istate: I64, pcost: F64, bprobe: I64, n_scan: int, n: int, k: int) -> None:  # noqa: PLR0917
     """Choose whether the next pass uses ball scans; labels are exact either way.
 
     Only if the bound test failed for many rows in a pass with labels (the first pass scans every row),
@@ -506,7 +721,7 @@ def _choose_pass_kind(istate, pcost, bprobe, n_scan, n, k):
         pcost[2] = n_scan / n
     istate[_PREV] = istate[_BALL]
     nxt = 0
-    if istate[_ITER] >= 2 and pcost[2] >= BALL_FRACTION and n_scan >= BALL_MIN_ROWS * k:
+    if istate[_ITER] >= BALL_FROM_ITER and pcost[2] >= BALL_FRACTION and n_scan >= BALL_MIN_ROWS * k:
         nxt = 1 if pcost[1] == 0.0 else int(pcost[1] < pcost[0])
         if bprobe[1] >= 0:  # the last pass re-timed the other kind: wait twice as long if it confirmed
             bprobe[0] = 2 * bprobe[0] if nxt == bprobe[1] else BALL_PROBE
@@ -519,23 +734,16 @@ def _choose_pass_kind(istate, pcost, bprobe, n_scan, n, k):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _move_empty_centers(x, centers, labels, bounds, new, tot, tch, dirty):
+def _move_empty_centers(x: FArr, centers: F64, labels: I64, bounds: I64, new: F64, tot: I64, tch: U8, dirty: I64) -> None:  # noqa: PLR0917
     """As sklearn: empty centers move to the rows farthest from theirs (ties: lowest row); rare, so serial."""
-    n, d = x.shape
+    d = x.shape[1]
     k = centers.shape[0]
     n_empty = 0
     for c in range(k):
         n_empty += tot[c] == 0
     if not n_empty:
         return
-    dist = np.empty(n)  # exact squared distance to the assigned center, as the reference ranks them
-    for i in range(n):
-        s = 0.0
-        for j in range(d):
-            t = np.float64(x[i, j]) - centers[labels[i], j]
-            s += t * t
-        dist[i] = s
-    far = np.argsort(-dist, kind="mergesort")
+    far = _farthest_rows(x, centers, labels)
     e = 0
     for c in range(k):
         if tot[c] == 0:
@@ -551,7 +759,21 @@ def _move_empty_centers(x, centers, labels, bounds, new, tot, tch, dirty):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _stale_separations(istate, half_sep, hs_base, acc, drift, ball):
+def _farthest_rows(x: FArr, centers: F64, labels: I64) -> I64:
+    """Rows by exact squared distance to their center, farthest first (ties: lowest row), as the reference ranks them."""
+    n, d = x.shape
+    dist = np.empty(n)
+    for i in range(n):
+        s = 0.0
+        for j in range(d):
+            t = np.float64(x[i, j]) - centers[labels[i], j]
+            s += t * t
+        dist[i] = s
+    return np.argsort(-dist, kind="mergesort")
+
+
+@numba.njit(inline="always", nogil=True, cache=True)
+def _stale_separations(istate: I64, half_sep: F64, hs_base: F64, acc: F64, drift: F64, ball: bool) -> None:  # noqa: FBT001, PLR0917
     """Decide whether the next phase B keeps drift-adjusted separations or recomputes them.
 
     Kept bounds hs_base[c] - (acc[c] + max acc)/2 are valid by the triangle inequality;
@@ -574,7 +796,7 @@ def _stale_separations(istate, half_sep, hs_base, acc, drift, ball):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _top2(drift, fstate):
+def _top2(drift: F64, fstate: F64) -> None:
     """fstate[0], fstate[1] = largest and second-largest drift (equal on ties; second is 0 for k = 1)."""
     dmax, d2nd = -np.inf, -np.inf
     for c in range(drift.shape[0]):

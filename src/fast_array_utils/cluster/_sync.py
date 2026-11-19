@@ -2,12 +2,24 @@
 from __future__ import annotations
 
 import sys
+from typing import TYPE_CHECKING
 
 import numba
-import numpy as np
 from llvmlite import ir
 from numba.core import cgutils, types
 from numba.extending import intrinsic
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    import numpy as np
+    from llvmlite.ir import IRBuilder, Value
+    from numba.core.base import BaseContext
+    from numba.core.extending import TypingContext
+    from numba.core.typing.templates import Signature
+
+    from ._typing import I64
 
 
 WORKQUEUE_BIG_STEP = 50_000_000  # terms per step of a persistent region above which workqueue uses every thread
@@ -40,11 +52,12 @@ def _prefetch_distance(x: np.ndarray) -> int:
 
 
 @intrinsic
-def _prefetch_row(typingctx, arr, i):
+def _prefetch_row(typingctx: TypingContext, arr: types.Array, i: types.Integer) -> tuple[Signature, Callable[..., Value]]:
     """Prefetch the first cache lines of row i of a C-contiguous 2-D array (llvm.prefetch; a hint, no effect on results)."""
+    del typingctx, i
     sig = types.void(arr, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         aryty = signature.args[0]
         ary = context.make_array(aryty)(context, builder, args[0])
         ptr = cgutils.get_item_pointer(context, builder, aryty, ary, [args[1], context.get_constant(types.intp, 0)])
@@ -66,11 +79,12 @@ def _prefetch_row(typingctx, arr, i):
 
 
 @intrinsic
-def _fetch_add(typingctx, arr, i):
+def _fetch_add(typingctx: TypingContext, arr: types.Array, i: types.Integer) -> tuple[Signature, Callable[..., Value]]:
     """Atomically arr[i] += 1, returning the old value (sequentially consistent)."""
+    del typingctx, i
     sig = types.int64(arr, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         aryty = signature.args[0]
         ptr = cgutils.get_item_pointer(context, builder, aryty, context.make_array(aryty)(context, builder, args[0]), [args[1]])
         return builder.atomic_rmw("add", ptr, context.get_constant(types.int64, 1), "seq_cst")
@@ -79,11 +93,12 @@ def _fetch_add(typingctx, arr, i):
 
 
 @intrinsic
-def _load_acquire(typingctx, arr, i):
+def _load_acquire(typingctx: TypingContext, arr: types.Array, i: types.Integer) -> tuple[Signature, Callable[..., Value]]:
     """arr[i], loaded with acquire ordering: writes published before the matching release store are visible after it."""
+    del typingctx, i
     sig = types.int64(arr, types.intp)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         aryty = signature.args[0]
         ptr = cgutils.get_item_pointer(context, builder, aryty, context.make_array(aryty)(context, builder, args[0]), [args[1]])
         return builder.load_atomic(ptr, "acquire", 8)
@@ -92,11 +107,12 @@ def _load_acquire(typingctx, arr, i):
 
 
 @intrinsic
-def _store_release(typingctx, arr, i, v):
+def _store_release(typingctx: TypingContext, arr: types.Array, i: types.Integer, v: types.Integer) -> tuple[Signature, Callable[..., Value]]:
     """arr[i] = v with release ordering: publishes every earlier write to threads that acquire-load arr[i]."""
+    del typingctx, i, v
     sig = types.void(arr, types.intp, types.int64)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         aryty = signature.args[0]
         ptr = cgutils.get_item_pointer(context, builder, aryty, context.make_array(aryty)(context, builder, args[0]), [args[1]])
         builder.store_atomic(args[2], ptr, "release", 8)
@@ -112,14 +128,16 @@ SPIN_BEFORE_YIELD = 64  # spin-wait iterations before a waiting worker yields it
 
 
 @intrinsic
-def _yield_cpu(typingctx):
+def _yield_cpu(typingctx: TypingContext) -> tuple[Signature, Callable[..., Value]]:
     """Give the CPU to another runnable thread (sched_yield; SwitchToThread on Windows), by symbol so kernels stay cacheable.
 
     Spinning workers must yield: with as many threads as CPUs plus a waiting main thread (numba's workqueue layer),
     a pure spin starves the thread doing the work for whole scheduler slices.
     """
+    del typingctx
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
+        del signature, args
         fn = cgutils.get_or_insert_function(builder.module, ir.FunctionType(ir.IntType(32), []), _YIELD_SYMBOL)
         builder.call(fn, [])
         return context.get_dummy_value()
@@ -132,13 +150,15 @@ _CLOCK_SYMBOL, _CLOCK_ID = ("QueryPerformanceCounter", 0) if sys.platform == "wi
 
 
 @intrinsic
-def _clock_ticks(typingctx):
+def _clock_ticks(typingctx: TypingContext) -> tuple[Signature, Callable[..., Value]]:
     """Read a monotonic clock (ns; QueryPerformanceCounter ticks on Windows); only differences of readings are used.
 
     The ball scans are chosen per pass by measured cost; results don't depend on the choice.
     """
+    del typingctx
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
+        del context, signature, args
         i64 = ir.IntType(64)
         if _CLOCK_SYMBOL == "QueryPerformanceCounter":  # pragma: no cover (Windows)
             slot = cgutils.alloca_once(builder, i64)
@@ -157,11 +177,12 @@ def _clock_ticks(typingctx):
 
 
 @intrinsic
-def _cas(typingctx, arr, i, expected, new):
+def _cas(typingctx: TypingContext, arr: types.Array, i: types.Integer, expected: types.Integer, new: types.Integer) -> tuple[Signature, Callable[..., Value]]:
     """Atomically arr[i] = new if arr[i] == expected; returns the old value (sequentially consistent)."""
+    del typingctx, i, expected, new
     sig = types.int64(arr, types.intp, types.int64, types.int64)
 
-    def codegen(context, builder, signature, args):
+    def codegen(context: BaseContext, builder: IRBuilder, signature: Signature, args: Sequence[Value]) -> Value:
         aryty = signature.args[0]
         ptr = cgutils.get_item_pointer(context, builder, aryty, context.make_array(aryty)(context, builder, args[0]), [args[1]])
         return builder.extract_value(builder.cmpxchg(ptr, args[2], args[3], "seq_cst", "seq_cst"), 0)
@@ -170,7 +191,7 @@ def _cas(typingctx, arr, i, expected, new):
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _claim_range(rcnt, v, st, nb, nr):
+def _claim_range(rcnt: I64, v: int, st: int, nb: int, nr: int) -> int:
     """Claim the next chunk of step st from range v of nr (chunks v·nb/nr ...), or -1 if all are claimed.
 
     rcnt[8v] counts the range's claims over all steps; a claim for step st succeeds only while it's below (st + 1)·len,
@@ -180,9 +201,10 @@ def _claim_range(rcnt, v, st, nb, nr):
     n = hi - lo
     if n == 0:
         return -1
-    c, lim = _load_acquire(rcnt, 8 * v), (st + 1) * n
+    c: int = _load_acquire(rcnt, 8 * v)
+    lim = (st + 1) * n
     while c < lim:
-        old = _cas(rcnt, 8 * v, c, c + 1)
+        old: int = _cas(rcnt, 8 * v, c, c + 1)
         if old == c:
             return lo + c - st * n
         c = old
