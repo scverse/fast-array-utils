@@ -178,14 +178,14 @@ def _score_block(  # noqa: C901, PLR0912, PLR0917
         for r in range(m):  # rows to columns, so the inner loop runs over rows: no horizontal sums
             for j in range(d):
                 xb[0, j, r] = x[r0 + r, j]
-    src = (xt, blk) if xt.shape[0] else (xb, 0)
+    src, sblk = (xt, blk) if xt.shape[0] else (xb, 0)
     dv[:, :] = 0.0
     nl = trials  # candidates still live in this block, in order
     for q in range(trials):
         lq[q] = q
     j, e = 0, min(FIRST_STAGE, d) if xt.shape[0] else d
     while True:
-        _score(src, cand, (lq, nl), dv, (j, e))
+        _score(src, sblk, cand, lq, nl, dv, j, e)
         j = e
         if e == d:
             break

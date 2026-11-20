@@ -346,7 +346,7 @@ def _separations(  # noqa: C901, PLR0917
     for bo in range(ctb.shape[0]):
         for t in range(nl):
             dvs[c_lo + t, :] = 0.0
-        _score((ctb, bo), centers, (lqc, nl), dvs, (0, d))
+        _score(ctb, bo, centers, lqc, nl, dvs, 0, d)
         for t in range(nl):
             c = c_lo + t
             for r in range(min(BLOCK_ROWS, k - bo * BLOCK_ROWS)):

@@ -160,11 +160,8 @@ _seed_tile1 = _make_seed_tile(1, BLOCK_ROWS)
 
 
 @numba.njit(inline="always", nogil=True, cache=True)
-def _score(block: tuple[FArr, int], cand: FArr, live: tuple[I64, int], dv: FArr, cols: tuple[int, int]) -> None:
-    """Add columns cols = [j0, j1) to the D² of the live candidates (lq[:nl]) for one BLOCK_ROWS block (src, blk)."""
-    src, blk = block
-    lq, nl = live
-    j0, j1 = cols
+def _score(src: FArr, blk: int, cand: FArr, lq: I64, nl: int, dv: FArr, j0: int, j1: int) -> None:  # noqa: PLR0917
+    """Add columns [j0, j1) to the D² of the live candidates lq[:nl] for block blk of src (BLOCK_ROWS rows)."""
     t = 0
     while t + 4 <= nl:
         _seed_tile4(src, blk, cand, lq, t, dv, 0, j0, j1)
