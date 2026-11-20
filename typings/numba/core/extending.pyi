@@ -62,6 +62,7 @@ def unbox[T: Type](
     [Callable[[T, Value, UnboxContext], NativeValue]],
     Callable[[T, Value, UnboxContext], NativeValue],
 ]: ...
+
 # The decorated function types the call at compile time (its arguments are numba types);
 # the intrinsic is then called from nopython code with runtime values, and numba decides the result type.
 type _Codegen = Callable[..., NativeValue | Value]

@@ -2,7 +2,7 @@
 """Clustering: exact, deterministic k-means (requires :doc:`numba <numba:index>`).
 
 Labels equal those of plain float64 Lloyd from the same seeds,
-and results don’t depend on the thread count, threading layer or CPU.
+and results don’t depend on the thread count or threading layer.
 """
 
 from __future__ import annotations
@@ -83,13 +83,13 @@ def kmeans(
 
     The labels are those of plain float64 Lloyd from the same seeds,
     and results don’t depend on the thread count or threading layer.
-    Hamerly’s bounds and exact rechecks of approximate distances skip most distance computations.
     Ties go to the lowest center index, as in the reference.
+    A center that loses all its rows moves to the row farthest from its center, as in scikit-learn.
 
     Parameters
     ----------
     x
-        Dense data, shape (n, d).
+        Dense data, shape (n, d); sparse and dask arrays aren’t supported.
         float32 and float64 are used as they are; other dtypes become float64.
     k
         Number of clusters, 1 ≤ k ≤ n.
