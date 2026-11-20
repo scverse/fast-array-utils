@@ -55,6 +55,16 @@ All of them support an `axis` and `dtype` parameter:
    mean = stats.mean(arr_2d)
    row_means, row_vars = stats.mean_var(arr_2d, axis=1)
 
+Use ``fast_array_utils.cluster.kmeans`` for k-means whose labels don’t depend on the thread count:
+
+.. code:: python
+
+   import numpy as np
+   from fast_array_utils.cluster import kmeans
+
+   res = kmeans(arr_2d, 10, rng=np.random.default_rng(0))
+   res.labels, res.centers, res.inertia, res.n_iter
+
 installation
 ------------
 

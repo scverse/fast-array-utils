@@ -247,7 +247,7 @@ def overload_sparse_copy(inst: CSType) -> Callable[[CSType], CSType] | None:
 
     # nopython code:
     def copy(inst: CSType) -> CSType:  # pragma: no cover
-        return _sparse_copy(inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape)  # type: ignore[return-value]
+        return _sparse_copy(inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape)  # type: ignore[no-any-return]
 
     return copy
 
