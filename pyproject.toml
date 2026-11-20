@@ -31,7 +31,7 @@ optional-dependencies.sparse = [ "scipy>=1.15" ]
 optional-dependencies.testing = [ "packaging" ]
 urls."Issue Tracker" = "https://github.com/scverse/fast-array-utils/issues"
 urls."Source Code" = "https://github.com/scverse/fast-array-utils"
-urls.Documentation = "https://icb-fast-array-utils.readthedocs-hosted.com/"
+urls.Documentation = "https://fast-array-utils.scverse.org/"
 entry-points.pytest11.fast_array_utils = "testing.fast_array_utils.pytest"
 
 [dependency-groups]
@@ -46,8 +46,8 @@ test = [
   { include-group = "test-min" },
 ]
 doc = [
-  "furo>=2024.8.6",
   "pytest>=8.4",
+  "scverse-doc[full]>=0.5.1",
   "sphinx>=9.0.1",
   "sphinx-autofixture>=0.4.1",
 ]
@@ -64,7 +64,7 @@ typecheck = [
   "cupy-stubs",
   "mypy",
   "scipy-stubs",
-  "sphinx",
+  "scverse-doc",
 ]
 
 [tool.hatch]

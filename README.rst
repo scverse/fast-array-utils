@@ -3,8 +3,8 @@
 .. |pypi| image:: https://img.shields.io/pypi/v/fast-array-utils
    :target: https://pypi.org/project/fast-array-utils/
 
-.. |docs| image:: https://app.readthedocs.org/projects/icb-fast-array-utils/badge/
-   :target: https://fast-array-utils.readthedocs.io/
+.. |docs| image:: https://app.readthedocs.org/projects/fast-array-utils/badge/
+   :target: https://fast-array-utils.scverse.org/
 
 .. |ci| image:: https://github.com/scverse/fast-array-utils/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/scverse/fast-array-utils/actions/workflows/ci.yml
