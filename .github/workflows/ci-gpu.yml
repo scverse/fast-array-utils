@@ -19,12 +19,15 @@ env:
   UV_HTTP_TIMEOUT: 120
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # unrelated `labeled` events (e.g. Dependabot’s labels right after `opened`) must not cancel the run.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'run-gpu-ci' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   check:
     name: Check Label
+    # skip (not fail) for unrelated labels, so they don’t turn the PR red
+    if: github.event.action != 'labeled' || github.event.label.name == 'run-gpu-ci'
     runs-on: ubuntu-latest
     steps:
       - uses: flying-sheep/check@v1
@@ -48,7 +51,7 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           enable-cache: true # "auto" is `false` on non-GitHub runners
       - name: Install package
