@@ -40,13 +40,12 @@ LAYERS: dict[TheadingCategory, set[ThreadingLayer]] = {
 }
 
 
-def _is_on_unsafe_thread() -> bool:
+def _is_on_worker_thread() -> bool:
     import threading
 
-    from ._parallel_runtime import _parallel_numba_runtime_layer
-
-    # We deem it unsafe if the caller is not the main thread and the layer numba launches isn’t threadsafe, and therefore fall back to serial.
-    return threading.current_thread() is not threading.main_thread() and _parallel_numba_runtime_layer() not in LAYERS["threadsafe"]
+    # Callers in thread pools (e.g. dask’s threaded scheduler) already parallelize,
+    # and parallel kernels in each thread would oversubscribe (omp gives every caller its own team).
+    return threading.current_thread() is not threading.main_thread()
 
 
 _inherited_layer: ThreadingLayer | None = None
@@ -78,6 +77,8 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> 
 
     On call, this function dispatches to a parallel or serial numba function,
     depending on the current threading environment.
+    When called from a thread other than the main thread (e.g. a dask worker or thread pool),
+    it runs the serial function, since the caller is assumed to parallelize already.
     In a process forked after numba launched a threading layer that isn’t fork-safe
     (GNU OpenMP on Linux), it runs the serial function.
     TBB is only fork-safe when forked from the thread that launched it, which isn’t detected.
@@ -107,14 +108,14 @@ def njit[**P, R](fn: Callable[P, R] | None = None, /, *, nogil: bool = True) -> 
         @wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             msg = None
+            if _is_on_worker_thread():
+                return fns[False](*args, **kwargs)
             if _is_in_unsafe_fork():
                 msg = (
                     f"Detected a fork after numba launched the {_inherited_layer} threading layer, which isn’t fork-safe here. "
                     f"Running {f.__name__} in serial mode. To avoid this fallback, use the `spawn` or `forkserver` start method, "
                     "or if you can’t control how the process is forked, set `NUMBA_THREADING_LAYER=forksafe` before running parallel code."
                 )
-            elif _is_on_unsafe_thread():  # pragma: no cover
-                msg = f"Detected unsupported threading environment. Trying to run {f.__name__} in serial mode. In case of problems, install `tbb`."
             elif _needs_parallel_runtime_probe() and _parallel_numba_runtime_layer() is None:
                 msg = (
                     f"Detected an unsupported numba parallel runtime. Running {f.__name__} in serial mode as a workaround. "
